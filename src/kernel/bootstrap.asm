@@ -1,4 +1,5 @@
 global loader           ; making entry point visible to linker
+extern kboot_initgdt            ; kmain is defined elsewhere
 extern kmain            ; kmain is defined elsewhere
  
 ; setting up the Multiboot header - see GRUB docs for details
@@ -15,14 +16,20 @@ MultiBootHeader:
    dd FLAGS
    dd CHECKSUM
  
+gdt: dw 0xffff
+    dd 0x00007e00 
+    
 ; reserve initial kernel stack space
 STACKSIZE equ 0x4000                  ; that's 16k.
  
 loader:
-   mov esp, stack+STACKSIZE           ; set up the stack
-   push eax                           ; pass Multiboot magic number
-   push ebx                           ; pass Multiboot info structure
-   call  kmain                       ; call kernel proper
+    mov     esp, stack+STACKSIZE           ; set up the stack
+    cli
+    call    kmain
+    int 2
+    jmp     hang
+        
+        
 hang:
    hlt                                ; halt machine should kernel return
    jmp   hang
@@ -32,7 +39,3 @@ align 4
 stack:
    resb STACKSIZE                     ; reserve 16k stack on a doubleword boundary
    
-   
-   
-   
-

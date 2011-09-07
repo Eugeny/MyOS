@@ -1,24 +1,39 @@
 ENTRY (loader)
 
-SECTIONS{
-    . = 0x00100000;
+SECTIONS
+{
+	. = 0x100000;
 
-    .text :{
-        *(.text)
-    }
+	.text ALIGN(4096) :
+	{
+		*(.text*)
+		*(.gnu.linkonce.t*)
+	}
 
-    .rodata ALIGN (0x1000) : {
-        *(.rodata)
-    }
+	.rodata ALIGN(4096) :
+	{
+		start_ctors = .;
+		*(.ctor*)
+		end_ctors = .;
 
-    .data ALIGN (0x1000) : {
-        *(.data)
-    }
+		start_dtors = .;
+		*(.dtor*)
+		end_dtors = .;
 
-    .bss : {
-        sbss = .;
-        *(COMMON)
-        *(.bss)
-        ebss = .;
-    }
+		*(.rodata*)
+		*(.gnu.linkonce.r*)
+	}
+	
+	.data ALIGN(4096) :
+	{
+		*(.data*)
+		*(.gnu.linkonce.d*)
+	}
+
+	.bss ALIGN(4096) :
+	{
+		*(.COMMON*)
+		*(.bss*)
+		*(.gnu.linkonce.b*)
+	}
 }
