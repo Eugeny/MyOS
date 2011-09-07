@@ -11,6 +11,6 @@ void kmain (void* mbd, unsigned int magic)
     }
     
     kprints("Loaded!");
-    putchar((int)"o");
+///    putchar((int)"o");
     for(;;);
 }

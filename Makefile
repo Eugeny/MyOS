@@ -1,9 +1,9 @@
-CC = uclibc/bin/i586-gcc
-LD = uclibc/bin/i586-ld
+CC = gcc
+LD = ld
 LIBS = uclibc/lib
 
 CFLAGS = -I uclibc/include -fno-builtin -Wall
-LDFLAGS = -t -L uclibc/lib -static -lc $(LIBS)/libc.a
+LDFLAGS = -t -L uclibc/lib -static
 
 KCFLAGS = 
 KLDFLAGS = -T src/kernel/linker.ld 
@@ -14,7 +14,8 @@ all: main
 main: kernel
 
 init:
-	mkdir -p build/kernel 2> /dev/null    
+	mkdir -p build/kernel 2> /dev/null || true
+	mkdir bin 2> /dev/null || true
     
 kernel: init
 	echo :: Building kernel > /dev/null
@@ -28,7 +29,7 @@ mount: umount
 umount:		
 	vmware-mount -d fs || true
 	sleep 1
-	vmware-mount -d fs
+	vmware-mount -d fs || true
 		
 deploy: main
 	echo :: Deploying > /dev/null
