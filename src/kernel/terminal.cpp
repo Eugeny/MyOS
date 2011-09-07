@@ -1,5 +1,5 @@
-#include "terminal.h"
-#include "kutils.h"
+#include "terminal.hpp"
+#include "kutils.hpp"
 
 
 Terminal::Terminal() {

@@ -24,14 +24,16 @@ clean:
 kernel: init
 	echo
 	nasm -felf -o   build/kernel/bootstrap.o                        src/kernel/bootstrap.asm
-	$(CC) -c -o     build/kernel/entry.o    $(CFLAGS) $(KCFLAGS)    src/kernel/entry.cpp 
+	$(CC) -c -o     build/kernel/entry.o    $(CFLAGS) $(KCFLAGS)    src/kernel/entry.c
 
 	echo
 	nasm -felf -o   build/kernel/interrupts.o                       src/kernel/interrupts.asm
-	$(CC) -c -o     build/kernel/idt.o      $(CFLAGS) $(KCFLAGS)    src/kernel/idt.cpp
-	$(CC) -c -o     build/kernel/gdt.o      $(CFLAGS) $(KCFLAGS)    src/kernel/gdt.cpp
-	$(CC) -c -o     build/kernel/isr.o      $(CFLAGS) $(KCFLAGS)    src/kernel/isr.cpp
+	$(CC) -c -o     build/kernel/idt.o      $(CFLAGS) $(KCFLAGS)    src/kernel/idt.c
+	$(CC) -c -o     build/kernel/gdt.o      $(CFLAGS) $(KCFLAGS)    src/kernel/gdt.c
+	$(CC) -c -o     build/kernel/isr.o      $(CFLAGS) $(KCFLAGS)    src/kernel/isr.c
 	nasm -felf -o   build/kernel/util.o                             src/kernel/util.asm
+
+	$(CC) -c -o     build/kernel/timer.o    $(CFLAGS) $(KCFLAGS)    src/kernel/timer.c
 
 	echo
 	$(CC) -c -o     build/kernel/kutils.o   $(CFLAGS) $(KCFLAGS)    src/kernel/kutils.cpp 
