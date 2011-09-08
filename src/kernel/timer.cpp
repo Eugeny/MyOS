@@ -1,4 +1,5 @@
 #include "timer.h"
+#include "kutils.h"
 #include "idt.h"
 
 void init_timer(u32int frequency)

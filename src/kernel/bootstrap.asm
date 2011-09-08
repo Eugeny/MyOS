@@ -1,4 +1,4 @@
-global loader
+global loader, end
 extern kmain
  
 MODULEALIGN equ  1<<0                   ; align loaded modules on page boundaries
@@ -29,3 +29,4 @@ align 4
 stack:
    resb STACKSIZE                     ; reserve 16k stack on a doubleword boundary
    
+end:

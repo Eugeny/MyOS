@@ -36,4 +36,6 @@ SECTIONS
 		*(.bss*)
 		*(.gnu.linkonce.b*)
 	}
+	
+    end = .; _end = .; __end = .;
 }
