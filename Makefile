@@ -2,7 +2,7 @@ CC = gcc
 LD = ld
 LIBS = uclibc/lib
 
-CFLAGS = -I uclibc/include -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions
+CFLAGS = -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wno-write-strings
 LDFLAGS = -t -L uclibc/lib -static
 
 KCFLAGS = 

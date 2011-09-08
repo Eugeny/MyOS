@@ -11,6 +11,8 @@ void Terminal::reset() {
     _cursorY = 0;
     _cursorVisible = TRUE;
     _attr = 0x7;
+    _buffer = (direct)?((char *)0xb8000):buffer;
+    dirty = 0;
 }
 
 void Terminal::write(char* s) {
@@ -24,6 +26,7 @@ void Terminal::write(char* s) {
         }
         s++;
     }
+    dirty = 1;
 }
 
 void Terminal::newLine() {
@@ -44,12 +47,13 @@ void Terminal::setAttr(int x, int y, u8int attr) {
 }
 
 void Terminal::scroll(int dy) {
-    for (int y = 0; y < HEIGHT-dy; y++) 
-        memcpy((void*)((int)_buffer+WIDTH*2*y), (void*)((int)_buffer+WIDTH*2*(y+dy)), WIDTH*2);
+    memcpy((void*)((int)_buffer), (void*)((int)_buffer+WIDTH*2), WIDTH*2*(HEIGHT-dy));
     memset((void*)((int)_buffer+WIDTH*2*(HEIGHT-dy)), 0, WIDTH*2);
 }
 
 void Terminal::draw() {
+    dirty = 0;
+    if (direct) return;
     unsigned char *vram = (unsigned char *)0xb8000;
     memcpy(vram, _buffer, WIDTH*HEIGHT*2);
 }

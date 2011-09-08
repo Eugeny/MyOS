@@ -4,31 +4,35 @@
 #include "kalloc.h"
 #include "isr.h"
 
-
-page_directory_t *kernel_directory=0;
+extern page_directory_t *kernel_directory=0;
 page_directory_t *current_directory=0;
 
 
 u32int *frames;
 u32int nframes;
+u32int used_frames = 0;
 
 #define BS_IDX(a) (a/32)
 #define BS_OFF(a) (a%32)
 
 // Static function to set a bit in the frames bitset
 static void set_frame(u32int frame) {
-   frame /= 0x1000;
-   u32int idx = BS_IDX(frame);
-   u8int  off = BS_OFF(frame);
-   frames[idx] |= (0x1 << off);
+    frame /= 0x1000;
+    u32int idx = BS_IDX(frame);
+    u8int  off = BS_OFF(frame);
+    if (!frames[idx] & (0x1 << off))
+        used_frames++;
+    frames[idx] |= (0x1 << off);
 }
 
 // Static function to clear a bit in the frames bitset
 static void clear_frame(u32int frame) {
-   frame /= 0x1000;
-   u32int idx = BS_IDX(frame);
-   u8int  off = BS_OFF(frame);
-   frames[idx] &= ~(0x1 << off);
+    frame /= 0x1000;
+    u32int idx = BS_IDX(frame);
+    u8int  off = BS_OFF(frame);
+    if (frames[idx] & (0x1 << off))
+        used_frames--;
+    frames[idx] &= ~(0x1 << off);
 }
 
 // Static function to test if a bit is set.
@@ -51,7 +55,7 @@ static u32int first_frame()
 }
 
 
-void alloc_frame(page_t *page, int is_kernel, int is_writeable)
+extern void paging_alloc_frame(page_t *page, int is_kernel, int is_writeable)
 {
    if (page->frame != 0)
    {
@@ -74,7 +78,7 @@ void alloc_frame(page_t *page, int is_kernel, int is_writeable)
 }
 
 // Function to deallocate a frame.
-void free_frame(page_t *page)
+extern void paging_free_frame(page_t *page)
 {
    u32int frame;
    if (!(frame=page->frame))
@@ -92,9 +96,20 @@ void free_frame(page_t *page)
 
 
 u32int get_total_ram() {
-    return 12 * 1024 * 1024;
+    return 512 * 1024 * 1024;
 }
 
+
+void paging_cover_kernel() {
+   u32int frame = 0;
+   u32int bound = 0xFFFFFFFF;
+   while (frame < bound)
+   {
+       paging_alloc_frame( paging_get_page(frame, 1, kernel_directory), 0, 0);
+       frame += 0x1000;
+       bound = kalloc_get_boundary();
+   }
+}
 
 extern void paging_init()
 {
@@ -115,18 +130,21 @@ extern void paging_init()
    // inside the loop body we actually change placement_address
    // by calling kmalloc(). A while loop causes this to be
    // computed on-the-fly rather than once at the start.
-   u32int frame = 0;
-   u32int bound = 0xFFFFFFFF;
-   while (frame < bound)
-   {
-       alloc_frame( paging_get_page(frame, 1, kernel_directory), 0, 0);
-       frame += 0x1000;
-       bound = kalloc_get_boundary();
-   }
-   // Before we enable paging, we must register our page fault handler.
-   set_interrupt_handler(14, page_fault);
 
-   paging_switch_directory(kernel_directory);
+    kheap_init();
+    kheap_map_pages();
+    paging_cover_kernel();
+    kheap_alloc_pages();
+    
+   // Before we enable paging, we must register our page fault handler.
+    set_interrupt_handler(14, page_fault);
+
+    paging_switch_directory(kernel_directory);
+}
+
+extern void paging_info(memory_info_t* i) {
+    i->total_frames = nframes;
+    i->used_frames = used_frames;
 }
 
 extern void paging_switch_directory(page_directory_t *dir)

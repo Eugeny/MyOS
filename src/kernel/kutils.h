@@ -10,6 +10,7 @@ extern "C" char* to_hex(u32int x);
 extern "C" char* to_dec(u32int x);
 
 extern "C" void klog_init();
+extern "C" void klog_flush();
 extern "C" void klog(char *s);
 extern "C" void klogn(char *s);
 extern "C" void *memset(void *s, char d, int l);

@@ -16,9 +16,46 @@ void on_timer(registers_t r) {
     s[14] = '0' + tick%10;
     tick++;
     kprintsp(s, 60, 0);
+    
+    klog_flush();
 }
 
  
+u32int alloc_dbg(char* n, u32int sz) {
+    u32int r, phy;
+    r = kmalloc_p(sz, &phy);
+    klogn("malloc(");
+    klogn(to_dec(sz));
+    klogn(") -> ");
+    klogn(n);
+    klogn(" = virt=0x");
+    klogn(to_hex(r));
+    klogn(" phy=0x");
+    klog(to_hex(phy));
+    return r;
+}
+
+extern heap_t kheap;
+void kheap_dbg() {
+    klog("\nKernel heap index");
+    for (int i=0;i<kheap.index_length;i++) {
+        klogn(to_dec(i));
+        if (kheap.index[i].flags == HEAP_HOLE)
+        klogn(" HOLE ");
+        else klogn(" DATA ");
+        klogn(to_hex(kheap.index[i].addr));
+        klogn(" + ");
+        klog(to_hex(kheap.index[i].size));
+    }
+}
+
+void mem_dbg() {
+    memory_info_t meminfo;
+    paging_info(&meminfo);
+    klogn("\nTotal frames: ");  klog(to_dec(meminfo.total_frames));
+    klogn("Used frames:  ");  klog(to_dec(meminfo.used_frames));
+}
+
 extern "C" void kmain (void* mbd, unsigned int magic)
 {
     if (magic != 0x2BADB002)
@@ -38,15 +75,35 @@ extern "C" void kmain (void* mbd, unsigned int magic)
     klog("Starting paging");
     paging_init();
     
-    klogn("malloc ");
-    klog(to_hex(kmalloc(400)));
-    klogn("malloc ");
-    klog(to_hex(kmalloc(4000)));
-    klogn("malloc ");
-    klog(to_hex(kmalloc(40000)));
+    mem_dbg();   
+    
+    u32int a, b, c, d, e, t;
+
+    a = alloc_dbg("a", 32);
+
+    klog("Enabling heap allocator");
+    kheap_enable();
+
+
+    a = alloc_dbg("a", 32);
+    b = alloc_dbg("b", 16);
+    c = alloc_dbg("c", 16);
+    d = alloc_dbg("d", 16);
+
+    t = *((u32int*)a);
+    
+    klogn("free a");
+    kfree(a);
+    klog(" free c");
+    kfree(c);
      
-     
-    u32int x = *((u32int*)0xFFFFFFFF);       
+    e = alloc_dbg("e", 3);
+    c = alloc_dbg("c", 40);
+
+    kheap_dbg();
+    
+    mem_dbg();   
+    //u32int x = *((u32int*)0xFFFFFFFF);       
     /*
     klog("Working...");
     

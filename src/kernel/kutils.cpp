@@ -4,18 +4,23 @@
 Terminal kterm;
 
 extern "C" void klog_init() {
+//    kterm.direct = 1;
     kterm.reset();
+}
+
+extern "C" void klog_flush() {
+//    kterm.direct = 1;
+    if (kterm.dirty)
+        kterm.draw();
 }
 
 extern "C" void klog(char* s) {
     kterm.write(s);
     kterm.write("\n");
-    kterm.draw();
 }
 
 extern "C" void klogn(char* s) {
     kterm.write(s);
-    kterm.draw();
 }
 
 extern "C" void kprints(char *s) {
@@ -44,6 +49,10 @@ extern "C" char* to_hex(u32int x) {
     char digits[] = "0123456789ABCDEF";
     buf[BS-1] = 0;
     int b = BS - 1;
+    
+    if (x == 0)
+        buf[b++] = '0';
+    
     while (x) {
         buf[--b] = digits[x%16];
         x /= 16;
@@ -54,6 +63,10 @@ extern "C" char* to_hex(u32int x) {
 extern "C" char* to_dec(u32int x) {
     buf[BS-1] = 0;
     int b = BS - 1;
+    
+    if (x == 0)
+        buf[b++] = '0';
+    
     while (x) {
         buf[--b] = '0' + x%10;
         x /= 10;
@@ -106,5 +119,6 @@ extern "C" u16int kpanic(char* file, u32int line, char* msg) {
     klogn(file);
     klogn(":");
     klog(to_dec(line));
+    klog_flush();
     for (;;);
 }

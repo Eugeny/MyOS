@@ -18,8 +18,11 @@ public:
     char getCh(int x, int y);
     u8int getAttr(int x, int y);
     void scroll(int dy);
+    
+    int direct, dirty;
 private:
-    char _buffer[WIDTH*HEIGHT*2];
+    char buffer[WIDTH*HEIGHT*2] __attribute__ ((aligned (16)));
+    char* _buffer;
     int _cursorX, _cursorY;
     u8int _attr;
     bool _cursorVisible;
