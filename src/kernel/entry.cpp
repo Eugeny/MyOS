@@ -17,7 +17,7 @@ void on_timer(registers_t r) {
     s[14] = '0' + tick%10;
     tick++;
     kprintsp(s, 60, 0);
-    
+    switch_task();
     klog_flush();
 }
 
@@ -68,14 +68,14 @@ extern "C" void kmain (void* mbd, u32int esp)
     idt_init();
 
     reset_interrupt_handlers();
-    init_timer(1000);
+    init_timer(50);
     
     set_interrupt_handler(IRQ(0), on_timer);
      
     klog("Starting paging");
     paging_init();
     
-    move_stack((void*)0xE0000000, 0x2000);
+    initialise_tasking();
     
     /*
     mem_dbg();   

@@ -13,7 +13,7 @@ u32int nframes;
 u32int used_frames = 0;
 
 extern "C" void copy_page_physical(u32int src ,  u32int dst);
-static page_directory_t* clone_directory(page_directory_t*);
+page_directory_t* clone_directory(page_directory_t*);
 
 #define BS_IDX(a) (a/32)
 #define BS_OFF(a) (a%32)

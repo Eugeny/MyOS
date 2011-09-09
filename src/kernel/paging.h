@@ -66,6 +66,8 @@ extern void paging_free_frame(page_t *page);
 **/
 extern void paging_switch_directory(page_directory_t *n);
 
+extern page_directory_t *clone_directory(page_directory_t *n);
+
 /**
   Retrieves a pointer to the page required.
   If make == 1, if the page-table in which this page should
