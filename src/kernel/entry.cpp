@@ -5,6 +5,7 @@
 #include "isr.h"
 #include "kalloc.h"
 #include "paging.h"
+#include "tasking.h"
 
 
 void on_timer(registers_t r) {
@@ -56,11 +57,10 @@ void mem_dbg() {
     klogn("Used frames:  ");  klog(to_dec(meminfo.used_frames));
 }
 
-extern "C" void kmain (void* mbd, unsigned int magic)
+u32int initial_esp;
+extern "C" void kmain (void* mbd, u32int esp)
 {
-    if (magic != 0x2BADB002)
-    {
-    }
+    initial_esp = esp;
     
     klog_init();
     
@@ -75,6 +75,9 @@ extern "C" void kmain (void* mbd, unsigned int magic)
     klog("Starting paging");
     paging_init();
     
+    move_stack((void*)0xE0000000, 0x2000);
+    
+    /*
     mem_dbg();   
     
     u32int a, b, c, d, e, t;
@@ -103,8 +106,8 @@ extern "C" void kmain (void* mbd, unsigned int magic)
     kheap_dbg();
     
     mem_dbg();   
-    //u32int x = *((u32int*)0xFFFFFFFF);       
-    /*
+    */
+
     klog("Working...");
     
     char s[] = "Test  ";
@@ -114,8 +117,6 @@ extern "C" void kmain (void* mbd, unsigned int magic)
         klog(s);
         for (i=0;i<300000000;i++);
     }
-///    putchar((int)"o");
-    */
     for(;;);
 }
 

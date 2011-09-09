@@ -15,18 +15,15 @@ MultiBootHeader:
    dd CHECKSUM
  
     
-; reserve initial kernel stack space
-STACKSIZE equ 0x4000                  ; that's 16k.
  
 loader:
-    mov     esp, stack+STACKSIZE           ; set up the stack
     cli
+    push    esp
+    push    ebx
     call    kmain
     jmp     $
         
 section .bss
 align 4
-stack:
-   resb STACKSIZE                     ; reserve 16k stack on a doubleword boundary
    
 end:

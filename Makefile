@@ -37,6 +37,7 @@ kernel: init
 	$(CC) -c -o     build/kernel/timer.o    $(CFLAGS) $(KCFLAGS)    src/kernel/timer.cpp
 	$(CC) -c -o     build/kernel/kalloc.o   $(CFLAGS) $(KCFLAGS)    src/kernel/kalloc.cpp
 	$(CC) -c -o     build/kernel/paging.o   $(CFLAGS) $(KCFLAGS)    src/kernel/paging.cpp
+	$(CC) -c -o     build/kernel/tasking.o  $(CFLAGS) $(KCFLAGS)    src/kernel/tasking.cpp
 
 	echo
 	$(CC) -c -o     build/kernel/kutils.o   $(CFLAGS) $(KCFLAGS)    src/kernel/kutils.cpp 
