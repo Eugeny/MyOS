@@ -30,7 +30,7 @@ void initialise_tasking()
     asm volatile("cli");
 
     // Relocate the stack so we know where it is.
-    move_stack((void*)0xE0000000, 0x2000);
+    move_stack((void*)0x90000000, 0x20000);
 
     // Initialise the first task (kernel task)
     current_task = ready_queue = (task_t*)kmalloc(sizeof(task_t));
@@ -98,15 +98,14 @@ void move_stack(void *new_stack_start, u32int size)
 
 void switch_task()
 {
-    // If we haven't initialised tasking yet, just return.
+TRACE;
     if (!current_task)
         return;
-
     // Read esp, ebp now for saving later on.
     u32int esp, ebp, eip;
     asm volatile("mov %%esp, %0" : "=r"(esp));
     asm volatile("mov %%ebp, %0" : "=r"(ebp));
-
+TRACE;
     // Read the instruction pointer. We do some cunning logic here:
     // One of two things could have happened when this function exits - 
     //   (a) We called the function and it returned the EIP as requested.
@@ -117,16 +116,18 @@ void switch_task()
     // value in EAX further down at the end of this function. As C returns values in EAX,
     // it will look like the return value is this dummy value! (0x12345).
     eip = read_eip();
-
+TRACE;
     // Have we just switched tasks?
-    if (eip == 0x12345)
+    if (eip == 0x12345) {
+TRACE;    // If we haven't initialised tasking yet, just return.
         return;
-
+}
+TRACE;
     // No, we didn't switch tasks. Let's save some register values and switch.
     current_task->eip = eip;
     current_task->esp = esp;
     current_task->ebp = ebp;
-    
+TRACE;
     // Get the next task to run.
     current_task = current_task->next;
     // If we fell off the end of the linked list start again at the beginning.
@@ -136,6 +137,7 @@ void switch_task()
     esp = current_task->esp;
     ebp = current_task->ebp;
 
+    DEBUG(to_dec(getpid()));
     // Make sure the memory manager knows we've changed page directory.
     current_directory = current_task->page_directory;
     // Here we:
@@ -148,14 +150,13 @@ void switch_task()
     // * Restarts interrupts. The STI instruction has a delay - it doesn't take effect until after
     //   the next instruction.
     // * Jumps to the location in ECX (remember we put the new EIP in there).
+TRACE;    
     asm volatile("         \
-      cli;                 \
       mov %0, %%ecx;       \
       mov %1, %%esp;       \
       mov %2, %%ebp;       \
       mov %3, %%cr3;       \
       mov $0x12345, %%eax; \
-      sti;                 \
       jmp *%%ecx           "
                  : : "r"(eip), "r"(esp), "r"(ebp), "r"(current_directory->physicalAddr));
 }

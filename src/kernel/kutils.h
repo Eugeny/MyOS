@@ -20,6 +20,10 @@ extern "C" u8int inb(u16int port);
 extern "C" u16int inw(u16int port);
 
 
+
+#define TRACE klogn("Tracing: ");klogn(__FILE__);klogn(":");klog(to_dec( __LINE__));klog_flush();
+#define DEBUG(x) klogn("Debug: ");klogn(x);klogn(" at ");klogn(__FILE__);klogn(":");klog(to_dec( __LINE__));klog_flush();
+
 #define PANIC(s) kpanic(__FILE__, __LINE__, s)
 extern "C" u16int kpanic(char* file, u32int line, char* msg);
 

@@ -1,5 +1,6 @@
 #include "types.h"
 #include "kalloc.h"
+#include "kutils.h"
 #include "paging.h"
 
 extern u32int end;
@@ -43,6 +44,7 @@ u32int kmalloc_dumb(u32int sz, u8int align, u32int *phys) {
 }
 
 u32int kmalloc_kheap(u32int sz, u8int align, u32int *phys) {
+TRACE
     u32int addr = (u32int)heap_alloc(&kheap, align, sz);
     if (phys != 0) {
         page_t *page = paging_get_page((u32int)addr, 0, kernel_directory);

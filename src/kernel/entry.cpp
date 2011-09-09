@@ -17,8 +17,12 @@ void on_timer(registers_t r) {
     s[14] = '0' + tick%10;
     tick++;
     kprintsp(s, 60, 0);
+        for (int i=0;i<100000000;i++);
+TRACE;    
     switch_task();
-    klog_flush();
+TRACE;    
+//    klog_flush();
+TRACE;    
 }
 
  
@@ -76,7 +80,8 @@ extern "C" void kmain (void* mbd, u32int esp)
     paging_init();
     
     initialise_tasking();
-    
+    fork();
+     
     /*
     mem_dbg();   
     
@@ -108,8 +113,11 @@ extern "C" void kmain (void* mbd, u32int esp)
     mem_dbg();   
     */
 
-    klog("Working...");
+    asm volatile("cli");
+    klog(to_dec(getpid()));
+    asm volatile("sti");
     
+    for(;;);
     char s[] = "Test  ";
     int c = 0,i=0;
     while (1) {

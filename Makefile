@@ -1,8 +1,8 @@
-CC = gcc
+CC = g++
 LD = ld
 LIBS = uclibc/lib
 
-CFLAGS = -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wno-write-strings
+CFLAGS = -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wno-write-strings -O0
 LDFLAGS = -t -L uclibc/lib -static
 
 KCFLAGS = 

@@ -202,9 +202,10 @@ void page_fault(registers_t regs)
    // Output an error message.
    klogn("PAGE FAULT: ");
    if (present) {klogn("notpresent ");}
-   if (rw) {klogn("ro ");}
+   if (rw) {klogn("write ");}
    if (us) {klogn("user ");}
    if (reserved) {klogn("reserved ");}
+   if (id) {klogn("exec ");}
    klogn(" at ");
    klog(to_hex(faulting_address));
    PANIC("Page fault");
