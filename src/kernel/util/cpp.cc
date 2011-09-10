@@ -1,7 +1,42 @@
 #include <memory/Heap.h>
 #include <kutils.h>
 
+
+// Standard library
+void *memset(void *s, char d, int l) {
+    for (int i = 0; i < l; i++)
+        *(char*)((int)s+i) = d;
+    return s;
+}
+
+void *memcpy(void *dest, const void *src, int n) {
+    for (int i = 0; i < n; i++)
+        *(char*)((int)dest+i) = *(char*)((int)src+i);
+    return dest;
+}
+
+void outb(u16int port, u8int value) {
+    asm volatile ("outb %1, %0" : : "dN" (port), "a" (value));
+}
+
+u8int inb(u16int port) {
+   u8int ret;
+   asm volatile("inb %1, %0" : "=a" (ret) : "dN" (port));
+   return ret;
+}
+
+u16int inw(u16int port) {
+   u16int ret;
+   asm volatile ("inw %1, %0" : "=a" (ret) : "dN" (port));
+   return ret;
+}
+
+
+
+
+// C++ Language Support
 void *__dso_handle;
+
 
 // Defined in the linker.
 extern "C" u32int start_ctors;

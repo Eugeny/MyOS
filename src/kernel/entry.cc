@@ -1,9 +1,9 @@
 #include "kutils.h"
-#include "gdt.h"
 #include "idt.h"
 #include "timer.h"
 #include "isr.h"
 #include <memory/Heap.h>
+#include <memory/GDT.h>
 #include <util/cpp.h>
 #include "paging.h"
 #include "tasking.h"
@@ -62,23 +62,21 @@ void mem_dbg() {
 u32int initial_esp;
 extern "C" void kmain (void* mbd, u32int esp)
 {
+    initial_esp = esp;
+
     heap_selfinit();
     Heap::get()->init();
     
     klog_init();
-TRACE
     initialiseConstructors();
-TRACE
     
-    initial_esp = esp;
     
-TRACE
     Heap::get()->init();
-TRACE
     
-TRACE
+    GDT::get()->init();
+    GDT::get()->setDefaults();
+    GDT::get()->flush();
     
-    gdt_init();
     idt_init();
 
     reset_interrupt_handlers();

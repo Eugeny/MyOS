@@ -7,7 +7,6 @@ ASFLAGS=-felf
 SOURCES= \
     src/kernel/bootstrap.o \
     src/kernel/entry.o \
-    src/kernel/gdt.o \
     src/kernel/idt.o \
     src/kernel/interrupts.o \
     src/kernel/isr.o \
@@ -17,6 +16,8 @@ SOURCES= \
     src/kernel/terminal.o\
     src/kernel/timer.o \
     src/kernel/memory/Heap.o \
+    src/kernel/memory/GDT.o \
+    src/kernel/memory/GDTUtil.o \
     src/kernel/util.o \
     src/kernel/util/cpp.o \
     src/kernel/util/lock.o \
