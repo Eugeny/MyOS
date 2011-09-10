@@ -2,7 +2,7 @@
 #define PAGING_H
 
 #include "isr.h"
-#include "types.h"
+#include <util/cpp.h>
 
 typedef struct page
 {

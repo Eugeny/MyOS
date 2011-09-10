@@ -1,7 +1,7 @@
 #ifndef KUTILS_HPP
 #define KUTILS_HPP
 
-#include "types.h"
+#include <util/cpp.h>
 
 extern "C" void kprints(char *s);
 extern "C" void kprintsp(char *s, int x, int y);

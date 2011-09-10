@@ -1,5 +1,5 @@
-#ifndef LLIST_H
-#define LLIST_H
+#ifndef UTIL_LINKEDLIST_H
+#define UTIL_LINKEDLIST_H
 
 class LinkedListEntry<T> {
 public:

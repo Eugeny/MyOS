@@ -1,5 +1,8 @@
+#include <memory/Heap.h>
+#include <kutils.h>
+#include <paging.h>
 
-
+// Generic heap code
 
 int          heap__find_hole(heap_t *h, u8int align, u32int sz);
 heap_item_t *heap__insert(heap_t *h, int idx);
@@ -95,8 +98,7 @@ int heap__find_hole(heap_t *h, u8int align, u32int sz) {
         }
             
     if (bestsz == 0xFFFFFFFF) {
-       // TODO heap__expand(h, sz + (align?0x1000:0));
-        best = h->index_length;
+        PANIC("Out of kernel heap");
     }
     return best;
 }
@@ -113,3 +115,119 @@ void heap__remove(heap_t *h, int idx) {
         h->index[i-1] = h->index[i];
     h->index_length--;
 }
+
+// End of generic heap code
+
+
+#define KHEAP_BASE 0xC0000000
+#define KHEAP_INDEX_SIZE 0x200000
+#define KHEAP_SIZE 0x1000000
+
+extern u32int end; // Linker provided, end of kernel image
+static u32int free_space_start = (u32int)&end;
+
+void heap_selfinit() {
+    static Heap heap;
+    Heap::_selfinit(&heap);
+}
+
+void Heap::_selfinit(Heap *h) {
+    Heap::_instance = h;
+}
+
+void Heap::init() {
+    heap_ready = false;
+    kheap.base = KHEAP_BASE;
+    kheap.size = KHEAP_SIZE;
+    heap_init(&kheap, KHEAP_INDEX_SIZE);
+}
+
+
+void* Heap::malloc(u32int sz) {
+    return this->malloc(sz, false, NULL);
+}
+
+void* Heap::malloc(u32int sz, bool align, u32int *phys) {
+    if (!heap_ready)
+        return (void*)malloc_dumb(sz, align, phys);
+    else
+        return (void*)malloc_kheap(sz, align, phys);
+}
+
+void Heap::free(void* addr) {
+    if (heap_ready)
+        heap_free(&kheap, (u32int)addr);
+}
+
+
+
+u32int Heap::malloc_dumb(u32int sz, u8int align, u32int *phys) {
+    u32int addr = free_space_start;
+    
+    if (align == 1 && (addr & 0xFFF)) {
+        addr &= 0xFFFFF000;
+        addr += 0x1000;
+    }
+
+    if (phys)
+        *phys = addr;
+
+    u32int tmp = addr;
+    addr += sz;
+    free_space_start = addr;
+    return tmp;
+}
+
+u32int Heap::malloc_kheap(u32int sz, u8int align, u32int *phys) {
+    u32int addr = (u32int)heap_alloc(&kheap, align, sz);
+    if (phys != 0) {
+        page_t *page = paging_get_page((u32int)addr, 0, kernel_directory);
+        *phys = page->frame*0x1000 + (((u32int)addr)&0xFFF);
+    }
+    return addr;
+}
+
+
+// Identity-maps the kernel memory and enables higher heap
+void Heap::switchToHeap() {
+    for (u32int i = kheap.base; i < kheap.base + kheap.size; i += 0x1000)
+        paging_get_page(i, 1, kernel_directory);
+        
+    u32int frame = 0;
+    u32int bound = 0xFFFFFFFF;
+    while (frame < free_space_start)
+    { 
+        paging_alloc_frame( paging_get_page(frame, 1, kernel_directory), 0, 0);
+        frame += 0x1000;
+    }
+    
+    for (u32int i = kheap.base; i < kheap.base + kheap.size; i += 0x1000)
+        paging_alloc_frame(paging_get_page(i, 0, kernel_directory), 0, 0);
+
+    heap_ready = true;
+}
+
+
+// Conventional functions
+
+void* kmalloc_a(u32int sz) {
+    return Heap::get()->malloc(sz, true, NULL);
+}
+
+void* kmalloc_p(u32int sz, u32int *phys) {
+    return Heap::get()->malloc(sz, false, phys);
+}
+
+void* kmalloc_ap(u32int sz, u32int *phys) {
+    return Heap::get()->malloc(sz, true, phys);
+}
+
+void* kmalloc(u32int sz) {
+    return Heap::get()->malloc(sz, false, NULL);
+}
+
+void  kfree(void *addr) {
+    Heap::get()->free(addr);
+}
+
+

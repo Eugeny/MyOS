@@ -9,7 +9,7 @@ Terminal::Terminal() {
 void Terminal::reset() {   
     _cursorX = 0;	
     _cursorY = 0;
-    _cursorVisible = TRUE;
+    _cursorVisible = true;
     _attr = 0x7;
     _buffer = (direct)?((char *)0xb8000):buffer;
     dirty = 0;

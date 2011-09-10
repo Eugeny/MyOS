@@ -1,7 +1,7 @@
 #ifndef GDT_H
 #define GDT_H
 
-#include "types.h"
+#include <util/cpp.h>
 
 #define GDT_SIZE 256
 

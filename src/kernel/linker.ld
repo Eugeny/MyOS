@@ -12,13 +12,9 @@ SECTIONS
 
 	.rodata ALIGN(4096) :
 	{
-		start_ctors = .;
+		start_ctors = .; _start_ctors = .; __start_ctors = .;
 		*(.ctor*)
-		end_ctors = .;
-
-		start_dtors = .;
-		*(.dtor*)
-		end_dtors = .;
+		end_ctors = .; _end_ctors = .; __end_ctors = .;
 
 		*(.rodata*)
 		*(.gnu.linkonce.r*)

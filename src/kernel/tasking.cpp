@@ -1,10 +1,5 @@
-// 
-// task.c - Implements the functionality needed to multitask.
-//          Written for JamesM's kernel development tutorials.
-//
-
 #include "tasking.h"
-#include "kalloc.h"
+#include <memory/Heap.h>
 #include "kutils.h"
 #include "paging.h"
 
@@ -35,7 +30,7 @@ void initialise_tasking()
     // Initialise the first task (kernel task)
     current_task = ready_queue = (task_t*)kmalloc(sizeof(task_t));
     current_task->id = next_pid++;
-    current_task->esp = current_task->ebp = 0;
+    current_task->esp = 0;
     current_task->eip = 0;
     current_task->page_directory = current_directory;
     current_task->next = 0;
@@ -121,7 +116,6 @@ void switch_task()
     // No, we didn't switch tasks. Let's save some register values and switch.
     current_task->eip = eip;
     current_task->esp = esp;
-    current_task->ebp = ebp;
     // Get the next task to run.
     current_task = current_task->next;
     // If we fell off the end of the linked list start again at the beginning.
@@ -129,7 +123,6 @@ void switch_task()
 
     eip = current_task->eip;
     esp = current_task->esp;
-    ebp = current_task->ebp;
 
  //   DEBUG(to_dec(getpid()));
     // Make sure the memory manager knows we've changed page directory.
@@ -169,7 +162,7 @@ int fork()
     task_t *new_task = (task_t*)kmalloc(sizeof(task_t));
 
     new_task->id = next_pid++;
-    new_task->esp = new_task->ebp = 0;
+    new_task->esp = 0;
     new_task->eip = 0;
     new_task->page_directory = directory;
     new_task->next = 0;
@@ -189,9 +182,7 @@ int fork()
     {
         // We are the parent, so set up the esp/ebp/eip for our child.
         u32int esp; asm volatile("mov %%esp, %0" : "=r"(esp));
-        u32int ebp; asm volatile("mov %%ebp, %0" : "=r"(ebp));
         new_task->esp = esp;
-        new_task->ebp = ebp;
         new_task->eip = eip;
         asm volatile("sti");
 

@@ -1,7 +1,7 @@
 #include "paging.h"
-#include "types.h"
+#include <util/cpp.h>
 #include "kutils.h"
-#include "kalloc.h"
+#include <memory/Heap.h>
 #include "isr.h"
 
 page_directory_t *kernel_directory=0;
@@ -103,21 +103,11 @@ u32int get_total_ram() {
 }
 
 
-void paging_cover_kernel() {
-   u32int frame = 0;
-   u32int bound = 0xFFFFFFFF;
-   while (frame < bound)
-   {
-       paging_alloc_frame( paging_get_page(frame, 1, kernel_directory), 0, 0);
-       frame += 0x1000;
-       bound = kalloc_get_boundary();
-   }
-}
 
 extern void paging_init()
 {
    u32int mem_end_page = get_total_ram();
-
+TRACE
    nframes = mem_end_page / 0x1000;
    frames = (u32int*)kmalloc(BS_IDX(nframes));
    memset(frames, 0, BS_IDX(nframes));
@@ -125,6 +115,7 @@ extern void paging_init()
    kernel_directory = (page_directory_t*)kmalloc_a(sizeof(page_directory_t));
    memset(kernel_directory, 0, sizeof(page_directory_t));
     kernel_directory->physicalAddr = (u32int)kernel_directory->tablesPhysical;
+TRACE
 
    // We need to identity map (phys addr = virt addr) from
    // 0x0 to the end of used memory, so we can access this
@@ -134,11 +125,9 @@ extern void paging_init()
    // by calling kmalloc(). A while loop causes this to be
    // computed on-the-fly rather than once at the start.
 
-    kheap_init();
-    kheap_map_pages();
-    paging_cover_kernel();
-    kheap_alloc_pages();
-    kheap_enable();
+TRACE
+    Heap::get()->switchToHeap();
+TRACE
     
    // Before we enable paging, we must register our page fault handler.
     set_interrupt_handler(14, page_fault);

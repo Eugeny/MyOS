@@ -1,51 +1,46 @@
 CC = g++
-LD = ld
-LIBS = uclibc/lib
 
-CFLAGS = -g -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wno-write-strings -O0
-LDFLAGS = -t -L uclibc/lib -static
+CFLAGS = -c -g -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wno-write-strings -O0
+LDFLAGS = -t -L uclibc/lib -static -T src/kernel/linker.ld -Map bin/kernel.map
+ASFLAGS=-felf
 
-KCFLAGS = 
-KLDFLAGS = -T src/kernel/linker.ld -Map build/kernel.map
+SOURCES= \
+    src/kernel/bootstrap.o \
+    src/kernel/entry.o \
+    src/kernel/gdt.o \
+    src/kernel/idt.o \
+    src/kernel/interrupts.o \
+    src/kernel/isr.o \
+    src/kernel/kutils.o \
+    src/kernel/paging.o \
+    src/kernel/tasking.o \
+    src/kernel/terminal.o\
+    src/kernel/timer.o \
+    src/kernel/memory/Heap.o \
+    src/kernel/util.o \
+    src/kernel/util/cpp.o \
+    src/kernel/util/lock.o \
 
+all: $(SOURCES) link
 
-all: main
-
-main: kernel
-
-init:
-	mkdir -p build/kernel 2> /dev/null || true
-	mkdir bin 2> /dev/null || true
-    
 clean:
-	rm -r build/*
-	rm -r bin/*
-        
-kernel: init
-	echo
-	nasm -felf -o   build/kernel/bootstrap.o                        src/kernel/bootstrap.asm
-	$(CC) -c -o     build/kernel/entry.o    $(CFLAGS) $(KCFLAGS)    src/kernel/entry.cpp
+	find -name '*.o' -delete
+	rm bin/kernel || true
 
-	echo
-	nasm -felf -o   build/kernel/interrupts.o                       src/kernel/interrupts.asm
-	$(CC) -c -o     build/kernel/idt.o      $(CFLAGS) $(KCFLAGS)    src/kernel/idt.cpp
-	$(CC) -c -o     build/kernel/gdt.o      $(CFLAGS) $(KCFLAGS)    src/kernel/gdt.cpp
-	$(CC) -c -o     build/kernel/isr.o      $(CFLAGS) $(KCFLAGS)    src/kernel/isr.cpp
-	nasm -felf -o   build/kernel/util.o                             src/kernel/util.asm
+link:
+	ld $(LDFLAGS) -o bin/kernel $(SOURCES)
 
-	echo
-	$(CC) -c -o     build/kernel/timer.o    $(CFLAGS) $(KCFLAGS)    src/kernel/timer.cpp
-	$(CC) -c -o     build/kernel/kalloc.o   $(CFLAGS) $(KCFLAGS)    src/kernel/kalloc.cpp
-	$(CC) -c -o     build/kernel/paging.o   $(CFLAGS) $(KCFLAGS)    src/kernel/paging.cpp
-	$(CC) -c -o     build/kernel/tasking.o  $(CFLAGS) $(KCFLAGS)    src/kernel/tasking.cpp
+.s.o:
+	nasm $(ASFLAGS) $<
 
-	echo
-	$(CC) -c -o     build/kernel/kutils.o   $(CFLAGS) $(KCFLAGS)    src/kernel/kutils.cpp 
-	$(CC) -c -o     build/kernel/terminal.o $(CFLAGS) $(KCFLAGS)    src/kernel/terminal.cpp 
+.cc.o:
+	$(CC) $(CFLAGS) $< -o $@
+
+.cpp.o:
+	$(CC) $(CFLAGS) $< -o $@
 	
-	echo
-	$(LD) $(KLDFLAGS) $(LDFLAGS) build/kernel/*.o -o bin/kernel
 	
+
 mount: umount
 	vmware-mount ~/vmware/MyOS/MyOS-0.vmdk fs
 	
@@ -54,12 +49,10 @@ umount:
 	sleep 2
 	vmware-mount -d fs || true
 		
-deploy: main
+deploy: all
 	echo
 	vmware-mount ~/vmware/MyOS/MyOS-0.vmdk fs
 	sudo cp bin/kernel fs/kernel
 	vmware-mount -d fs || true
 	sleep 2
 	vmware-mount -d fs || true
-	
-.PHONY: init mount umount main kernel deploy 

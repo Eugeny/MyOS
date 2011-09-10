@@ -1,7 +1,7 @@
 #ifndef TERMINAL_H
 #define TERMINAL_H
 
-#include "types.h"
+#include <util/cpp.h>
 
 #define WIDTH  80
 #define HEIGHT 25

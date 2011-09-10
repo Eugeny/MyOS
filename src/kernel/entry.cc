@@ -3,7 +3,8 @@
 #include "idt.h"
 #include "timer.h"
 #include "isr.h"
-#include "kalloc.h"
+#include <memory/Heap.h>
+#include <util/cpp.h>
 #include "paging.h"
 #include "tasking.h"
 
@@ -24,7 +25,7 @@ void on_timer(registers_t r) {
  
 u32int alloc_dbg(char* n, u32int sz) {
     u32int r, phy;
-    r = kmalloc_p(sz, &phy);
+    r = (u32int)kmalloc_p(sz, &phy);
     klogn("malloc(");
     klogn(to_dec(sz));
     klogn(") -> ");
@@ -37,7 +38,7 @@ u32int alloc_dbg(char* n, u32int sz) {
 }
 
 extern heap_t kheap;
-void kheap_dbg() {
+/*void kheap_dbg() {
     klog("\nKernel heap index");
     for (int i=0;i<kheap.index_length;i++) {
         klogn(to_dec(i));
@@ -48,7 +49,7 @@ void kheap_dbg() {
         klogn(" + ");
         klog(to_hex(kheap.index[i].size));
     }
-}
+}*/
 
 void mem_dbg() {
     memory_info_t meminfo;
@@ -57,12 +58,25 @@ void mem_dbg() {
     klogn("Used frames:  ");  klog(to_dec(meminfo.used_frames));
 }
 
+
 u32int initial_esp;
 extern "C" void kmain (void* mbd, u32int esp)
 {
-    initial_esp = esp;
+    heap_selfinit();
+    Heap::get()->init();
     
     klog_init();
+TRACE
+    initialiseConstructors();
+TRACE
+    
+    initial_esp = esp;
+    
+TRACE
+    Heap::get()->init();
+TRACE
+    
+TRACE
     
     gdt_init();
     idt_init();
@@ -80,10 +94,12 @@ extern "C" void kmain (void* mbd, u32int esp)
 
     int pid = fork();fork();fork();
 
-        char s[] = "> Process x reporting";
+        char s[] = "> Process x x reporting";
         int c = 0;
+        int p = getpid();
         while (1) {
             s[10] = (char)((int)'0' + getpid());
+            s[12] = (char)((int)'0' + p);
             klog(s);klog_flush();
             for (int i=0;i<300000000;i++);
         }
