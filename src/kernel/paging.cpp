@@ -2,7 +2,7 @@
 #include <util/cpp.h>
 #include "kutils.h"
 #include <memory/Heap.h>
-#include "isr.h"
+#include <interrupts/Interrupts.h>
 
 page_directory_t *kernel_directory=0;
 page_directory_t *current_directory=0;
@@ -104,6 +104,30 @@ u32int get_total_ram() {
 
 
 
+void page_fault(isrq_registers_t regs)
+{
+   u32int faulting_address;
+   asm volatile("mov %%cr2, %0" : "=r" (faulting_address));
+
+   int present   = !(regs.err_code & 0x1); // Page not present
+   int rw = regs.err_code & 0x2;           // Write operation?
+   int us = regs.err_code & 0x4;           // Processor was in user-mode?
+   int reserved = regs.err_code & 0x8;     // Overwritten CPU-reserved bits of page entry?
+   int id = regs.err_code & 0x10;          // Caused by an instruction fetch?
+
+   // Output an error message.
+   klogn("PAGE FAULT: ");
+   if (present) {klogn("notpresent ");}
+   if (rw) {klogn("write ");}
+   if (us) {klogn("user ");}
+   if (reserved) {klogn("reserved ");}
+   if (id) {klogn("exec ");}
+   klogn(" at ");
+   klog(to_hex(faulting_address));
+   PANIC("Page fault");
+}
+
+
 extern void paging_init()
 {
    u32int mem_end_page = get_total_ram();
@@ -130,7 +154,7 @@ TRACE
 TRACE
     
    // Before we enable paging, we must register our page fault handler.
-    set_interrupt_handler(14, page_fault);
+    Interrupts::get()->setHandler(14, page_fault);
 
     paging_switch_directory(kernel_directory);
     current_directory = clone_directory(kernel_directory);
@@ -176,29 +200,6 @@ extern page_t *paging_get_page(u32int address, int make, page_directory_t *dir)
    }
 }
 
-
-void page_fault(registers_t regs)
-{
-   u32int faulting_address;
-   asm volatile("mov %%cr2, %0" : "=r" (faulting_address));
-
-   int present   = !(regs.err_code & 0x1); // Page not present
-   int rw = regs.err_code & 0x2;           // Write operation?
-   int us = regs.err_code & 0x4;           // Processor was in user-mode?
-   int reserved = regs.err_code & 0x8;     // Overwritten CPU-reserved bits of page entry?
-   int id = regs.err_code & 0x10;          // Caused by an instruction fetch?
-
-   // Output an error message.
-   klogn("PAGE FAULT: ");
-   if (present) {klogn("notpresent ");}
-   if (rw) {klogn("write ");}
-   if (us) {klogn("user ");}
-   if (reserved) {klogn("reserved ");}
-   if (id) {klogn("exec ");}
-   klogn(" at ");
-   klog(to_hex(faulting_address));
-   PANIC("Page fault");
-}
 
 
 

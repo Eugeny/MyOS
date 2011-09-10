@@ -1,7 +1,6 @@
 #ifndef PAGING_H
 #define PAGING_H
 
-#include "isr.h"
 #include <util/cpp.h>
 
 typedef struct page
@@ -76,6 +75,5 @@ extern page_directory_t *clone_directory(page_directory_t *n);
 extern page_t *paging_get_page(u32int address, int make, page_directory_t *dir);
 
 
-void page_fault(registers_t regs);
 
 #endif 

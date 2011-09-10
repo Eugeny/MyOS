@@ -1,7 +1,7 @@
 #include "kutils.h"
-#include "idt.h"
 #include "timer.h"
-#include "isr.h"
+#include <interrupts/IDT.h>
+#include <interrupts/Interrupts.h>
 #include <memory/Heap.h>
 #include <memory/GDT.h>
 #include <util/cpp.h>
@@ -9,7 +9,7 @@
 #include "tasking.h"
 
 
-void on_timer(registers_t r) {
+void on_timer(isrq_registers_t r) {
     static int tick = 0;
     char s[] = "Timer tick 0000";
     s[11] = '0' + tick/1000%10;
@@ -77,12 +77,10 @@ extern "C" void kmain (void* mbd, u32int esp)
     GDT::get()->setDefaults();
     GDT::get()->flush();
     
-    idt_init();
+    IDT::get()->init();
 
-    reset_interrupt_handlers();
+    Interrupts::get()->setHandler(IRQ(0), on_timer);
     init_timer(5);
-    
-    set_interrupt_handler(IRQ(0), on_timer);
      
     klog("Starting paging");
     paging_init();

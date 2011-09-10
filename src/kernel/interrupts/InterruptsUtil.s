@@ -1,5 +1,5 @@
-%macro ISR_NOERRCODE 1  ; define a macro, taking one parameter
-  global isr%1        ; %1 accesses the first parameter.
+%macro ISR_NOERRCODE 1
+  global isr%1        
   isr%1:
     cli
     push byte 0
@@ -19,35 +19,32 @@
 
 extern isr_handler
 
-; This is our common ISR stub. It saves the processor state, sets
-; up for kernel mode segments, calls the C-level fault handler,
-; and finally restores the stack frame.
 isr_common_stub: 
-   pushad                    ; Pushes edi,esi,ebp,esp,ebx,edx,ecx,eax
+    pushad                   
 
-   mov ax, ds               ; Lower 16-bits of eax = ds.
-   push eax                 ; save the data segment descriptor
+    mov ax, ds               
+    push eax                 
 
-   mov ax, 0x10  ; load the kernel data segment descriptor
-   mov ds, ax
-   mov es, ax
-   mov fs, ax
-   mov gs, ax
+    mov ax, 0x10  ; kernel DS
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
 
-   push ebp
-   call isr_handler
-   pop ebp
+    push ebp
+    call isr_handler
+    pop ebp
    
-   pop ebx        ; reload the original data segment descriptor
-   mov ds, bx
-   mov es, bx
-   mov fs, bx
-   mov gs, bx
+    pop ebx        
+    mov ds, bx
+    mov es, bx
+    mov fs, bx
+    mov gs, bx
 
-   popad                     ; Pops edi,esi,ebp...
-   add esp, 8     ; Cleans up the pushed error code and pushed ISR number
-   sti
-   iret           ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP
+    popad     
+    add esp, 8     ; 2*u32int params
+    sti
+    iret
    
    
 ISR_NOERRCODE 0

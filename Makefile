@@ -1,20 +1,21 @@
 CC = g++
 
-CFLAGS = -c -g -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wno-write-strings -O0
+CFLAGS = -c -g -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0
 LDFLAGS = -t -L uclibc/lib -static -T src/kernel/linker.ld -Map bin/kernel.map
 ASFLAGS=-felf
 
 SOURCES= \
     src/kernel/bootstrap.o \
     src/kernel/entry.o \
-    src/kernel/idt.o \
-    src/kernel/interrupts.o \
-    src/kernel/isr.o \
     src/kernel/kutils.o \
     src/kernel/paging.o \
     src/kernel/tasking.o \
     src/kernel/terminal.o\
     src/kernel/timer.o \
+    src/kernel/interrupts/IDT.o \
+    src/kernel/interrupts/IDTUtil.o \
+    src/kernel/interrupts/Interrupts.o \
+    src/kernel/interrupts/InterruptsUtil.o \
     src/kernel/memory/Heap.o \
     src/kernel/memory/GDT.o \
     src/kernel/memory/GDTUtil.o \

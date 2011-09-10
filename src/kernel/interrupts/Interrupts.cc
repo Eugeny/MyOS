@@ -1,26 +1,25 @@
-#include "kutils.h"
+#include <interrupts/Interrupts.h>
+#include <kutils.h>
 #include <util/cpp.h>
-#include "isr.h"
+
+#define IDT_SIZE 256
+static interrupt_handler interrupt_handlers[IDT_SIZE];
 
 
-interrupt_handler interrupt_handlers[256];
-
-
-
-void reset_interrupt_handlers() {
-    memset(interrupt_handlers, 0, sizeof(interrupt_handler)*256);
+void Interrupts::removeAllHandlers() {
+    memset(interrupt_handlers, 0, sizeof(interrupt_handler)*IDT_SIZE);
 }
 
-void set_interrupt_handler(int n, interrupt_handler h) {
+void Interrupts::setHandler(int n, interrupt_handler h) {
     interrupt_handlers[n] = h;
 }
 
-void clear_interrupt_handler(int n) {
-    interrupt_handlers[n] = 0;
+void Interrupts::removeHandler(int n) {
+    interrupt_handlers[n] = NULL;
 }
 
 
-void default_interrupt_handler(registers_t regs) {
+static void default_interrupt_handler(isrq_registers_t regs) {
     char s[] = "  xx  xxxxxx";
 
     klogn("INT ");
@@ -37,7 +36,7 @@ void default_interrupt_handler(registers_t regs) {
     klog(s);
 }
 
-void default_irq_handler(registers_t regs) {
+static void default_irq_handler(isrq_registers_t regs) {
     char s[] = "  xx  xxxxxx";
 
     klogn("IRQ ");
@@ -52,8 +51,7 @@ void default_irq_handler(registers_t regs) {
     klog(s);
 }
 
-
-extern "C" void isr_handler(registers_t regs)
+extern "C" void isr_handler(isrq_registers_t regs)
 {
     int ino = regs.int_no;
     if (regs.int_no >= 32)
