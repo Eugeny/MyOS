@@ -55,7 +55,6 @@ void default_irq_handler(registers_t regs) {
 
 extern "C" void isr_handler(registers_t regs)
 {
-asm volatile ("cli");
     int ino = regs.int_no;
     if (regs.int_no >= 32)
         regs.int_no -= 32;
@@ -78,6 +77,4 @@ asm volatile ("cli");
             default_irq_handler(regs);
         }
     }
-
-asm volatile ("sti");
 }

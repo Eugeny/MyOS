@@ -23,7 +23,7 @@ extern isr_handler
 ; up for kernel mode segments, calls the C-level fault handler,
 ; and finally restores the stack frame.
 isr_common_stub: 
-   pusha                    ; Pushes edi,esi,ebp,esp,ebx,edx,ecx,eax
+   pushad                    ; Pushes edi,esi,ebp,esp,ebx,edx,ecx,eax
 
    mov ax, ds               ; Lower 16-bits of eax = ds.
    push eax                 ; save the data segment descriptor
@@ -34,15 +34,17 @@ isr_common_stub:
    mov fs, ax
    mov gs, ax
 
+   push ebp
    call isr_handler
-
+   pop ebp
+   
    pop ebx        ; reload the original data segment descriptor
    mov ds, bx
    mov es, bx
    mov fs, bx
    mov gs, bx
 
-   popa                     ; Pops edi,esi,ebp...
+   popad                     ; Pops edi,esi,ebp...
    add esp, 8     ; Cleans up the pushed error code and pushed ISR number
    sti
    iret           ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP

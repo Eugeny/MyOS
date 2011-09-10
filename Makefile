@@ -2,11 +2,11 @@ CC = g++
 LD = ld
 LIBS = uclibc/lib
 
-CFLAGS = -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wno-write-strings -O0
+CFLAGS = -g -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wno-write-strings -O0
 LDFLAGS = -t -L uclibc/lib -static
 
 KCFLAGS = 
-KLDFLAGS = -T src/kernel/linker.ld 
+KLDFLAGS = -T src/kernel/linker.ld -Map build/kernel.map
 
 
 all: main

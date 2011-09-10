@@ -119,6 +119,24 @@ extern "C" u16int kpanic(char* file, u32int line, char* msg) {
     klogn(file);
     klogn(":");
     klog(to_dec(line));
+    backtrace();
     klog_flush();
     for (;;);
+}
+
+extern "C" u32int read_eip();
+void backtrace() {
+    u32int ebp, eip;
+    eip = read_eip();
+    asm volatile ("mov %%ebp, %0" : "=r" (ebp));
+   
+    while (ebp) {
+        klogn(to_hex(eip));
+        klogn(" ");
+        klog(to_hex(ebp));
+        eip = *((u32int*)ebp + 4);
+        ebp = *((u32int*)ebp);
+    }
+    
+    klog_flush();
 }

@@ -17,12 +17,8 @@ void on_timer(registers_t r) {
     s[14] = '0' + tick%10;
     tick++;
     kprintsp(s, 60, 0);
-        for (int i=0;i<100000000;i++);
-TRACE;    
     switch_task();
-TRACE;    
-//    klog_flush();
-TRACE;    
+    klog_flush();
 }
 
  
@@ -72,7 +68,7 @@ extern "C" void kmain (void* mbd, u32int esp)
     idt_init();
 
     reset_interrupt_handlers();
-    init_timer(50);
+    init_timer(5);
     
     set_interrupt_handler(IRQ(0), on_timer);
      
@@ -80,7 +76,34 @@ extern "C" void kmain (void* mbd, u32int esp)
     paging_init();
     
     initialise_tasking();
-    fork();
+
+
+    int pid = fork();fork();fork();
+
+        char s[] = "> Process x reporting";
+        int c = 0;
+        while (1) {
+            s[10] = (char)((int)'0' + getpid());
+            klog(s);klog_flush();
+            for (int i=0;i<300000000;i++);
+        }
+
+    
+    if (pid == 0) {
+        char s[] = "Child reporting";
+        int c = 0;
+        while (1) {
+            s[5] = (char)((int)'0' + getpid());
+            klog(s);
+            for (int i=0;i<100000000;i++);
+        }
+    } else {
+        while (1) {
+            klog("Parent reports memory");
+            mem_dbg();
+            for (int i=0;i<100000000;i++);
+        }
+    }
      
     /*
     mem_dbg();   
@@ -113,18 +136,7 @@ extern "C" void kmain (void* mbd, u32int esp)
     mem_dbg();   
     */
 
-    asm volatile("cli");
-    klog(to_dec(getpid()));
-    asm volatile("sti");
     
-    for(;;);
-    char s[] = "Test  ";
-    int c = 0,i=0;
-    while (1) {
-        s[5] = (char)((int)'0' + c++%10);
-        klog(s);
-        for (i=0;i<300000000;i++);
-    }
     for(;;);
 }
 

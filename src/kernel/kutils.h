@@ -26,5 +26,5 @@ extern "C" u16int inw(u16int port);
 
 #define PANIC(s) kpanic(__FILE__, __LINE__, s)
 extern "C" u16int kpanic(char* file, u32int line, char* msg);
-
+extern void backtrace();
 #endif
