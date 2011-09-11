@@ -80,7 +80,7 @@ extern "C" char* to_dec(u32int x) {
 
 
 
-extern "C" u16int kpanic(char* file, u32int line, char* msg) {
+extern "C" void kpanic(char* file, u32int line, char* msg) {
     asm volatile("cli");
     klogn("KERNEL PANIC: ");
     klog(msg);

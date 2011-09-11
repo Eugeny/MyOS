@@ -86,7 +86,7 @@ public:
     }
 
     T remove(int idx) {
-        T ret;
+        T ret = (T)NULL;
         if (!root)
             return ret;
         else if (idx == 0) {

@@ -74,8 +74,6 @@ int fork()
 
     Task *parent_task = current_task;
 
-    AddressSpace *directory = Memory::get()->getCurrentSpace()->clone();
-
     Task *new_task = new Task();
     new_task->addrSpace = Memory::get()->getCurrentSpace()->clone();
     tasks->insertLast(new_task);

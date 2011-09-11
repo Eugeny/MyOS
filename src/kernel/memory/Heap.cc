@@ -53,8 +53,8 @@ void *heap_alloc(heap_t *h, u8int align, u32int sz) {
 }
 
 void heap_free(heap_t *h, u32int addr) {
-    int idx = -1;
-    for (int i = 0; i < h->index_length; i++)
+    u32int idx = -1;
+    for (u32int i = 0; i < h->index_length; i++)
         if (h->index[i].addr >= addr) {
             idx = i;
             break;
@@ -77,10 +77,10 @@ void heap_free(heap_t *h, u32int addr) {
 }
 
 int heap__find_hole(heap_t *h, u8int align, u32int sz) {
-    int best;
+    u32int best;
     u32int bestsz = 0xFFFFFFFF;
 
-    for (int i = 0; i < h->index_length; i++)
+    for (u32int i = 0; i < h->index_length; i++)
         if ((h->index[i].flags & HEAP_HOLE) &&
             (h->index[i].size >= sz)) {
             u32int a = h->index[i].addr;
@@ -111,7 +111,7 @@ heap_item_t *heap__insert(heap_t *h, int idx) {
 }
 
 void heap__remove(heap_t *h, int idx) {
-    for (int i = idx+1; i < h->index_length; i++)
+    for (u32int i = idx+1; i < h->index_length; i++)
         h->index[i-1] = h->index[i];
     h->index_length--;
 }
@@ -194,7 +194,6 @@ void Heap::switchToHeap() {
         Memory::get()->getKernelSpace()->getPage(i, true);
 
     u32int frame = 0;
-    u32int bound = 0xFFFFFFFF;
     while (frame < free_space_start)
     {
         Memory::get()->getKernelSpace()->allocatePage(frame, true, false, false);

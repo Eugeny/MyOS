@@ -6,23 +6,23 @@ ASFLAGS=-felf
 
 SOURCES= \
     src/kernel/bootstrap.o \
+    src/kernel/core/ProcessorUtil.o \
+    src/kernel/interrupts/IDTUtil.o \
+    src/kernel/interrupts/InterruptsUtil.o \
+    src/kernel/memory/AddressSpaceUtil.o \
+    src/kernel/memory/GDTUtil.o \
+\
     src/kernel/entry.o \
     src/kernel/kutils.o \
     src/kernel/tasking.o \
     src/kernel/terminal.o\
-    src/kernel/timer.o \
     src/kernel/core/Processor.o \
-    src/kernel/core/ProcessorUtil.o \
     src/kernel/hardware/PIT.o \
     src/kernel/interrupts/IDT.o \
-    src/kernel/interrupts/IDTUtil.o \
     src/kernel/interrupts/Interrupts.o \
-    src/kernel/interrupts/InterruptsUtil.o \
     src/kernel/memory/AddressSpace.o \
-    src/kernel/memory/AddressSpaceUtil.o \
     src/kernel/memory/Heap.o \
     src/kernel/memory/GDT.o \
-    src/kernel/memory/GDTUtil.o \
     src/kernel/memory/Memory.o \
     src/kernel/util/cpp.o \
     src/kernel/util/lock.o \
