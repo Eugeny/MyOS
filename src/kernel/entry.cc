@@ -1,25 +1,31 @@
 #include "kutils.h"
 #include <hardware/PIT.h>
+#include <hardware/Keyboard.h>
 #include <interrupts/IDT.h>
 #include <interrupts/Interrupts.h>
 #include <memory/Heap.h>
 #include <memory/GDT.h>
 #include <memory/Memory.h>
+#include <tty/TTYManager.h>
 #include <util/cpp.h>
 #include "tasking.h"
 
 
 void on_timer(isrq_registers_t r) {
-    static int tick = 0;
-    char s[] = "Timer tick 0000";
-    s[11] = '0' + tick/1000%10;
-    s[12] = '0' + tick/100%10;
-    s[13] = '0' + tick/10%10;
-    s[14] = '0' + tick%10;
-    tick++;
-    kprintsp(s, 60, 0);
     switch_task();
-    klog_flush();
+
+    Terminal* sb = TTYManager::get()->getStatusBar();
+    int ram = Memory::get()->getUsedFrames() * 100 / Memory::get()->getTotalFrames();
+    sb->goTo(WIDTH-10, 0);
+    sb->write("RAM: xx%");
+    sb->setCh(WIDTH-4, 0, '0'+ram/10);
+    sb->setCh(WIDTH-5, 0, '0'+ram%10);
+
+    sb->goTo(WIDTH-22, 0);
+    sb->write("Frames ");
+    sb->write(to_dec(Memory::get()->getUsedFrames()));
+
+    TTYManager::get()->draw();
 }
 
 
@@ -60,15 +66,16 @@ void mem_dbg() {
 
 */
 
+void kbdh(u32int mod, u32int sc) {
+    klogn("K");klogn(to_hex(sc));klogn("-");klog(to_hex(mod));
+    TTYManager::get()->processKey(mod, sc);
+}
+
 extern "C" void kmain (void* mbd, u32int esp)
 {
-    heap_selfinit();
-    Heap::get()->init();
-
-    klog_init();
     initialiseConstructors();
 
-
+    heap_selfinit();
     Heap::get()->init();
 
     GDT::get()->init();
@@ -77,25 +84,33 @@ extern "C" void kmain (void* mbd, u32int esp)
 
     IDT::get()->init();
 
+    klog("Starting paging");
+    Memory::get()->startPaging(esp);
+
+    TTYManager::get()->init(5);
+
     PIT::get()->setHandler(on_timer);
     PIT::get()->setFrequency(50);
 
-    klog("Starting paging");
-    Memory::get()->startPaging(esp);
+
+    Keyboard::get()->init();
+    Keyboard::get()->setHandler(kbdh);
+
 
     initialise_tasking();
 
 
     int pid = fork();//fork();fork();
 
-        char s[] = "> Process x x reporting";
+        char s[] = "> Process x x reporting\n";
         int c = 0;
         int p = getpid();
         while (1) {
             s[10] = (char)((int)'0' + getpid()%10);
             s[12] = (char)((int)'0' + p%10);
-            klog(to_dec(getpid()));
-            klog(s);klog_flush();
+            //klog(to_dec(getpid()));
+            //klog(s);klog_flush();
+            TTYManager::get()->getTTY(getpid())->writeString(s);
             for (int i=0;i<300000000;i++);
         }
 

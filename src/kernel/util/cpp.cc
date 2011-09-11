@@ -3,6 +3,13 @@
 
 
 // Standard library
+
+int strlen(char *s) {
+    int r = 0;
+    while (*(s++)) r++;
+    return r;
+}
+
 void *memset(void *s, char d, int l) {
     for (int i = 0; i < l; i++)
         *(char*)((int)s+i) = d;

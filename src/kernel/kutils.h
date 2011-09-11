@@ -2,6 +2,7 @@
 #define KUTILS_HPP
 
 #include <util/cpp.h>
+#include <tty/Terminal.h>
 
 extern "C" void kprints(char *s);
 extern "C" void kprintsp(char *s, int x, int y);
@@ -9,7 +10,7 @@ extern "C" void kprintsp(char *s, int x, int y);
 extern "C" char* to_hex(u32int x);
 extern "C" char* to_dec(u32int x);
 
-extern "C" void klog_init();
+extern "C" void klog_init(Terminal* t);
 extern "C" void klog_flush();
 extern "C" void klog(char *s);
 extern "C" void klogn(char *s);

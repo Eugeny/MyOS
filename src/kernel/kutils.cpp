@@ -1,28 +1,27 @@
 #include "kutils.h"
-#include "terminal.h"
+#include <tty/Terminal.h>
+#include <tty/TTYManager.h>
 #include <core/Processor.h>
 
 
-Terminal kterm;
+Terminal* kterm;
 
-extern "C" void klog_init() {
-//    kterm.direct = 1;
-    kterm.reset();
+extern "C" void klog_init(Terminal* t) {
+    kterm = t;
 }
 
 extern "C" void klog_flush() {
-//    kterm.direct = 1;
-    if (kterm.dirty)
-        kterm.draw();
+    TTYManager::get()->switchActive(0);
+    TTYManager::get()->draw();
 }
 
 extern "C" void klog(char* s) {
-    kterm.write(s);
-    kterm.write("\n");
+    kterm->write(s);
+    kterm->write("\n");
 }
 
 extern "C" void klogn(char* s) {
-    kterm.write(s);
+    kterm->write(s);
 }
 
 extern "C" void kprints(char *s) {

@@ -15,15 +15,19 @@ SOURCES= \
     src/kernel/entry.o \
     src/kernel/kutils.o \
     src/kernel/tasking.o \
-    src/kernel/terminal.o\
     src/kernel/core/Processor.o \
+    src/kernel/hardware/Keyboard.o \
     src/kernel/hardware/PIT.o \
     src/kernel/interrupts/IDT.o \
     src/kernel/interrupts/Interrupts.o \
+    src/kernel/io/FileObject.o \
     src/kernel/memory/AddressSpace.o \
     src/kernel/memory/Heap.o \
     src/kernel/memory/GDT.o \
     src/kernel/memory/Memory.o \
+    src/kernel/tty/Terminal.o\
+    src/kernel/tty/TTY.o\
+    src/kernel/tty/TTYManager.o\
     src/kernel/util/cpp.o \
     src/kernel/util/lock.o \
 

@@ -18,12 +18,12 @@ typedef          char  s8int;
 typedef u32int         size_t;
 
 
-extern void initialiseConstructors();
+void initialiseConstructors();
 
-
-extern void *memset(void *s, char d, int l);
-extern void *memcpy(void *dest, const void *src, int n);
-extern void outb(u16int port, u8int);
-extern u8int inb(u16int port);
-extern u16int inw(u16int port);
-#endif 
+int   strlen(char *s);
+void *memset(void *s, char d, int l);
+void *memcpy(void *dest, const void *src, int n);
+void outb(u16int port, u8int);
+u8int inb(u16int port);
+u16int inw(u16int port);
+#endif
