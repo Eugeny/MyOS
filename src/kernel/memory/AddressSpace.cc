@@ -16,6 +16,29 @@ void AddressSpace::reset() {
     dir->physicalAddr = phys + offset;
 }
 
+page_t *AddressSpace::getPage(u32int address, bool make) {
+
+   // Turn the address into an index.
+   address /= 0x1000;
+   // Find the page table containing this address.
+   u32int table_idx = address / 1024;
+   if (dir->tables[table_idx]) // If this table is already assigned
+   {
+       return &dir->tables[table_idx]->pages[address%1024];
+   }
+   else if(make)
+   {
+       u32int tmp;
+       dir->tables[table_idx] = (page_table_t*)kmalloc_ap(sizeof(page_table_t), &tmp);
+       memset(dir->tables[table_idx], 0, 0x1000);
+       dir->tablesPhysical[table_idx] = tmp | 0x7; // PRESENT, RW, US.
+       return &dir->tables[table_idx]->pages[address%1024];
+   }
+   else
+   {
+       return 0;
+   }
+}
 
 
 static page_table_t *clone_table(page_table_t *src, u32int *physAddr)

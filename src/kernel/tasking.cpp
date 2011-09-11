@@ -48,7 +48,7 @@ void move_stack(void *new_stack_start, u32int size)
        i -= 0x1000)
   {
     // General-purpose stack is in user-mode.
-    paging_alloc_frame( paging_get_page(i, 1, current_directory), 0 /* User mode */, 1 /* Is writable */ );
+    paging_alloc_frame(current_directory->getPage(i, true), 0 /* User mode */, 1 /* Is writable */ );
   }
 
   // Flush the TLB by reading and writing the page directory address again.
@@ -156,7 +156,7 @@ int fork()
     task_t *parent_task = (task_t*)current_task;
 
     // Clone the address space.
-    AddressSpace *directory = clone_directory(current_directory);
+    AddressSpace *directory = current_directory->clone();
 
     // Create a new process.
     task_t *new_task = (task_t*)kmalloc(sizeof(task_t));

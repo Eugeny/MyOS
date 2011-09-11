@@ -19,17 +19,17 @@ void heap_init(heap_t *h, u32int indexsz) {
 
 void *heap_alloc(heap_t *h, u8int align, u32int sz) {
     int idx = heap__find_hole(h, align, sz);
-    
+
     heap_item_t *hole = &(h->index[idx]);
     heap_item_t *allc = 0;
-    
+
     u32int a = hole->addr;
     u32int e = hole->size + a;
     if ((a & 0xFFF) && align) {
         a &= 0xFFFFF000;
         a += 0x1000;
     }
-    
+
     if (a > hole->addr) {
         hole->size = a - hole->addr;
         allc = heap__insert(h, idx+1);
@@ -38,17 +38,17 @@ void *heap_alloc(heap_t *h, u8int align, u32int sz) {
     } else {
         allc = hole;
     }
-    
+
     allc->size = sz;
     allc->flags = 0;
-    
+
     if (a + sz < e) {
         hole = heap__insert(h, idx+1);
         hole->addr = a + sz;
         hole->size = e - a - sz;
         hole->flags = HEAP_HOLE;
     }
-    
+
     return (void*)a;
 }
 
@@ -59,7 +59,7 @@ void heap_free(heap_t *h, u32int addr) {
             idx = i;
             break;
         }
-     
+
     if (idx < h->index_length-1)
         if (h->index[idx+1].flags & HEAP_HOLE) {
             h->index[idx].flags = 0;
@@ -72,15 +72,15 @@ void heap_free(heap_t *h, u32int addr) {
             h->index[idx-1].size += h->index[idx].size;
             heap__remove(h, idx--);
         }
-   
+
     h->index[idx].flags = HEAP_HOLE;
 }
 
 int heap__find_hole(heap_t *h, u8int align, u32int sz) {
     int best;
     u32int bestsz = 0xFFFFFFFF;
-    
-    for (int i = 0; i < h->index_length; i++) 
+
+    for (int i = 0; i < h->index_length; i++)
         if ((h->index[i].flags & HEAP_HOLE) &&
             (h->index[i].size >= sz)) {
             u32int a = h->index[i].addr;
@@ -92,11 +92,11 @@ int heap__find_hole(heap_t *h, u8int align, u32int sz) {
             if (((e-a) >= sz) && ((e-a) < bestsz)) {
                 bestsz = (e-a);
                 best = i;
-                
+
                 if (sz == bestsz) break;
             }
         }
-            
+
     if (bestsz == 0xFFFFFFFF) {
         PANIC("Out of kernel heap");
     }
@@ -163,7 +163,7 @@ void Heap::free(void* addr) {
 
 u32int Heap::malloc_dumb(u32int sz, u8int align, u32int *phys) {
     u32int addr = free_space_start;
-    
+
     if (align == 1 && (addr & 0xFFF)) {
         addr &= 0xFFFFF000;
         addr += 0x1000;
@@ -181,7 +181,7 @@ u32int Heap::malloc_dumb(u32int sz, u8int align, u32int *phys) {
 u32int Heap::malloc_kheap(u32int sz, u8int align, u32int *phys) {
     u32int addr = (u32int)heap_alloc(&kheap, align, sz);
     if (phys != 0) {
-        page_t *page = paging_get_page((u32int)addr, 0, kernel_directory);
+        page_t *page = kernel_directory->getPage((u32int)addr, false);
         *phys = page->frame*0x1000 + (((u32int)addr)&0xFFF);
     }
     return addr;
@@ -191,18 +191,18 @@ u32int Heap::malloc_kheap(u32int sz, u8int align, u32int *phys) {
 // Identity-maps the kernel memory and enables higher heap
 void Heap::switchToHeap() {
     for (u32int i = kheap.base; i < kheap.base + kheap.size; i += 0x1000)
-        paging_get_page(i, 1, kernel_directory);
-        
+        kernel_directory->getPage(i, true);
+
     u32int frame = 0;
     u32int bound = 0xFFFFFFFF;
     while (frame < free_space_start)
-    { 
-        paging_alloc_frame( paging_get_page(frame, 1, kernel_directory), 0, 0);
+    {
+        paging_alloc_frame( kernel_directory->getPage(frame, true), 0, 0);
         frame += 0x1000;
     }
-    
+
     for (u32int i = kheap.base; i < kheap.base + kheap.size; i += 0x1000)
-        paging_alloc_frame(paging_get_page(i, 0, kernel_directory), 0, 0);
+        paging_alloc_frame(kernel_directory->getPage(i, false), 0, 0);
 
     heap_ready = true;
 }
@@ -229,5 +229,3 @@ void* kmalloc(u32int sz) {
 void  kfree(void *addr) {
     Heap::get()->free(addr);
 }
-
-

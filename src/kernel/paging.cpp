@@ -155,7 +155,7 @@ TRACE
     Interrupts::get()->setHandler(14, page_fault);
 
     paging_switch_directory(kernel_directory);
-    current_directory = clone_directory(kernel_directory);
+    current_directory = kernel_directory->clone();
     paging_switch_directory (current_directory);
 }
 
@@ -172,37 +172,4 @@ extern void paging_switch_directory(AddressSpace *dir)
    asm volatile("mov %%cr0, %0": "=r"(cr0));
    cr0 |= 0x80000000; // Enable paging!
    asm volatile("mov %0, %%cr0":: "r"(cr0));
-}
-
-extern page_t *paging_get_page(u32int address, int make, AddressSpace *dir)
-{
-   // Turn the address into an index.
-   address /= 0x1000;
-   // Find the page table containing this address.
-   u32int table_idx = address / 1024;
-   if (dir->dir->tables[table_idx]) // If this table is already assigned
-   {
-       return &dir->dir->tables[table_idx]->pages[address%1024];
-   }
-   else if(make)
-   {
-       u32int tmp;
-       dir->dir->tables[table_idx] = (page_table_t*)kmalloc_ap(sizeof(page_table_t), &tmp);
-       memset(dir->dir->tables[table_idx], 0, 0x1000);
-       dir->dir->tablesPhysical[table_idx] = tmp | 0x7; // PRESENT, RW, US.
-       return &dir->dir->tables[table_idx]->pages[address%1024];
-   }
-   else
-   {
-       return 0;
-   }
-}
-
-
-
-
-
-AddressSpace *clone_directory(AddressSpace *src)
-{
-    return src->clone();
 }
