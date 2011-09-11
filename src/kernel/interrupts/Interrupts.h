@@ -4,6 +4,7 @@
 #include <util/cpp.h>
 #include <util/Singleton.h>
 
+
 typedef struct registers
 {
     u32int tebp, ds;                  // Data segment selector
@@ -12,8 +13,11 @@ typedef struct registers
     u32int eip, cs, eflags, useresp, ss; // Pushed by the processor automatically.
 } isrq_registers_t;
 
+
 #define IRQ(x)  ((x)+32)
+
 typedef void (*interrupt_handler)(isrq_registers_t);
+
 
 class Interrupts : public Singleton<Interrupts> {
 public:
@@ -21,4 +25,5 @@ public:
     void setHandler(int n, interrupt_handler h);
     void removeHandler(int n);
 };
+
 #endif

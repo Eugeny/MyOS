@@ -1,5 +1,6 @@
 #include <hardware/PIT.h>
 
+
 void PIT::setFrequency(u32int freq) {
     u32int divisor = 1193180 / freq;
 

@@ -15,7 +15,6 @@ MultiBootHeader:
    dd CHECKSUM
 
 
-
 loader:
     cli
     push    esp

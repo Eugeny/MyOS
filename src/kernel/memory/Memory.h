@@ -5,6 +5,7 @@
 #include <util/cpp.h>
 #include <memory/AddressSpace.h>
 
+
 class Memory : public Singleton<Memory> {
 public:
     void          startPaging(u32int initial_esp);
@@ -16,7 +17,7 @@ public:
     void          free(page_t* page);
     void          setAddressSpace(AddressSpace *s);
     void          switchAddressSpace(AddressSpace *s);
-//private:
+private:
     AddressSpace *kernelSpace, *currentSpace;
 };
 

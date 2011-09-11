@@ -1,5 +1,5 @@
 %macro ISR_NOERRCODE 1
-  global isr%1        
+  global isr%1
   isr%1:
     cli
     push byte 0
@@ -16,14 +16,13 @@
 %endmacro
 
 
-
 extern isr_handler
 
-isr_common_stub: 
-    pushad                   
+isr_common_stub:
+    pushad
 
-    mov ax, ds               
-    push eax                 
+    mov ax, ds
+    push eax
 
     mov ax, 0x10  ; kernel DS
     mov ds, ax
@@ -34,19 +33,19 @@ isr_common_stub:
     push ebp
     call isr_handler
     pop ebp
-   
-    pop ebx        
+
+    pop ebx
     mov ds, bx
     mov es, bx
     mov fs, bx
     mov gs, bx
 
-    popad     
+    popad
     add esp, 8     ; 2*u32int params
     sti
     iret
-   
-   
+
+
 ISR_NOERRCODE 0
 ISR_NOERRCODE 1
 ISR_NOERRCODE 2
@@ -55,7 +54,7 @@ ISR_NOERRCODE 4
 ISR_NOERRCODE 5
 ISR_NOERRCODE 6
 ISR_NOERRCODE 7
-ISR_ERRCODE   8 
+ISR_ERRCODE   8
 ISR_NOERRCODE 9
 ISR_ERRCODE   10
 ISR_ERRCODE   11
@@ -97,4 +96,3 @@ ISR_NOERRCODE 44
 ISR_NOERRCODE 45
 ISR_NOERRCODE 46
 ISR_NOERRCODE 47
-

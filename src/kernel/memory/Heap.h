@@ -23,14 +23,13 @@ typedef struct heap {
 
 class Heap : public Singleton<Heap> {
 public:
-    //friend class Paging;
     static void  _selfinit(Heap *h);
     void  init();
     void* malloc(u32int sz);
     void* malloc(u32int sz, bool align, u32int *phys);
     void  free(void* addr);
 
-     void  switchToHeap();
+    void  switchToHeap();
 private:
     u32int malloc_dumb(u32int sz, u8int align, u32int *phys);
     u32int malloc_kheap(u32int sz, u8int align, u32int *phys);
@@ -38,6 +37,8 @@ private:
     heap_t kheap;
 };
 
+
+// For pre-malloc initialization
 extern void heap_selfinit();
 
 extern void *kmalloc_a(u32int sz);

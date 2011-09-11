@@ -23,4 +23,5 @@ private:
 
 template<class T>
 T* Singleton<T>::_instance = 0;
-#endif 
+
+#endif

@@ -1,23 +1,26 @@
 #include <interrupts/IDT.h>
 #include <util/cpp.h>
 
+
 typedef struct idt_entry_struct {
     u16int base_lo;
-    u16int sel;    
-    u8int always0; 
-    u8int flags;   
+    u16int sel;
+    u8int always0;
+    u8int flags;
     u16int base_hi;
 } PACKED idt_entry_t;
 
+
 typedef struct idt_ptr_struct {
     u16int limit;
-    u32int base;   
+    u32int base;
 } PACKED idt_ptr_t;
-
 
 
 static idt_entry_t ALIGN(16) idt_entries[256];
 static idt_ptr_t   ALIGN(16) idt_ptr;
+
+extern "C" void _IDT_Flush(u32int);
 
 
 extern "C" void isr0 ();
@@ -72,7 +75,6 @@ extern "C" void isr46 ();
 extern "C" void isr47 ();
 
 
-
 void IDT::init() {
     memset(&idt_entries, 0, sizeof(idt_entry_t)*256);
 
@@ -87,7 +89,7 @@ void IDT::init() {
     outb(0xA1, 0x01);
     outb(0x21, 0x0);
     outb(0xA1, 0x0);
-     
+
     setGate( 0, (u32int)isr0 , 0x08, 0x8E);
     setGate( 1, (u32int)isr1 , 0x08, 0x8E);
     setGate( 2, (u32int)isr2 , 0x08, 0x8E);
@@ -136,7 +138,7 @@ void IDT::init() {
     setGate(45, (u32int)isr45, 0x08, 0x8E);
     setGate(46, (u32int)isr46, 0x08, 0x8E);
     setGate(47, (u32int)isr47, 0x08, 0x8E);
-    
+
     flush();
 }
 
@@ -149,11 +151,9 @@ void IDT::setGate(u8int num, u32int base, u16int sel, u8int flags) {
     idt_entries[num].flags   = flags /* | 0x60 */;
 }
 
-extern "C" void _IDT_Flush(u32int);
 void IDT::flush() {
     idt_ptr.limit = sizeof(idt_entry_t) * 256 -1;
     idt_ptr.base  = (u32int)&idt_entries;
 
     _IDT_Flush((u32int)&idt_ptr);
 }
-

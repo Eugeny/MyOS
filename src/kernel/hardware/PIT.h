@@ -5,6 +5,7 @@
 #include <util/Singleton.h>
 #include <interrupts/Interrupts.h>
 
+
 class PIT : public Singleton<PIT> {
 public:
     void setFrequency(u32int freq);

@@ -2,7 +2,9 @@
 #include <kutils.h>
 #include <util/cpp.h>
 
+
 #define IDT_SIZE 256
+
 static interrupt_handler interrupt_handlers[IDT_SIZE];
 
 
@@ -17,7 +19,6 @@ void Interrupts::setHandler(int n, interrupt_handler h) {
 void Interrupts::removeHandler(int n) {
     interrupt_handlers[n] = NULL;
 }
-
 
 static void default_interrupt_handler(isrq_registers_t regs) {
     char s[] = "  xx  xxxxxx";
@@ -42,7 +43,7 @@ static void default_irq_handler(isrq_registers_t regs) {
     klogn("IRQ ");
 
     int n = regs.int_no;
-        
+
     s[2] = (char)((int)'0' + n/100);
     s[3] = (char)((int)'0' + n/10%10);
     s[4] = (char)((int)'0' + n%10);
@@ -51,8 +52,7 @@ static void default_irq_handler(isrq_registers_t regs) {
     klog(s);
 }
 
-extern "C" void isr_handler(isrq_registers_t regs)
-{
+extern "C" void isr_handler(isrq_registers_t regs) {
     int ino = regs.int_no;
     if (regs.int_no >= 32)
         regs.int_no -= 32;
@@ -62,15 +62,15 @@ extern "C" void isr_handler(isrq_registers_t regs)
         {
             outb(0xA0, 0x20);
         }
-        outb(0x20, 0x20);        
+        outb(0x20, 0x20);
     }
-    
-    
+
+
     if (interrupt_handlers[ino] != 0) {
         interrupt_handlers[ino](regs);
     } else {
         if (ino < 32) {
-            default_interrupt_handler(regs);    
+            default_interrupt_handler(regs);
         } else {
             default_irq_handler(regs);
         }

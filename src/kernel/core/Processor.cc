@@ -1,7 +1,6 @@
 #include <core/Processor.h>
 
 
-
 u32int Processor::getStackPointer() {
     u32int esp;
     asm volatile ("mov %%esp, %0" : "=r" (esp));

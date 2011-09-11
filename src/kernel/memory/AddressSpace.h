@@ -2,6 +2,8 @@
 #define MEMORY_ADDRESSSPACE_H
 
 #include <util/cpp.h>
+
+
 typedef struct page {
     u32int present    : 1;   // Page present in memory
     u32int rw         : 1;   // Read-only if clear, readwrite if set
@@ -12,9 +14,11 @@ typedef struct page {
     u32int frame      : 20;  // Frame address (shifted right 12 bits)
 } page_t;
 
+
 typedef struct page_table {
     page_t pages[1024];
 } page_table_t;
+
 
 typedef struct page_directory {
     page_table_t *tables[1024];
