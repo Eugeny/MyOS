@@ -1,5 +1,7 @@
 #include "kutils.h"
 #include "terminal.h"
+#include <core/Processor.h>
+
 
 Terminal kterm;
 
@@ -49,10 +51,10 @@ extern "C" char* to_hex(u32int x) {
     char digits[] = "0123456789ABCDEF";
     buf[BS-1] = 0;
     int b = BS - 1;
-    
+
     if (x == 0)
         buf[b++] = '0';
-    
+
     while (x) {
         buf[--b] = digits[x%16];
         x /= 16;
@@ -63,10 +65,10 @@ extern "C" char* to_hex(u32int x) {
 extern "C" char* to_dec(u32int x) {
     buf[BS-1] = 0;
     int b = BS - 1;
-    
+
     if (x == 0)
         buf[b++] = '0';
-    
+
     while (x) {
         buf[--b] = '0' + x%10;
         x /= 10;
@@ -94,9 +96,9 @@ extern "C" u16int kpanic(char* file, u32int line, char* msg) {
 extern "C" u32int read_eip();
 void backtrace() {
     u32int ebp, eip;
-    eip = read_eip();
+    eip = Processor::getInstructionPointer();
     asm volatile ("mov %%ebp, %0" : "=r" (ebp));
-   
+
     while (ebp) {
         klogn(to_hex(eip));
         klogn(" ");
@@ -104,6 +106,6 @@ void backtrace() {
         eip = *((u32int*)ebp + 4);
         ebp = *((u32int*)ebp);
     }
-    
+
     klog_flush();
 }

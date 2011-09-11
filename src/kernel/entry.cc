@@ -60,11 +60,8 @@ void mem_dbg() {
 
 */
 
-u32int initial_esp;
 extern "C" void kmain (void* mbd, u32int esp)
 {
-    initial_esp = esp;
-
     heap_selfinit();
     Heap::get()->init();
 
@@ -84,21 +81,22 @@ extern "C" void kmain (void* mbd, u32int esp)
     init_timer(5);
 
     klog("Starting paging");
-    Memory::get()->startPaging();
+    Memory::get()->startPaging(esp);
 
     initialise_tasking();
 
 
-    int pid = fork();fork();fork();
+    int pid = fork();//fork();fork();
 
         char s[] = "> Process x x reporting";
         int c = 0;
         int p = getpid();
         while (1) {
-            s[10] = (char)((int)'0' + getpid());
-            s[12] = (char)((int)'0' + p);
+            s[10] = (char)((int)'0' + getpid()%10);
+            s[12] = (char)((int)'0' + p%10);
+            klog(to_dec(getpid()));
             klog(s);klog_flush();
-            for (int i=0;i<30000000;i++);
+            for (int i=0;i<300000000;i++);
         }
 
 

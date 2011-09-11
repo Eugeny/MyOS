@@ -7,7 +7,7 @@
 
 class Memory : public Singleton<Memory> {
 public:
-    void          startPaging();
+    void          startPaging(u32int initial_esp);
     AddressSpace *getKernelSpace();
     AddressSpace *getCurrentSpace();
     u32int        getTotalFrames();

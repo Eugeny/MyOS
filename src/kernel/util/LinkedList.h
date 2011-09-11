@@ -1,43 +1,56 @@
 #ifndef UTIL_LINKEDLIST_H
 #define UTIL_LINKEDLIST_H
 
-class LinkedListEntry<T> {
+template <class T>
+class LinkedListEntry {
 public:
     T value;
     LinkedListEntry<T>* next;
 };
 
-class LinkedListIter<T> {
+
+
+template <class T>
+class LinkedListIter {
 public:
-    LinkedListIter<T>(LinkedList<T>* l) {
-        c = l->getRoot();
+    LinkedListIter<T>(LinkedListEntry<T>* l) {
+        c = l;
     }
-    
+
     void next() {
         c = c->next;
     }
-    
+
     int end() {
         return (c == 0) or (c->next == 0);
     }
-    
+
     T get() {
         return c->value;
     }
 private:
-    LinkedListEntry<T>* c;    
+    LinkedListEntry<T>* c;
 };
 
-class LinkedList<T> {
+
+
+template <class T>
+class LinkedList {
 public:
     LinkedList<T>() {
         root = 0;
     }
-    
+
     LinkedListEntry<T> getRoot() {
         return root;
     }
-    
+
+    LinkedListIter<T>* iter() {
+        LinkedListIter<T>* i = new LinkedListIter<T>*();
+        i->init(this);
+        return i;
+    }
+
     T get(int idx) {
         LinkedListEntry<T>* p = root;
         for (int i = 0; i < idx; i++)
@@ -45,17 +58,62 @@ public:
         return p->value;
     }
 
-    T insert(T val, int idx) { // TODO
+    int length() {
         LinkedListEntry<T>* p = root;
-        for (int i = 0; i < idx; i++)
+        int r = 0;
+        for (; p; r++)
             p = p->next;
-        return p->value;
+        return r;
     }
 
-    
-private
-    LinkedListEntry<T>* root;    
+    void insert(T val, int idx) {
+        LinkedListEntry<T>* i = new LinkedListEntry<T>();
+        i->value = val;
+        i->next = 0;
+        if (!root)
+            root = i;
+        else if (idx == 0) {
+            i->next = root;
+            root = i;
+        } else {
+            LinkedListEntry<T>* p = root;
+            for (int ii = 0; ii < idx-1; ii++)
+                p = p->next;
+            LinkedListEntry<T>* tmp = p->next;
+            p->next = i;
+            i->next = tmp;
+        }
+    }
+
+    T remove(int idx) {
+        T ret;
+        if (!root)
+            return ret;
+        else if (idx == 0) {
+            ret = root->value;
+            root = root->next;
+        } else {
+            LinkedListEntry<T>* p = root;
+            for (int i = 0; i < idx-1; i++)
+                p = p->next;
+
+            LinkedListEntry<T>* tmp = p->next;
+            p->next = p->next->next;
+            ret = tmp->value;
+            delete p->next;
+        }
+        return ret;
+    }
+
+
+    void insertLast(T val) {
+        insert(val, length());
+    }
+
+
+private:
+    LinkedListEntry<T>* root;
 };
 
 
-#endif 
+#endif

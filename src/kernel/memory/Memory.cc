@@ -1,4 +1,5 @@
 #include <util/cpp.h>
+#include <core/Processor.h>
 #include <memory/Memory.h>
 #include <memory/Heap.h>
 #include <interrupts/Interrupts.h>
@@ -97,35 +98,84 @@ void Memory::free(page_t* page) {
    }}
 
 
-void Memory::startPaging() {
+
+
+void move_stack(void *new_stack_start, u32int size, u32int initial_esp)
+{
+  Processor::disableInterrupts();
+
+    u32int i;
+  // Allocate some space for the new stack.
+  for( i = (u32int)new_stack_start;
+       i >= ((u32int)new_stack_start-size);
+       i -= 0x1000)
+  {
+    // General-purpose stack is in user-mode.
+    Memory::get()->getCurrentSpace()->allocatePage(i, true, false, true);
+  }
+
+  // Flush the TLB by reading and writing the page directory address again.
+  u32int pd_addr;
+  asm volatile("mov %%cr3, %0" : "=r" (pd_addr));
+  asm volatile("mov %0, %%cr3" : : "r" (pd_addr));
+
+  // Old ESP and EBP, read from registers.
+  u32int old_stack_pointer; asm volatile("mov %%esp, %0" : "=r" (old_stack_pointer));
+  u32int old_base_pointer;  asm volatile("mov %%ebp, %0" : "=r" (old_base_pointer));
+
+  // Offset to add to old stack addresses to get a new stack address.
+  u32int offset            = (u32int)new_stack_start - initial_esp;
+
+  // New ESP and EBP.
+  u32int new_stack_pointer = old_stack_pointer + offset;
+  u32int new_base_pointer  = old_base_pointer  + offset;
+
+  // Copy the stack.
+  memcpy((void*)new_stack_pointer, (void*)old_stack_pointer, initial_esp-old_stack_pointer);
+
+  // Backtrace through the original stack, copying new values into
+  // the new stack.
+  for(i = (u32int)new_stack_start; i > (u32int)new_stack_start-size; i -= 4)
+  {
+    u32int tmp = * (u32int*)i;
+    // If the value of tmp is inside the range of the old stack, assume it is a base pointer
+    // and remap it. This will unfortunately remap ANY value in this range, whether they are
+    // base pointers or not.
+    if (( old_stack_pointer < tmp) && (tmp < initial_esp))
+    {
+      tmp = tmp + offset;
+      u32int *tmp2 = (u32int*)i;
+      *tmp2 = tmp;
+    }
+  }
+
+  // Change stacks.
+  asm volatile("mov %0, %%esp" : : "r" (new_stack_pointer));
+  asm volatile("mov %0, %%ebp" : : "r" (new_base_pointer));
+
+  Processor::enableInterrupts();
+}
+
+
+
+void Memory::startPaging(u32int initial_esp) {
    u32int mem_end_page = get_total_ram();
-TRACE
    nframes = mem_end_page / 0x1000;
    frames = (u32int*)kmalloc(BS_IDX(nframes));
    memset(frames, 0, BS_IDX(nframes));
-   // Let's make a page directory.
+
    kernelSpace = new AddressSpace();
    kernelSpace->dir->physicalAddr = (u32int)kernelSpace->dir->tablesPhysical; //?
-TRACE
 
-   // We need to identity map (phys addr = virt addr) from
-   // 0x0 to the end of used memory, so we can access this
-   // transparently, as if paging wasn't enabled.
-   // NOTE that we use a while loop here deliberately.
-   // inside the loop body we actually change placement_address
-   // by calling kmalloc(). A while loop causes this to be
-   // computed on-the-fly rather than once at the start.
-
-TRACE
     Heap::get()->switchToHeap();
-TRACE
 
-   // Before we enable paging, we must register our page fault handler.
     Interrupts::get()->setHandler(14, page_fault);
 
     switchAddressSpace(kernelSpace);
     currentSpace = kernelSpace->clone();
     switchAddressSpace (currentSpace);
+
+    move_stack((void*)0xE0000000, 0x20000, initial_esp);
 }
 
 
