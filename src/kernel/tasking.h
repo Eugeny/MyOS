@@ -2,7 +2,7 @@
 #define TASKING_H
 
 #include <util/cpp.h>
-#include "paging.h"
+#include <memory/AddressSpace.h>
 
 // This structure defines a 'task' - a process.
 typedef struct task

@@ -1,7 +1,6 @@
 #include <memory/Heap.h>
 #include <memory/Memory.h>
 #include <kutils.h>
-#include <paging.h>
 
 // Generic heap code
 
@@ -198,12 +197,12 @@ void Heap::switchToHeap() {
     u32int bound = 0xFFFFFFFF;
     while (frame < free_space_start)
     {
-        paging_alloc_frame( Memory::get()->getKernelSpace()->getPage(frame, true), 0, 0);
+        Memory::get()->getKernelSpace()->allocatePage(frame, true, false, false);
         frame += 0x1000;
     }
 
     for (u32int i = kheap.base; i < kheap.base + kheap.size; i += 0x1000)
-        paging_alloc_frame(Memory::get()->getKernelSpace()->getPage(i, false), 0, 0);
+        Memory::get()->getKernelSpace()->allocatePage(i, false, false, true);
 
     heap_ready = true;
 }

@@ -1,7 +1,6 @@
 #include <memory/AddressSpace.h>
 #include <memory/Heap.h>
 #include <memory/Memory.h>
-#include <paging.h>
 
 extern "C" void copy_page_physical(u32int src ,  u32int dst);
 
@@ -18,7 +17,6 @@ void AddressSpace::reset() {
 }
 
 page_t *AddressSpace::getPage(u32int address, bool make) {
-
    // Turn the address into an index.
    address /= 0x1000;
    // Find the page table containing this address.
@@ -41,6 +39,11 @@ page_t *AddressSpace::getPage(u32int address, bool make) {
    }
 }
 
+page_t *AddressSpace::allocatePage(u32int address, bool make, bool kernel, bool rw) {
+page_t* r = getPage(address, make);
+Memory::get()->allocate(r, kernel, rw);
+return r;
+}
 
 static page_table_t *clone_table(page_table_t *src, u32int *physAddr)
 {
@@ -57,7 +60,7 @@ static page_table_t *clone_table(page_table_t *src, u32int *physAddr)
         if (src->pages[i].frame)
         {
             // Get a new frame.
-            paging_alloc_frame(&table->pages[i], 0, 0);
+            Memory::get()->allocate(&table->pages[i], false, false);
             // Clone the flags from source to destination.
             if (src->pages[i].present) table->pages[i].present = 1;
             if (src->pages[i].rw) table->pages[i].rw = 1;

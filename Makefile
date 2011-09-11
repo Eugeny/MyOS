@@ -8,7 +8,6 @@ SOURCES= \
     src/kernel/bootstrap.o \
     src/kernel/entry.o \
     src/kernel/kutils.o \
-    src/kernel/paging.o \
     src/kernel/tasking.o \
     src/kernel/terminal.o\
     src/kernel/timer.o \

@@ -29,6 +29,7 @@ public:
     void          reset();
     AddressSpace* clone();
     page_t*       getPage(u32int addr, bool create);
+    page_t*       allocatePage(u32int addr, bool create, bool kernel, bool rw);
     page_directory_t *dir;
 };
 

@@ -1,7 +1,6 @@
 #include "tasking.h"
 #include <memory/Heap.h>
 #include "kutils.h"
-#include "paging.h"
 #include <memory/Memory.h>
 
 // The currently running task.
@@ -47,7 +46,7 @@ void move_stack(void *new_stack_start, u32int size)
        i -= 0x1000)
   {
     // General-purpose stack is in user-mode.
-    paging_alloc_frame(Memory::get()->getCurrentSpace()->getPage(i, true), 0 /* User mode */, 1 /* Is writable */ );
+    Memory::get()->getCurrentSpace()->allocatePage(i, true, false, true);
   }
 
   // Flush the TLB by reading and writing the page directory address again.

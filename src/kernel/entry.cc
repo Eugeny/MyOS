@@ -4,8 +4,8 @@
 #include <interrupts/Interrupts.h>
 #include <memory/Heap.h>
 #include <memory/GDT.h>
+#include <memory/Memory.h>
 #include <util/cpp.h>
-#include "paging.h"
 #include "tasking.h"
 
 
@@ -84,7 +84,7 @@ extern "C" void kmain (void* mbd, u32int esp)
     init_timer(5);
 
     klog("Starting paging");
-    paging_init();
+    Memory::get()->startPaging();
 
     initialise_tasking();
 
