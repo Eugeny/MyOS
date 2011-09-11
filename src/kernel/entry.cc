@@ -1,5 +1,5 @@
 #include "kutils.h"
-#include "timer.h"
+#include <hardware/PIT.h>
 #include <interrupts/IDT.h>
 #include <interrupts/Interrupts.h>
 #include <memory/Heap.h>
@@ -77,8 +77,8 @@ extern "C" void kmain (void* mbd, u32int esp)
 
     IDT::get()->init();
 
-    Interrupts::get()->setHandler(IRQ(0), on_timer);
-    init_timer(5);
+    PIT::get()->setHandler(on_timer);
+    PIT::get()->setFrequency(50);
 
     klog("Starting paging");
     Memory::get()->startPaging(esp);

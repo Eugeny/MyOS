@@ -13,6 +13,7 @@ SOURCES= \
     src/kernel/timer.o \
     src/kernel/core/Processor.o \
     src/kernel/core/ProcessorUtil.o \
+    src/kernel/hardware/PIT.o \
     src/kernel/interrupts/IDT.o \
     src/kernel/interrupts/IDTUtil.o \
     src/kernel/interrupts/Interrupts.o \
