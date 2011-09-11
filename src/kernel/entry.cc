@@ -49,7 +49,7 @@ extern heap_t kheap;
         klogn(" + ");
         klog(to_hex(kheap.index[i].size));
     }
-}*/
+}
 
 void mem_dbg() {
     memory_info_t meminfo;
@@ -58,6 +58,7 @@ void mem_dbg() {
     klogn("Used frames:  ");  klog(to_dec(meminfo.used_frames));
 }
 
+*/
 
 u32int initial_esp;
 extern "C" void kmain (void* mbd, u32int esp)
@@ -112,7 +113,7 @@ extern "C" void kmain (void* mbd, u32int esp)
     } else {
         while (1) {
             klog("Parent reports memory");
-            mem_dbg();
+ //           mem_dbg();
             for (int i=0;i<100000000;i++);
         }
     }

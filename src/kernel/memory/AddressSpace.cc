@@ -1,5 +1,6 @@
 #include <memory/AddressSpace.h>
 #include <memory/Heap.h>
+#include <memory/Memory.h>
 #include <paging.h>
 
 extern "C" void copy_page_physical(u32int src ,  u32int dst);
@@ -80,7 +81,7 @@ AddressSpace* n = new AddressSpace();
         if (!dir->tables[i])
             continue;
 
-        if (kernel_directory->dir->tables[i] == dir->tables[i])
+        if (Memory::get()->getKernelSpace()->dir->tables[i] == dir->tables[i])
         {
             // It's in the kernel, so just use the same pointer.
             n->dir->tables[i] = dir->tables[i];

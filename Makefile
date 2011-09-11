@@ -20,6 +20,7 @@ SOURCES= \
     src/kernel/memory/Heap.o \
     src/kernel/memory/GDT.o \
     src/kernel/memory/GDTUtil.o \
+    src/kernel/memory/Memory.o \
     src/kernel/util.o \
     src/kernel/util/cpp.o \
     src/kernel/util/lock.o \

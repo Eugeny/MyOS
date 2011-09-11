@@ -2,6 +2,7 @@
 #include <memory/Heap.h>
 #include "kutils.h"
 #include "paging.h"
+#include <memory/Memory.h>
 
 // The currently running task.
 volatile task_t *current_task;
@@ -10,8 +11,6 @@ volatile task_t *current_task;
 volatile task_t *ready_queue;
 
 // Some externs are needed to access members in paging.c...
-extern AddressSpace *kernel_directory;
-extern AddressSpace *current_directory;
 extern void alloc_frame(page_t*,int,int);
 extern u32int initial_esp;
 extern "C" u32int read_eip();
@@ -32,7 +31,7 @@ void initialise_tasking()
     current_task->id = next_pid++;
     current_task->esp = 0;
     current_task->eip = 0;
-    current_task->page_directory = current_directory;
+    current_task->page_directory = Memory::get()->getCurrentSpace();
     current_task->next = 0;
 
     // Reenable interrupts.
@@ -48,7 +47,7 @@ void move_stack(void *new_stack_start, u32int size)
        i -= 0x1000)
   {
     // General-purpose stack is in user-mode.
-    paging_alloc_frame(current_directory->getPage(i, true), 0 /* User mode */, 1 /* Is writable */ );
+    paging_alloc_frame(Memory::get()->getCurrentSpace()->getPage(i, true), 0 /* User mode */, 1 /* Is writable */ );
   }
 
   // Flush the TLB by reading and writing the page directory address again.
@@ -126,7 +125,7 @@ void switch_task()
 
  //   DEBUG(to_dec(getpid()));
     // Make sure the memory manager knows we've changed page directory.
-    current_directory = current_task->page_directory;
+    Memory::get()->setAddressSpace( current_task->page_directory);
     // Here we:
     // * Stop interrupts so we don't get interrupted.
     // * Temporarily puts the new EIP location in ECX.
@@ -144,7 +143,7 @@ void switch_task()
       mov $0x12345, %%eax; \
       sti;                 \
       jmp *%%ecx           "
-                 : : "r"(eip), "r"(esp), "r"(ebp), "r"(current_directory->dir->physicalAddr));
+                 : : "r"(eip), "r"(esp), "r"(ebp), "r"(Memory::get()->getCurrentSpace()->dir->physicalAddr));
 }
 
 int fork()
@@ -156,7 +155,7 @@ int fork()
     task_t *parent_task = (task_t*)current_task;
 
     // Clone the address space.
-    AddressSpace *directory = current_directory->clone();
+    AddressSpace *directory = Memory::get()->getCurrentSpace()->clone();
 
     // Create a new process.
     task_t *new_task = (task_t*)kmalloc(sizeof(task_t));

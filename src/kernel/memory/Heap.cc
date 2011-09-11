@@ -1,4 +1,5 @@
 #include <memory/Heap.h>
+#include <memory/Memory.h>
 #include <kutils.h>
 #include <paging.h>
 
@@ -181,7 +182,7 @@ u32int Heap::malloc_dumb(u32int sz, u8int align, u32int *phys) {
 u32int Heap::malloc_kheap(u32int sz, u8int align, u32int *phys) {
     u32int addr = (u32int)heap_alloc(&kheap, align, sz);
     if (phys != 0) {
-        page_t *page = kernel_directory->getPage((u32int)addr, false);
+        page_t *page = Memory::get()->getKernelSpace()->getPage((u32int)addr, false);
         *phys = page->frame*0x1000 + (((u32int)addr)&0xFFF);
     }
     return addr;
@@ -191,18 +192,18 @@ u32int Heap::malloc_kheap(u32int sz, u8int align, u32int *phys) {
 // Identity-maps the kernel memory and enables higher heap
 void Heap::switchToHeap() {
     for (u32int i = kheap.base; i < kheap.base + kheap.size; i += 0x1000)
-        kernel_directory->getPage(i, true);
+        Memory::get()->getKernelSpace()->getPage(i, true);
 
     u32int frame = 0;
     u32int bound = 0xFFFFFFFF;
     while (frame < free_space_start)
     {
-        paging_alloc_frame( kernel_directory->getPage(frame, true), 0, 0);
+        paging_alloc_frame( Memory::get()->getKernelSpace()->getPage(frame, true), 0, 0);
         frame += 0x1000;
     }
 
     for (u32int i = kheap.base; i < kheap.base + kheap.size; i += 0x1000)
-        paging_alloc_frame(kernel_directory->getPage(i, false), 0, 0);
+        paging_alloc_frame(Memory::get()->getKernelSpace()->getPage(i, false), 0, 0);
 
     heap_ready = true;
 }

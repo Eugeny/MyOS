@@ -16,7 +16,7 @@ public:
     void          free(page_t* page);
     void          setAddressSpace(AddressSpace *s);
     void          switchAddressSpace(AddressSpace *s);
-private:
+//private:
     AddressSpace *kernelSpace, *currentSpace;
 };
 
