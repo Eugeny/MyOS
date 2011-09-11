@@ -10,7 +10,7 @@ typedef struct task
    int id;                // Process ID.
    u32int esp;       // Stack and base pointers.
    u32int eip;            // Instruction pointer.
-   page_directory_t *page_directory; // Page directory.
+   AddressSpace *page_directory; // Page directory.
    struct task *next;     // The next task in a linked list.
 } task_t;
 

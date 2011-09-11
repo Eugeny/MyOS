@@ -10,8 +10,8 @@ volatile task_t *current_task;
 volatile task_t *ready_queue;
 
 // Some externs are needed to access members in paging.c...
-extern page_directory_t *kernel_directory;
-extern page_directory_t *current_directory;
+extern AddressSpace *kernel_directory;
+extern AddressSpace *current_directory;
 extern void alloc_frame(page_t*,int,int);
 extern u32int initial_esp;
 extern "C" u32int read_eip();
@@ -50,7 +50,7 @@ void move_stack(void *new_stack_start, u32int size)
     // General-purpose stack is in user-mode.
     paging_alloc_frame( paging_get_page(i, 1, current_directory), 0 /* User mode */, 1 /* Is writable */ );
   }
-  
+
   // Flush the TLB by reading and writing the page directory address again.
   u32int pd_addr;
   asm volatile("mov %%cr3, %0" : "=r" (pd_addr));
@@ -71,7 +71,7 @@ void move_stack(void *new_stack_start, u32int size)
   memcpy((void*)new_stack_pointer, (void*)old_stack_pointer, initial_esp-old_stack_pointer);
 
   // Backtrace through the original stack, copying new values into
-  // the new stack.  
+  // the new stack.
   for(i = (u32int)new_stack_start; i > (u32int)new_stack_start-size; i -= 4)
   {
     u32int tmp = * (u32int*)i;
@@ -100,7 +100,7 @@ void switch_task()
     asm volatile("mov %%esp, %0" : "=r"(esp));
     asm volatile("mov %%ebp, %0" : "=r"(ebp));
     // Read the instruction pointer. We do some cunning logic here:
-    // One of two things could have happened when this function exits - 
+    // One of two things could have happened when this function exits -
     //   (a) We called the function and it returned the EIP as requested.
     //   (b) We have just switched tasks, and because the saved EIP is essentially
     //       the instruction after read_eip(), it will seem as if read_eip has just
@@ -144,7 +144,7 @@ void switch_task()
       mov $0x12345, %%eax; \
       sti;                 \
       jmp *%%ecx           "
-                 : : "r"(eip), "r"(esp), "r"(ebp), "r"(current_directory->physicalAddr));
+                 : : "r"(eip), "r"(esp), "r"(ebp), "r"(current_directory->dir->physicalAddr));
 }
 
 int fork()
@@ -156,7 +156,7 @@ int fork()
     task_t *parent_task = (task_t*)current_task;
 
     // Clone the address space.
-    page_directory_t *directory = clone_directory(current_directory);
+    AddressSpace *directory = clone_directory(current_directory);
 
     // Create a new process.
     task_t *new_task = (task_t*)kmalloc(sizeof(task_t));

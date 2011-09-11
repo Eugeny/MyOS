@@ -16,6 +16,7 @@ SOURCES= \
     src/kernel/interrupts/IDTUtil.o \
     src/kernel/interrupts/Interrupts.o \
     src/kernel/interrupts/InterruptsUtil.o \
+    src/kernel/memory/AddressSpace.o \
     src/kernel/memory/Heap.o \
     src/kernel/memory/GDT.o \
     src/kernel/memory/GDTUtil.o \
@@ -40,17 +41,17 @@ link:
 
 .cpp.o:
 	$(CC) $(CFLAGS) $< -o $@
-	
-	
+
+
 
 mount: umount
 	vmware-mount ~/vmware/MyOS/MyOS-0.vmdk fs
-	
-umount:		
+
+umount:
 	vmware-mount -d fs || true
 	sleep 2
 	vmware-mount -d fs || true
-		
+
 deploy: all
 	echo
 	vmware-mount ~/vmware/MyOS/MyOS-0.vmdk fs

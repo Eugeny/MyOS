@@ -22,7 +22,7 @@ void on_timer(isrq_registers_t r) {
     klog_flush();
 }
 
- 
+
 u32int alloc_dbg(char* n, u32int sz) {
     u32int r, phy;
     r = (u32int)kmalloc_p(sz, &phy);
@@ -66,25 +66,25 @@ extern "C" void kmain (void* mbd, u32int esp)
 
     heap_selfinit();
     Heap::get()->init();
-    
+
     klog_init();
     initialiseConstructors();
-    
-    
+
+
     Heap::get()->init();
-    
+
     GDT::get()->init();
     GDT::get()->setDefaults();
     GDT::get()->flush();
-    
+
     IDT::get()->init();
 
     Interrupts::get()->setHandler(IRQ(0), on_timer);
     init_timer(5);
-     
+
     klog("Starting paging");
     paging_init();
-    
+
     initialise_tasking();
 
 
@@ -97,10 +97,10 @@ extern "C" void kmain (void* mbd, u32int esp)
             s[10] = (char)((int)'0' + getpid());
             s[12] = (char)((int)'0' + p);
             klog(s);klog_flush();
-            for (int i=0;i<300000000;i++);
+            for (int i=0;i<30000000;i++);
         }
 
-    
+
     if (pid == 0) {
         char s[] = "Child reporting";
         int c = 0;
@@ -116,10 +116,10 @@ extern "C" void kmain (void* mbd, u32int esp)
             for (int i=0;i<100000000;i++);
         }
     }
-     
+
     /*
-    mem_dbg();   
-    
+    mem_dbg();
+
     u32int a, b, c, d, e, t;
 
     a = alloc_dbg("a", 32);
@@ -134,22 +134,20 @@ extern "C" void kmain (void* mbd, u32int esp)
     d = alloc_dbg("d", 16);
 
     t = *((u32int*)a);
-    
+
     klogn("free a");
     kfree(a);
     klog(" free c");
     kfree(c);
-     
+
     e = alloc_dbg("e", 3);
     c = alloc_dbg("c", 40);
 
     kheap_dbg();
-    
-    mem_dbg();   
+
+    mem_dbg();
     */
 
-    
+
     for(;;);
 }
-
-
