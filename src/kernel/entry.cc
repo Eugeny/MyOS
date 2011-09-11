@@ -1,4 +1,6 @@
 #include "kutils.h"
+#include <core/TaskManager.h>
+#include <core/Scheduler.h>
 #include <hardware/PIT.h>
 #include <hardware/Keyboard.h>
 #include <interrupts/IDT.h>
@@ -8,11 +10,10 @@
 #include <memory/Memory.h>
 #include <tty/TTYManager.h>
 #include <util/cpp.h>
-#include "tasking.h"
 
 
 void on_timer(isrq_registers_t r) {
-    switch_task();
+    TaskManager::get()->switchTo(Scheduler::get()->pickTask());
 
     Terminal* sb = TTYManager::get()->getStatusBar();
     int ram = Memory::get()->getUsedFrames() * 100 / Memory::get()->getTotalFrames();
@@ -84,7 +85,6 @@ extern "C" void kmain (void* mbd, u32int esp)
 
     IDT::get()->init();
 
-    klog("Starting paging");
     Memory::get()->startPaging(esp);
 
     TTYManager::get()->init(5);
@@ -92,76 +92,26 @@ extern "C" void kmain (void* mbd, u32int esp)
     PIT::get()->setHandler(on_timer);
     PIT::get()->setFrequency(50);
 
-
     Keyboard::get()->init();
     Keyboard::get()->setHandler(kbdh);
 
+    Scheduler::get()->init();
+    TaskManager::get()->init();
 
-    initialise_tasking();
-
-
-    int pid = fork();//fork();fork();
+// INIT DONE
+    TaskManager::get()->fork();
+    TaskManager::get()->fork();
 
         char s[] = "> Process x x reporting\n";
         int c = 0;
-        int p = getpid();
+        int p = TaskManager::get()->getCurrentTask()->id;
         while (1) {
-            s[10] = (char)((int)'0' + getpid()%10);
-            s[12] = (char)((int)'0' + p%10);
+            s[10] = (char)((int)'0' + p%10);
             //klog(to_dec(getpid()));
             //klog(s);klog_flush();
-            TTYManager::get()->getTTY(getpid())->writeString(s);
+            TTYManager::get()->getTTY(p)->writeString(s);
             for (int i=0;i<300000000;i++);
         }
-
-
-    if (pid == 0) {
-        char s[] = "Child reporting";
-        int c = 0;
-        while (1) {
-            s[5] = (char)((int)'0' + getpid());
-            klog(s);
-            for (int i=0;i<100000000;i++);
-        }
-    } else {
-        while (1) {
-            klog("Parent reports memory");
- //           mem_dbg();
-            for (int i=0;i<100000000;i++);
-        }
-    }
-
-    /*
-    mem_dbg();
-
-    u32int a, b, c, d, e, t;
-
-    a = alloc_dbg("a", 32);
-
-    klog("Enabling heap allocator");
-    kheap_enable();
-
-
-    a = alloc_dbg("a", 32);
-    b = alloc_dbg("b", 16);
-    c = alloc_dbg("c", 16);
-    d = alloc_dbg("d", 16);
-
-    t = *((u32int*)a);
-
-    klogn("free a");
-    kfree(a);
-    klog(" free c");
-    kfree(c);
-
-    e = alloc_dbg("e", 3);
-    c = alloc_dbg("c", 40);
-
-    kheap_dbg();
-
-    mem_dbg();
-    */
-
 
     for(;;);
 }

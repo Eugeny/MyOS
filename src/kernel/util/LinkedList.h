@@ -15,10 +15,12 @@ class LinkedListIter {
 public:
     LinkedListIter<T>(LinkedListEntry<T>* l) {
         c = l;
+        index = 0;
     }
 
     void next() {
         c = c->next;
+        index++;
     }
 
     int end() {
@@ -28,6 +30,8 @@ public:
     T get() {
         return c->value;
     }
+
+    int index;
 private:
     LinkedListEntry<T>* c;
 };
@@ -46,9 +50,7 @@ public:
     }
 
     LinkedListIter<T>* iter() {
-        LinkedListIter<T>* i = new LinkedListIter<T>*();
-        i->init(this);
-        return i;
+        return new LinkedListIter<T>(root);
     }
 
     T get(int idx) {
