@@ -160,6 +160,9 @@ void Heap::free(void* addr) {
 }
 
 
+u32int Heap::getFreeSpaceBoundary() {
+    return free_space_start;
+}
 
 u32int Heap::malloc_dumb(u32int sz, u8int align, u32int *phys) {
     u32int addr = free_space_start;

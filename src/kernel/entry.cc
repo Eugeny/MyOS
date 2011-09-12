@@ -19,7 +19,7 @@
 
 
 void on_timer(isrq_registers_t r) {
-    TaskManager::get()->switchTo(Scheduler::get()->pickTask());
+    TaskManager::get()->switchTo(Scheduler::get()->pickThread());
 
     Terminal* sb = TTYManager::get()->getStatusBar();
     int ram = Memory::get()->getUsedFrames() * 100 / Memory::get()->getTotalFrames();
@@ -108,25 +108,22 @@ extern "C" void kmain (void* mbd, u32int esp) {
     VFS::get()->mount(DevFSMaster::get()->getFS(), "/dev");
 
 // INIT DONE
-TRACE
     list("/", 0);
-TRACE
     FileObject* tty = VFS::get()->open("/dev/tty0", MODE_R|MODE_W);
     tty->writeString("Hello!\n");
 
 // INIT DONE
     TaskManager::get()->fork();
-    TaskManager::get()->fork();
 
         char s[] = "> Process x x reporting\n";
         int c = 0;
-        int p = TaskManager::get()->getCurrentTask()->id;
+        int p = TaskManager::get()->getCurrentThread()->id;
         while (1) {
             s[10] = (char)((int)'0' + p%10);
             //klog(to_dec(getpid()));
             //klog(s);klog_flush();
             TTYManager::get()->getTTY(p)->writeString(s);
-            for (int i=0;i<300000000;i++);
+            for (int i=0;i<30000000;i++);
         }
 
     for(;;);

@@ -55,7 +55,7 @@ Terminal* TTYManager::getStatusBar() {
 }
 
 void TTYManager::processKey(u32int mod, u32int code) {
-    if (mod == KBD_MOD_CTRL && code > 0x81 && code <= 0x82 + ttyCount) {
+    if (mod == KBD_MOD_CTRL && code > 0x81 && code <= 0x82 + (u32int)ttyCount) {
         switchActive(code - 0x82);
     }
 }

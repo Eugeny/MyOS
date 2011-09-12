@@ -4,18 +4,18 @@
 #include <util/cpp.h>
 #include <util/Singleton.h>
 #include <util/LinkedList.h>
-#include <core/TaskManager.h>
+#include <core/Thread.h>
 
 
 class Scheduler : public Singleton<Scheduler> {
 public:
     Scheduler();
     void  init();
-    void  addTask(Task* t);
-    void  removeTask(Task* t);
-    Task *pickTask();
+    void  addThread(Thread* t);
+    void  removeThread(Thread* t);
+    Thread *pickThread();
 private:
-    LinkedList<Task*>* queue;
+    LinkedList<Thread*>* queue;
 };
 
 #endif

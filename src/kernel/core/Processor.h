@@ -11,6 +11,7 @@ public:
     static u32int getStackPointer();
     static void   disableInterrupts();
     static void   enableInterrupts();
+    static void   idle();
 };
 
 #endif

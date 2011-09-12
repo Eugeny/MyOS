@@ -5,21 +5,21 @@ Scheduler::Scheduler() {
 }
 
 void Scheduler::init() {
-    queue = new LinkedList<Task*>();
+    queue = new LinkedList<Thread*>();
 }
 
-void Scheduler::addTask(Task* t) {
+void Scheduler::addThread(Thread* t) {
     queue->insertLast(t);
 }
 
-void Scheduler::removeTask(Task* t) {
+void Scheduler::removeThread(Thread* t) {
     queue->remove(t);
 }
 
-Task *Scheduler::pickTask() {
+Thread *Scheduler::pickThread() {
     if (queue->length() == 0)
         return NULL;
-    Task *r = queue->remove(0);
+    Thread *r = queue->remove(0);
     queue->insertLast(r);
     return r;
 }

@@ -4,29 +4,21 @@
 #include <util/cpp.h>
 #include <util/LinkedList.h>
 #include <util/Singleton.h>
-#include <memory/AddressSpace.h>
-
-
-class Task {
-public:
-    Task();
-    u32int id;
-    u32int esp;
-    u32int eip;
-    AddressSpace *addrSpace;
-};
+#include <core/Thread.h>
+#include <core/Process.h>
 
 
 class TaskManager : public Singleton<TaskManager> {
 public:
     TaskManager();
-    void   init();
-    u32int fork();
-    void   switchTo(Task *t);
-    Task  *getCurrentTask();
+    void    init();
+    u32int  fork();
+    void    switchTo(Thread *t);
+    Thread *getCurrentThread();
+    Thread *newThread(void (*main)(void*), void* arg);
 private:
-    LinkedList<Task*>* tasks;
-    Task* currentTask;
+    LinkedList<Process*>* processes;
+    Thread* currentThread;
 };
 
 #endif

@@ -17,6 +17,8 @@ SOURCES= \
     src/kernel/core/Processor.o \
     src/kernel/core/Scheduler.o \
     src/kernel/core/TaskManager.o \
+    src/kernel/core/Process.o \
+    src/kernel/core/Thread.o \
     src/kernel/hardware/Keyboard.o \
     src/kernel/hardware/PIT.o \
     src/kernel/interrupts/IDT.o \

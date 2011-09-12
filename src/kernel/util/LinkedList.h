@@ -123,7 +123,7 @@ public:
     }
 
     T remove (T val) {
-        remove(find(val));
+        return remove(find(val));
     }
 
 
@@ -131,9 +131,7 @@ public:
         insert(val, length());
     }
 
-
     void purge() {
-        LinkedListEntry<T>* t;
         while (root) {
             delete root->value;
             root = root->next;

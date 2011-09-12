@@ -24,12 +24,13 @@ typedef struct heap {
 class Heap : public Singleton<Heap> {
 public:
     static void  _selfinit(Heap *h);
-    void  init();
-    void* malloc(u32int sz);
-    void* malloc(u32int sz, bool align, u32int *phys);
-    void  free(void* addr);
+    void   init();
+    void*  malloc(u32int sz);
+    void*  malloc(u32int sz, bool align, u32int *phys);
+    void   free(void* addr);
 
-    void  switchToHeap();
+    u32int getFreeSpaceBoundary();
+    void   switchToHeap();
 private:
     u32int malloc_dumb(u32int sz, u8int align, u32int *phys);
     u32int malloc_kheap(u32int sz, u8int align, u32int *phys);

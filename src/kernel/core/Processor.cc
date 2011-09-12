@@ -14,3 +14,7 @@ void Processor::disableInterrupts() {
 void Processor::enableInterrupts() {
     asm volatile("sti");
 }
+
+void Processor::idle() {
+    asm volatile("hlt");
+}
