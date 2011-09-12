@@ -2,6 +2,7 @@
 #include <core/Processor.h>
 #include <core/Scheduler.h>
 #include <memory/Memory.h>
+#include <kutils.h>
 
 
 Task::Task() {
@@ -31,7 +32,7 @@ void TaskManager::init() {
 #define TASKSWITCH_DUMMY_EIP 0x376
 
 void TaskManager::switchTo(Task* t) {
-    if (!tasks)
+    if (!t)
         return;
 
     u32int eip = Processor::getInstructionPointer();

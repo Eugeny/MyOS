@@ -21,20 +21,10 @@ void Interrupts::removeHandler(int n) {
 }
 
 static void default_interrupt_handler(isrq_registers_t regs) {
-    char s[] = "  xx  xxxxxx";
-
     klogn("INT ");
-    s[2] = (char)((int)'0' + regs.int_no/100);
-    s[3] = (char)((int)'0' + regs.int_no/10%10);
-    s[4] = (char)((int)'0' + regs.int_no%10);
-
-    s[6] = (char)((int)'0' + regs.err_code/100000%10);
-    s[7] = (char)((int)'0' + regs.err_code/10000%10);
-    s[8] = (char)((int)'0' + regs.err_code/1000%10);
-    s[9] = (char)((int)'0' + regs.err_code/100%10);
-    s[10] = (char)((int)'0' + regs.err_code/10%10);
-    s[11] = (char)((int)'0' + regs.err_code%10);
-    klog(s);
+    klogn(to_dec(regs.int_no));
+    klogn(" ");
+    klog(to_dec(regs.err_code));
 }
 
 static void default_irq_handler(isrq_registers_t regs) {
@@ -53,11 +43,13 @@ static void default_irq_handler(isrq_registers_t regs) {
 }
 
 extern "C" void isr_handler(isrq_registers_t regs) {
+    regs.int_no %= 256;
+    bool irq = (regs.int_no >= 32 && regs.int_no <= 47);
     int ino = regs.int_no;
-    if (regs.int_no >= 32)
+    if (irq)
         regs.int_no -= 32;
 
-    if (ino >= 32) {
+    if (irq) {
         if (regs.int_no >= 8)
         {
             outb(0xA0, 0x20);
@@ -69,7 +61,7 @@ extern "C" void isr_handler(isrq_registers_t regs) {
     if (interrupt_handlers[ino] != 0) {
         interrupt_handlers[ino](regs);
     } else {
-        if (ino < 32) {
+        if (!irq) {
             default_interrupt_handler(regs);
         } else {
             default_irq_handler(regs);

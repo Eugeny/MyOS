@@ -9,6 +9,7 @@
 #include <memory/GDT.h>
 #include <memory/Memory.h>
 #include <tty/TTYManager.h>
+#include <syscall/SyscallManager.h>
 #include <util/cpp.h>
 
 
@@ -29,51 +30,12 @@ void on_timer(isrq_registers_t r) {
     TTYManager::get()->draw();
 }
 
-
-u32int alloc_dbg(char* n, u32int sz) {
-    u32int r, phy;
-    r = (u32int)kmalloc_p(sz, &phy);
-    klogn("malloc(");
-    klogn(to_dec(sz));
-    klogn(") -> ");
-    klogn(n);
-    klogn(" = virt=0x");
-    klogn(to_hex(r));
-    klogn(" phy=0x");
-    klog(to_hex(phy));
-    return r;
-}
-
-extern heap_t kheap;
-/*void kheap_dbg() {
-    klog("\nKernel heap index");
-    for (int i=0;i<kheap.index_length;i++) {
-        klogn(to_dec(i));
-        if (kheap.index[i].flags == HEAP_HOLE)
-        klogn(" HOLE ");
-        else klogn(" DATA ");
-        klogn(to_hex(kheap.index[i].addr));
-        klogn(" + ");
-        klog(to_hex(kheap.index[i].size));
-    }
-}
-
-void mem_dbg() {
-    memory_info_t meminfo;
-    paging_info(&meminfo);
-    klogn("\nTotal frames: ");  klog(to_dec(meminfo.total_frames));
-    klogn("Used frames:  ");  klog(to_dec(meminfo.used_frames));
-}
-
-*/
-
 void kbdh(u32int mod, u32int sc) {
     klogn("K");klogn(to_hex(sc));klogn("-");klog(to_hex(mod));
     TTYManager::get()->processKey(mod, sc);
 }
 
-extern "C" void kmain (void* mbd, u32int esp)
-{
+extern "C" void kmain (void* mbd, u32int esp) {
     initialiseConstructors();
 
     heap_selfinit();
@@ -89,14 +51,19 @@ extern "C" void kmain (void* mbd, u32int esp)
 
     TTYManager::get()->init(5);
 
-    PIT::get()->setHandler(on_timer);
     PIT::get()->setFrequency(50);
+    PIT::get()->setHandler(on_timer);
 
     Keyboard::get()->init();
     Keyboard::get()->setHandler(kbdh);
 
     Scheduler::get()->init();
     TaskManager::get()->init();
+
+    SyscallManager::get()->init();
+    SyscallManager::get()->registerDefaults();
+
+
 
 // INIT DONE
     TaskManager::get()->fork();

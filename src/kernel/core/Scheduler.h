@@ -9,6 +9,7 @@
 
 class Scheduler : public Singleton<Scheduler> {
 public:
+    Scheduler();
     void  init();
     void  addTask(Task* t);
     void  removeTask(Task* t);

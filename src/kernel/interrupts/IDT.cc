@@ -74,6 +74,9 @@ extern "C" void isr45 ();
 extern "C" void isr46 ();
 extern "C" void isr47 ();
 
+extern "C" void isr128 ();
+extern "C" void isr255 ();
+
 
 void IDT::init() {
     memset(&idt_entries, 0, sizeof(idt_entry_t)*256);
@@ -138,6 +141,8 @@ void IDT::init() {
     setGate(45, (u32int)isr45, 0x08, 0x8E);
     setGate(46, (u32int)isr46, 0x08, 0x8E);
     setGate(47, (u32int)isr47, 0x08, 0x8E);
+    setGate(128, (u32int)isr128, 0x08, 0x8E);
+    setGate(255, (u32int)isr255, 0x08, 0x8E);
 
     flush();
 }
