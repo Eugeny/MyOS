@@ -6,8 +6,10 @@ SECTIONS
 
 	.text ALIGN(4096) :
 	{
+		start_text = .; _start_text = .; __start_text = .;
 		*(.text*)
 		*(.gnu.linkonce.t*)
+		end_text = .; _end_text = .; __end_text = .;
 	}
 
 	.rodata ALIGN(4096) :
@@ -19,7 +21,7 @@ SECTIONS
 		*(.rodata*)
 		*(.gnu.linkonce.r*)
 	}
-	
+
 	.data ALIGN(4096) :
 	{
 		*(.data*)
@@ -32,6 +34,6 @@ SECTIONS
 		*(.bss*)
 		*(.gnu.linkonce.b*)
 	}
-	
+
     end = .; _end = .; __end = .;
 }

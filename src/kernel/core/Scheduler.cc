@@ -1,4 +1,6 @@
 #include <core/Scheduler.h>
+#include <kutils.h>
+
 
 Scheduler::Scheduler() {
     queue = NULL;
@@ -9,7 +11,7 @@ void Scheduler::init() {
 }
 
 void Scheduler::addThread(Thread* t) {
-    queue->insertLast(t);
+    queue->insert(t, 1);
 }
 
 void Scheduler::removeThread(Thread* t) {

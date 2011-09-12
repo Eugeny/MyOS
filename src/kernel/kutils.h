@@ -23,4 +23,5 @@ extern "C" void klogn(char *s);
 #define PANIC(s) kpanic(__FILE__, __LINE__, s)
 extern "C" void kpanic(char* file, u32int line, char* msg);
 extern void backtrace();
+extern void stacktrace();
 #endif

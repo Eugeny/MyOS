@@ -21,8 +21,8 @@
 void on_timer(isrq_registers_t r) {
     TaskManager::get()->switchTo(Scheduler::get()->pickThread());
 
-    Terminal* sb = TTYManager::get()->getStatusBar();
-    int ram = Memory::get()->getUsedFrames() * 100 / Memory::get()->getTotalFrames();
+static    Terminal* sb = TTYManager::get()->getStatusBar();
+static    int ram = Memory::get()->getUsedFrames() * 100 / Memory::get()->getTotalFrames();
     sb->goTo(WIDTH-10, 0);
     sb->write("RAM: xx%");
     sb->setCh(WIDTH-4, 0, '0'+ram/10);
@@ -113,7 +113,15 @@ extern "C" void kmain (void* mbd, u32int esp) {
     tty->writeString("Hello!\n");
 
 // INIT DONE
-    TaskManager::get()->fork();
+    static int pid =0;//TaskManager::get()->fork();
+    asm("mov $1, %%eax; mov %0, %%ecx; int $128;" :: "r"((u32int)&pid));
+    DEBUG(to_hex((u32int)&pid));
+    tty->writeString(to_dec(pid));
+    tty->writeString(" here\n");
+    for(;;);
+
+    if (pid != 0){    tty->writeString("DIE");    TaskManager::get()->getCurrentThread()->die();}else{
+    TaskManager::get()->getCurrentThread()->die();}
 
         char s[] = "> Process x x reporting\n";
         int c = 0;

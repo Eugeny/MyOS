@@ -1,4 +1,5 @@
 #include <syscall/SyscallManager.h>
+#include <core/TaskManager.h>
 #include <kutils.h>
 
 
@@ -24,6 +25,14 @@ void handlePrint(isrq_registers_t r) {
     klog((char*)r.ebx);
 }
 
+
+void handleFork(isrq_registers_t r) {
+    int pid = TaskManager::get()->fork();
+    DEBUG(to_hex(r.ecx));
+    *((u32int*)r.ecx) = 25;//pid;
+}
+
 void SyscallManager::registerDefaults() {
     registerSyscall(0, handlePrint);
+    registerSyscall(1, handleFork);
 }

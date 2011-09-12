@@ -92,18 +92,36 @@ extern "C" void kpanic(char* file, u32int line, char* msg) {
     for (;;);
 }
 
-extern "C" u32int read_eip();
-void backtrace() {
-    u32int ebp, eip;
-    eip = Processor::getInstructionPointer();
-    asm volatile ("mov %%ebp, %0" : "=r" (ebp));
+extern u32int start_text, end_text;
+void backtrace() {return;
+    u32int* p;
+    int c=0;
+    asm volatile ("mov %%ebp, %0" : "=r" (p));
 
-    while (ebp) {
-        klogn(to_hex(eip));
-        klogn(" ");
-        klog(to_hex(ebp));
-        eip = *((u32int*)ebp + 4);
-        ebp = *((u32int*)ebp);
+    while ((u32int)p < 0xE0000000 && c <12) {
+        if ((u32int)(&start_text) < *p && *p < (u32int)(&end_text)) {
+            klogn(to_hex(*p));
+            klogn(" ");
+            klog(to_hex((u32int)p));
+            c++;
+        }
+        p++;
+    }
+
+    klog_flush();
+}
+
+void stacktrace() {
+    u32int* p;
+    int c=0;
+    asm volatile ("mov %%esp, %0" : "=r" (p));
+
+    while ((u32int)p < 0xE0000000 && c <12) {
+            klogn(to_hex(*p));
+            klogn(" ");
+            klog(to_hex((u32int)p));
+            c++;
+        p++;
     }
 
     klog_flush();

@@ -30,32 +30,26 @@ void TaskManager::init() {
 
 #define TASKSWITCH_DUMMY_EIP 0x376
 
+extern "C" void CPUSaveState(u32int);
+extern "C" void CPURestoreState(u32int, char*);
+
 void TaskManager::switchTo(Thread* t) {
     if (!t)
         return;
 
-    u32int eip = Processor::getInstructionPointer();
-    if (eip == TASKSWITCH_DUMMY_EIP) // Magic! We've just switched tasks
-        return;
+    volatile bool switched = false;
 
-    currentThread->eip = eip;
-    currentThread->esp = Processor::getStackPointer();
+    CPUSaveState((u32int)(currentThread->state));
+    if (switched) return;
 
     currentThread = t;
-
     Memory::get()->setAddressSpace(currentThread->process->addrSpace);
 
-    asm volatile("         \
-      mov %0, %%ecx;       \
-      mov %1, %%esp;       \
-      mov %2, %%cr3;       \
-      mov %3, %%eax;       \
-      sti;                 \
-      jmp *%%ecx           "
-      :: "r"(currentThread->eip),
-         "r"(currentThread->esp),
-         "r"(Memory::get()->getCurrentSpace()->dir->physicalAddr),
-         "r"(TASKSWITCH_DUMMY_EIP));
+    switched = true;
+    CPURestoreState(
+        Memory::get()->getCurrentSpace()->dir->physicalAddr,
+        currentThread->state
+    );
 }
 
 
@@ -66,7 +60,6 @@ u32int TaskManager::fork() {
     Process* newProc = new Process();
     newProc->name = strclone(parent->name);
     newProc->parent = parent;
-    newProc->addrSpace = parent->addrSpace->clone();
 
     processes->insertLast(newProc);
     parent->children->insertLast(newProc);
@@ -74,20 +67,18 @@ u32int TaskManager::fork() {
     Thread* newThread = new Thread(newProc);
     Scheduler::get()->addThread(newThread);
 
-bool old;
+    newProc->addrSpace = parent->addrSpace->clone();
 
-    u32int eip = Processor::getInstructionPointer();
+    CPUSaveState((u32int)currentThread->state);
+    memcpy(newThread->state, currentThread->state, 256);
 
-    old = currentThread->process == parent;
-    if (old) {
-        newThread->esp = Processor::getStackPointer();
-        newThread->eip = eip;
-        Processor::enableInterrupts();
-
-        return newProc->pid;
+    bool old = currentThread->process == parent;
+    if (!old) {
+        return 0;
     }
     else {
-        return 0;
+        Processor::enableInterrupts();
+        return newProc->pid;
     }
 }
 
@@ -116,8 +107,9 @@ Thread *TaskManager::newThread(void (*main)(void*), void* arg) {
 
         return newThread;
     }
-    else
+    else {
         return 0;
+    }
 }
 
 

@@ -12,6 +12,7 @@ public:
 
     u32int id;
     Process *process;
+    char state[256];
 
     u32int esp;
     u32int eip;
