@@ -93,7 +93,7 @@ extern "C" void kpanic(char* file, u32int line, char* msg) {
 }
 
 extern u32int start_text, end_text;
-void backtrace() {return;
+void backtrace() {
     u32int* p;
     int c=0;
     asm volatile ("mov %%ebp, %0" : "=r" (p));

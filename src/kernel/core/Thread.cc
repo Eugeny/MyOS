@@ -7,7 +7,6 @@
 Thread::Thread(Process *p) {
     static int tid = 0;
     id = tid++;
-    esp = eip = NULL;
     process = p;
     process->threads->insertLast(this);
     dead = false;
@@ -17,4 +16,8 @@ void Thread::die() {
     dead = true;
     while (true)
         Processor::idle();
+}
+
+bool Thread::isDead() {
+    return dead;
 }

@@ -28,34 +28,28 @@ void TaskManager::init() {
     Processor::enableInterrupts();
 }
 
-#define TASKSWITCH_DUMMY_EIP 0x376
-
-extern "C" void CPUSaveState(u32int);
-extern "C" void CPURestoreState(u32int, char*);
+extern "C" void CPUSaveState(thread_state_t*);
+extern "C" void CPURestoreState(u32int, thread_state_t*);
 
 void TaskManager::switchTo(Thread* t) {
     if (!t)
         return;
-
     volatile bool switched = false;
 
-    CPUSaveState((u32int)(currentThread->state));
+    CPUSaveState(&currentThread->state);
     if (switched) return;
-
     currentThread = t;
     Memory::get()->setAddressSpace(currentThread->process->addrSpace);
 
     switched = true;
     CPURestoreState(
         Memory::get()->getCurrentSpace()->dir->physicalAddr,
-        currentThread->state
+        &currentThread->state
     );
 }
 
 
 u32int TaskManager::fork() {
-    Processor::disableInterrupts();
-
     Process* parent = currentThread->process;
     Process* newProc = new Process();
     newProc->name = strclone(parent->name);
@@ -69,40 +63,37 @@ u32int TaskManager::fork() {
 
     newProc->addrSpace = parent->addrSpace->clone();
 
-    CPUSaveState((u32int)currentThread->state);
-    memcpy(newThread->state, currentThread->state, 256);
+    CPUSaveState(&currentThread->state);
+    memcpy(&newThread->state, &currentThread->state, 256);
 
     bool old = currentThread->process == parent;
     if (!old) {
         return 0;
     }
     else {
-        Processor::enableInterrupts();
         return newProc->pid;
     }
 }
 
-
-static void threadEnd() {
+static void threadEnd() {for(;;);
     TaskManager::get()->getCurrentThread()->die();
 }
 
 Thread *TaskManager::newThread(void (*main)(void*), void* arg) {
-    Processor::disableInterrupts();
-
     u32int stack = (u32int)currentThread->process->requestMemory(0x2000) + 0x1FF0;
 
     Thread* newThread = new Thread(currentThread->process);
-
     Scheduler::get()->addThread(newThread);
 
+    CPUSaveState(&newThread->state);
+
     if (currentThread != newThread) {
-        newThread->esp = stack - 12;
+        newThread->state.esp = stack - 12;
         *((u32int*)(stack-4)) = stack;
         *((u32int*)(stack-8)) = (u32int)(threadEnd);
         *((u32int*)(stack-12)) = (u32int)arg;
 
-        newThread->eip = (u32int)main;
+        newThread->state.eip = (u32int)main;
         Processor::enableInterrupts();
 
         return newThread;

@@ -132,7 +132,7 @@ void Memory::startPaging(u32int initial_esp) {
     currentSpace = kernelSpace->clone();
     switchAddressSpace (currentSpace);
 
-    move_stack((void*)0xE0000000, 0x20000, initial_esp);
+    move_stack((void*)0xD0000000, 0x20000, initial_esp);
 }
 
 void Memory::setAddressSpace(AddressSpace *s) {

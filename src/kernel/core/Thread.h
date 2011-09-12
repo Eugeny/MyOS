@@ -5,17 +5,23 @@
 
 class Process;
 
+typedef struct thread_state {
+    u32int eip, esp, ebp, ebx, edi, esi, ph;
+} PACKED thread_state_t;
+
+
+typedef void(*thread_entry_point)(void*);
+
+
 class Thread {
 public:
     Thread(Process *p);
     void die();
+    bool isDead();
 
     u32int id;
     Process *process;
-    char state[256];
-
-    u32int esp;
-    u32int eip;
+    thread_state_t state;
 private:
     bool   dead;
 };

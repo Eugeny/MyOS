@@ -1,5 +1,6 @@
 #include <syscall/SyscallManager.h>
 #include <core/TaskManager.h>
+#include <core/Thread.h>
 #include <kutils.h>
 
 
@@ -28,11 +29,18 @@ void handlePrint(isrq_registers_t r) {
 
 void handleFork(isrq_registers_t r) {
     int pid = TaskManager::get()->fork();
-    DEBUG(to_hex(r.ecx));
-    *((u32int*)r.ecx) = 25;//pid;
+    *((u32int*)r.ecx) = pid;
+}
+
+void handleThread(isrq_registers_t r) {
+    thread_entry_point m = (thread_entry_point)r.ebx;
+    void* a = (void*)r.edx;
+    int id = TaskManager::get()->newThread(m, a)->id;
+    *((u32int*)r.ecx) = id;
 }
 
 void SyscallManager::registerDefaults() {
     registerSyscall(0, handlePrint);
     registerSyscall(1, handleFork);
+    registerSyscall(2, handleThread);
 }

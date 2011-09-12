@@ -30,6 +30,7 @@ SOURCES= \
     src/kernel/memory/GDT.o \
     src/kernel/memory/Memory.o \
     src/kernel/syscall/SyscallManager.o\
+    src/kernel/syscall/Syscalls.o\
     src/kernel/tty/Terminal.o\
     src/kernel/tty/TTY.o\
     src/kernel/tty/TTYManager.o\

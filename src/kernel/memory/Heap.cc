@@ -119,7 +119,7 @@ void heap__remove(heap_t *h, int idx) {
 // End of generic heap code
 
 
-#define KHEAP_BASE 0xC0000000
+#define KHEAP_BASE 0xD0000000
 #define KHEAP_INDEX_SIZE 0x200000
 #define KHEAP_SIZE 0x1000000
 

@@ -11,7 +11,7 @@ void Scheduler::init() {
 }
 
 void Scheduler::addThread(Thread* t) {
-    queue->insert(t, 1);
+    queue->insertLast(t);
 }
 
 void Scheduler::removeThread(Thread* t) {
@@ -21,7 +21,8 @@ void Scheduler::removeThread(Thread* t) {
 Thread *Scheduler::pickThread() {
     if (queue->length() == 0)
         return NULL;
-    Thread *r = queue->remove(0);
+    Thread *r;
+    r = queue->remove(0);
     queue->insertLast(r);
     return r;
 }
