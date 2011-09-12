@@ -46,6 +46,10 @@ TTY* TTYManager::getTTY(int idx) {
     return ttys[idx];
 }
 
+int TTYManager::getTTYCount() {
+    return ttyCount;
+}
+
 Terminal* TTYManager::getStatusBar() {
     return bgTerm;
 }

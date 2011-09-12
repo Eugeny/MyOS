@@ -5,12 +5,17 @@
 #include <hardware/Keyboard.h>
 #include <interrupts/IDT.h>
 #include <interrupts/Interrupts.h>
+#include <io/FileObject.h>
 #include <memory/Heap.h>
 #include <memory/GDT.h>
 #include <memory/Memory.h>
 #include <tty/TTYManager.h>
 #include <syscall/SyscallManager.h>
 #include <util/cpp.h>
+#include <vfs/DevFS.h>
+#include <vfs/RootFS.h>
+#include <vfs/VFS.h>
+#include <vfs/Stat.h>
 
 
 void on_timer(isrq_registers_t r) {
@@ -33,6 +38,34 @@ void on_timer(isrq_registers_t r) {
 void kbdh(u32int mod, u32int sc) {
     klogn("K");klogn(to_hex(sc));klogn("-");klog(to_hex(mod));
     TTYManager::get()->processKey(mod, sc);
+}
+
+
+void list(char* p, int d) {
+    LinkedList<char*>* l = VFS::get()->listFiles(p);
+    LinkedListIter<char*>* i = l->iter();
+    for (; !i->end(); i->next()) {
+        for (int j=0;j<d;j++)
+        klogn(" ");
+        klog(i->get());
+        klog_flush();
+
+        char* path = (char*)kmalloc(strlen(p)+strlen(i->get()) + 2);
+        memcpy(path, p, strlen(p));
+        path[strlen(p)] = '/';
+        memcpy(path + strlen(p) + 1, i->get(), strlen(i->get())+1);
+
+        if (strcmp(p, "/"))
+            memcpy(path + strlen(p), i->get(), strlen(i->get())+1);
+
+        Stat* s = VFS::get()->stat(path);
+
+        if (s && s->isDirectory)
+            list(path, d+1);
+
+        delete path;
+        delete s;
+    }
 }
 
 extern "C" void kmain (void* mbd, u32int esp) {
@@ -64,6 +97,22 @@ extern "C" void kmain (void* mbd, u32int esp) {
     SyscallManager::get()->registerDefaults();
 
 
+    VFS::get()->init();
+    VFS::get()->mount(new RootFS(), "");
+
+    DevFSMaster::get()->init();
+
+    for (int i = 0; i < TTYManager::get()->getTTYCount(); i++)
+        DevFSMaster::get()->addTTY(TTYManager::get()->getTTY(i));
+
+    VFS::get()->mount(DevFSMaster::get()->getFS(), "/dev");
+
+// INIT DONE
+TRACE
+    list("/", 0);
+TRACE
+    FileObject* tty = VFS::get()->open("/dev/tty0", MODE_R|MODE_W);
+    tty->writeString("Hello!\n");
 
 // INIT DONE
     TaskManager::get()->fork();

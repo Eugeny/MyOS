@@ -3,6 +3,13 @@
 
 #include <util/cpp.h>
 
+#define MODE_R 1
+#define MODE_W 2
+#define MODE_A 4
+#define MODE_B 8
+
+
+
 class FileObject {
 public:
     virtual void write(char* buf, int pos, int count) {}

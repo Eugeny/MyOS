@@ -32,6 +32,11 @@ SOURCES= \
     src/kernel/tty/TTYManager.o\
     src/kernel/util/cpp.o \
     src/kernel/util/lock.o \
+    src/kernel/vfs/VFS.o \
+    src/kernel/vfs/FS.o \
+    src/kernel/vfs/DevFS.o \
+    src/kernel/vfs/RootFS.o \
+
 
 all: $(SOURCES) link
 

@@ -13,11 +13,7 @@ void Scheduler::addTask(Task* t) {
 }
 
 void Scheduler::removeTask(Task* t) {
-    for (LinkedListIter<Task*>* iter = queue->iter(); !iter->end(); iter->next())
-        if (iter->get() == t) {
-            queue->remove(iter->index);
-            return;
-        }
+    queue->remove(t);
 }
 
 Task *Scheduler::pickTask() {

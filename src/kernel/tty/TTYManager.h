@@ -13,6 +13,7 @@ public:
     void draw();
     void switchActive(int idx);
     TTY* getTTY(int idx);
+    int  getTTYCount();
     Terminal* getStatusBar();
     void processKey(u32int mod, u32int code);
     Terminal* activeTerminal;

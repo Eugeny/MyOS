@@ -21,6 +21,9 @@ typedef u32int         size_t;
 void initialiseConstructors();
 
 int   strlen(char *s);
+char* strclone(char *s);
+bool  strstarts(char *s, char *p);
+bool  strcmp(char *s, char *p);
 void *memset(void *s, char d, int l);
 void *memcpy(void *dest, const void *src, int n);
 void outb(u16int port, u8int);

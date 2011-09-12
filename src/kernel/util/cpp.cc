@@ -10,6 +10,28 @@ int strlen(char *s) {
     return r;
 }
 
+char* strclone(char* s) {
+    char* r = (char*)kmalloc(strlen(s)+1);
+    memcpy(r, s, strlen(s)+1);
+    return r;
+}
+
+bool strstarts(char *s, char *p) {
+    for (int i = 0; i < strlen(p); i++)
+        if (s[i] != p[i])
+            return false;
+    return true;
+}
+
+bool strcmp(char *s, char *p) {
+    if (strlen(s) != strlen(p))
+        return false;
+    for (int i = 0; i < strlen(p); i++)
+        if (s[i] != p[i])
+            return false;
+    return true;
+}
+
 void *memset(void *s, char d, int l) {
     for (int i = 0; i < l; i++)
         *(char*)((int)s+i) = d;

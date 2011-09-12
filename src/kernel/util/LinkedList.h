@@ -24,7 +24,7 @@ public:
     }
 
     int end() {
-        return (c == 0) or (c->next == 0);
+        return (c == 0);
     }
 
     T get() {
@@ -68,6 +68,17 @@ public:
         return r;
     }
 
+    int find(T val) {
+        LinkedListEntry<T>* p = root;
+        int r = 0;
+        for (; p; r++) {
+            if (p->value == val)
+                return r;
+            p = p->next;
+        }
+        return -1;
+    }
+
     void insert(T val, int idx) {
         LinkedListEntry<T>* i = new LinkedListEntry<T>();
         i->value = val;
@@ -88,7 +99,11 @@ public:
     }
 
     T remove(int idx) {
+        if (idx < 0)
+            return (T)NULL;
+
         T ret = (T)NULL;
+
         if (!root)
             return ret;
         else if (idx == 0) {
@@ -107,11 +122,32 @@ public:
         return ret;
     }
 
+    T remove (T val) {
+        remove(find(val));
+    }
+
 
     void insertLast(T val) {
         insert(val, length());
     }
 
+
+    void purge() {
+        LinkedListEntry<T>* t;
+        while (root) {
+            delete root->value;
+            root = root->next;
+        }
+    }
+
+    ~LinkedList() {
+        LinkedListEntry<T>* t;
+        while (root) {
+            t = root->next;
+            delete root;
+            root = t;
+        }
+    }
 
 private:
     LinkedListEntry<T>* root;
