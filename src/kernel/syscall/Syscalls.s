@@ -1,3 +1,10 @@
+global kprint
+kprint:
+    mov eax, 0
+    mov ecx, [esp+4]
+    int 0x80
+    ret
+
 global fork
 fork:
     mov eax, 1

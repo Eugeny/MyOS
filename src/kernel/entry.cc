@@ -1,4 +1,5 @@
 #include "kutils.h"
+#include <core/Processor.h>
 #include <core/TaskManager.h>
 #include <core/Scheduler.h>
 #include <hardware/PIT.h>
@@ -71,8 +72,11 @@ void list(char* p, int d) {
 }
 
 void thread(void* x) {
-    DEBUG("Thread!");for(;;);
+    DEBUG("Thread!");
+    DEBUG((char*)x);
 }
+
+#include <hardware/ATA.h>
 
 extern "C" void kmain (void* mbd, u32int esp) {
     initialiseConstructors();
@@ -115,10 +119,23 @@ extern "C" void kmain (void* mbd, u32int esp) {
     FileObject* tty = VFS::get()->open("/dev/tty0", MODE_R|MODE_W);
     ///tty->writeString("Hello!\n");
 
+    u8int buf[512];
+    ata_read(0, buf);
+    for (int i=0;i<8;i++) {
+        u8int b = 0;
+        b += buf[i];
+        klog(to_hex(b));
+    }
+
     int pid =0;
 //    list("/", 0);
-    pid=fork();
-    //newThread(thread,  0);
+//    pid=fork();
+  //  pid=fork();
+    //pid=fork();
+//    newThread(thread,  (void*)"FFFU");
+
+for(;;);
+
 
         char s[] = "> Process x x reporting\n";
         int c = 0;
@@ -128,7 +145,7 @@ extern "C" void kmain (void* mbd, u32int esp) {
             //klog(to_dec(getpid()));
             //klog(s);klog_flush();
             TTYManager::get()->getTTY(p)->writeString(s);
-            for (int i=0;i<300000000;i++);
+            for (int i=0;i<100000000;i++);
         }
 
 

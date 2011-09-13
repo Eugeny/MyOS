@@ -60,6 +60,16 @@ u16int inw(u16int port) {
    return ret;
 }
 
+u32int inl(u16int port) {
+   u32int ret;
+   asm volatile ("inl %1, %0" : "=a" (ret) : "dN" (port));
+   return ret;
+}
+
+void insl(u16int port, u32int buf, int count) {
+    for (int i = 0; i < count; i++)
+        *((u32int*)buf+i*4) = inl(port);
+}
 
 
 

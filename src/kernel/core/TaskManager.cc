@@ -57,7 +57,7 @@ void TaskManager::init() {
 
 
 void TaskManager::switchTo(Thread* t) {
-    if (!t || t == currentThread) {TRACE
+    if (!t || t == currentThread) {
         return;}
 
     if (!lock->attempt()) {TRACE;return;}
@@ -128,18 +128,27 @@ u32int TaskManager::fork() {
     }
 }
 
-static void threadEnd() {for(;;);
-    TaskManager::get()->getCurrentThread()->die();
-}
 
-Thread *TaskManager::newThread(void (*main)(void*), void* arg) {
-    if (!lock->attempt()) {TRACE;return NULL;}
+#define THREADSWITCH_MAGIC 0x84386346
+u32int TaskManager::newThread(void (*main)(void*), void* arg) {
     Processor::disableInterrupts();
-TRACE    u32int stack = (u32int)currentThread->process->requestMemory(0x2000) + 0x1FF0;
-//u32int stack = Processor::getStackPointer() - 0x2000;
-TRACE
-    Thread* newThread = new Thread(currentThread->process);
+    if (!lock->attempt()) return -1;
+
+    Process* parent = currentThread->process;
+    Process* newProc = new Process();
+    newProc->name = strclone(parent->name);
+    newProc->parent = parent;
+
+    processes->insertLast(newProc);
+    parent->children->insertLast(newProc);
+    newProc->addrSpace = parent->addrSpace;//->clone();
+
+    Thread* newThread = new Thread(newProc);
     Scheduler::get()->addThread(newThread);
+
+
+    u32int stack = (u32int)newThread->process->requestMemory(0x1000);
+
 
     newThread->TSS->eip = (u32int)&dofork;
     GDT::get()->setGate(5, (u32int)(currentThread->TSS), sizeof(tss_t), 0x89, 0x40);
@@ -148,29 +157,31 @@ TRACE
     static u32int selector[2];
     selector[0] = 0;
     selector[1] = 0x08*6;
-DEBUG("IN");
     asm volatile ("lcall %0" :: "m"(*selector));
-DEBUG("OUT");
-    bool old = TaskManager::get()->getCurrentThread() != newThread;
-    TRACE
-    if (!old) {
-TRACE
+
+    u32int st;
+    asm volatile ("mov 0x4(%%esp), %0" : "=r"(st));
+
+    if (st == THREADSWITCH_MAGIC) {
         lock->release();
         Processor::enableInterrupts();
-TRACE
-        //(*main)(arg);
-TRACE
-        for(;;);
-TRACE
+        asm volatile ("mov 0x8(%%esp), %0" : "=r"(main));
+        asm volatile ("mov 0xC(%%esp), %0" : "=r"(arg));
+        main(arg);
+        TaskManager::get()->getCurrentThread()->die();
         return 0;
     }
-    else {TRACE
+    else {
         memcpy(newThread->TSS, currentThread->TSS, sizeof(tss_t));
-//        newThread->TSS->cr3 = newThread->process->addrSpace->dir->physicalAddr;
-        newThread->TSS->esp0 = stack;
+        newThread->TSS->cr3 = newThread->process->addrSpace->dir->physicalAddr;
+        newThread->TSS->esp = stack;
+        *(u32int*)(stack+4) = THREADSWITCH_MAGIC;
+        *(u32int*)(stack+8) = (u32int)main;
+        *(u32int*)(stack+12) = (u32int)arg;
+        //newThread->TSS->esp0 = stack;
         lock->release();
         Processor::enableInterrupts();
-        return newThread;
+        return newProc->pid;
     }
 }
 

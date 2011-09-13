@@ -23,7 +23,7 @@ void SyscallManager::handleSyscall(isrq_registers_t r) {
 
 
 void handlePrint(isrq_registers_t r) {
-    klog((char*)r.ebx);
+    klog((char*)r.ecx);
 }
 
 
@@ -33,9 +33,10 @@ void handleFork(isrq_registers_t r) {
 }
 
 void handleThread(isrq_registers_t r) {
+TRACE
     thread_entry_point m = (thread_entry_point)r.ebx;
     void* a = (void*)r.edx;
-    int id = TaskManager::get()->newThread(m, a)->id;
+    int id = TaskManager::get()->newThread(m, a);
     *((u32int*)r.ecx) = id;
 }
 

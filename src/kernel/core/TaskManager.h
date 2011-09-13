@@ -15,7 +15,7 @@ public:
     u32int  fork();
     void    switchTo(Thread *t);
     Thread *getCurrentThread();
-    Thread *newThread(void (*main)(void*), void* arg);
+    u32int  newThread(void (*main)(void*), void* arg);
 private:
     LinkedList<Process*>* processes;
     Thread* currentThread;

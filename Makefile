@@ -20,6 +20,8 @@ SOURCES= \
     src/kernel/core/TaskManagerUtil.o \
     src/kernel/core/Process.o \
     src/kernel/core/Thread.o \
+    src/kernel/hardware/ATA.o \
+    src/kernel/hardware/ATAUtil.o \
     src/kernel/hardware/Keyboard.o \
     src/kernel/hardware/PIT.o \
     src/kernel/interrupts/IDT.o \

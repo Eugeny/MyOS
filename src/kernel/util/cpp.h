@@ -26,7 +26,10 @@ bool  strstarts(char *s, char *p);
 bool  strcmp(char *s, char *p);
 void *memset(void *s, char d, int l);
 void *memcpy(void *dest, const void *src, int n);
+
 void outb(u16int port, u8int);
 u8int inb(u16int port);
 u16int inw(u16int port);
+u32int inl(u16int port);
+void insl(u16int port, u32int buf, int count);
 #endif

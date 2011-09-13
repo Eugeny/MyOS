@@ -116,7 +116,7 @@ void stacktrace() {
     int c=0;
     asm volatile ("mov %%esp, %0" : "=r" (p));
 
-    while ((u32int)p < 0xE0000000 && c <22) {
+    while ((u32int)p < 0xE0000000 && c <9) {
             klogn(to_hex(*p));
             klogn(" ");
             klog(to_hex((u32int)p));
