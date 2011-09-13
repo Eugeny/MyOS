@@ -2,7 +2,7 @@
 #include <util/cpp.h>
 
 
-#define GDT_SIZE 5
+#define GDT_SIZE 7
 
 
 typedef struct gdt_entry_struct

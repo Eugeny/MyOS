@@ -1,6 +1,6 @@
-global CPUSaveState
-CPUSaveState:
-    mov ecx, [esp+4]
+global CPUSwitchContext
+CPUSwitchContext:
+    mov ecx, [esp+12]
     mov eax, [esp]
 
     mov [ecx], eax
@@ -10,13 +10,8 @@ CPUSaveState:
     mov [ecx+16], edi
     mov [ecx+20], esi
 
-    jmp eax
-
-
-global CPURestoreState
-CPURestoreState:
-    mov ecx, [esp+8] ; State
-    mov eax, [esp+4] ; AS
+    mov ecx, [esp+4] ; State
+    mov eax, [esp+8] ; AS
 
     mov edx, [ecx]
     mov esp, [ecx+4]
@@ -24,8 +19,9 @@ CPURestoreState:
     mov ebx, [ecx+12]
     mov edi, [ecx+16]
     mov esi, [ecx+20]
+
     mov cr3, eax
-    add esp, 4
-    sti
+    ret
+    add esp, 12
 
     jmp edx

@@ -35,7 +35,7 @@ SOURCES= \
     src/kernel/tty/TTY.o\
     src/kernel/tty/TTYManager.o\
     src/kernel/util/cpp.o \
-    src/kernel/util/lock.o \
+    src/kernel/util/Lock.o \
     src/kernel/vfs/VFS.o \
     src/kernel/vfs/FS.o \
     src/kernel/vfs/DevFS.o \

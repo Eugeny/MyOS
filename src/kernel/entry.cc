@@ -33,6 +33,7 @@ static    int ram = Memory::get()->getUsedFrames() * 100 / Memory::get()->getTot
 
     TTYManager::get()->draw();
 
+
     TaskManager::get()->switchTo(Scheduler::get()->pickThread());
 }
 
@@ -70,7 +71,7 @@ void list(char* p, int d) {
 }
 
 void thread(void* x) {
-    klog("Thread!");for(;;);
+    DEBUG("Thread!");for(;;);
 }
 
 extern "C" void kmain (void* mbd, u32int esp) {
@@ -112,18 +113,16 @@ extern "C" void kmain (void* mbd, u32int esp) {
 
 // INIT DONE
     FileObject* tty = VFS::get()->open("/dev/tty0", MODE_R|MODE_W);
-    tty->writeString("Hello!\n");
+    ///tty->writeString("Hello!\n");
 
-// INIT DONE
     int pid =0;
-//    pid=fork();
-
-    if (pid ==0 ){
-    list("/", 0);
+//    list("/", 0);
+    pid=fork();
+    //newThread(thread,  0);
 
         char s[] = "> Process x x reporting\n";
         int c = 0;
-        int p = 0;//TaskManager::get()->getCurrentThread()->id;
+        int p = TaskManager::get()->getCurrentThread()->id;
         while (1) {
             s[10] = (char)((int)'0' + p%10);
             //klog(to_dec(getpid()));
@@ -131,9 +130,6 @@ extern "C" void kmain (void* mbd, u32int esp) {
             TTYManager::get()->getTTY(p)->writeString(s);
             for (int i=0;i<300000000;i++);
         }
-}else{
-    for(;;);
-}
 
 
 
