@@ -31,16 +31,35 @@ void TaskManager::init() {
 extern "C" void CPUSaveState(thread_state_t*);
 extern "C" void CPURestoreState(u32int, thread_state_t*);
 
+
+bool forking=false;
 void TaskManager::switchTo(Thread* t) {
     if (!t)
         return;
     volatile bool switched = false;
 
+DEBUG(to_hex(u32int(currentThread->id)));
     CPUSaveState(&currentThread->state);
+
     if (switched) return;
+
+    if (forking) {
+    Process* parent = currentThread->process;
+    Process* newProc = new Process();
+    newProc->name = strclone(parent->name);
+    newProc->parent = parent;
+
+    processes->insertLast(newProc);
+    parent->children->insertLast(newProc);
+    Thread* newThread = new Thread(newProc);
+    Scheduler::get()->addThread(newThread);
+        memcpy(&newThread->state, &currentThread->state, 256);
+        newProc->addrSpace = parent->addrSpace->clone();
+    }
+
     currentThread = t;
     Memory::get()->setAddressSpace(currentThread->process->addrSpace);
-
+DEBUG(to_hex(u32int(currentThread->id)));
     switched = true;
     CPURestoreState(
         Memory::get()->getCurrentSpace()->dir->physicalAddr,
@@ -50,6 +69,10 @@ void TaskManager::switchTo(Thread* t) {
 
 
 u32int TaskManager::fork() {
+forking=true;
+return 0;
+    Processor::disableInterrupts();
+
     Process* parent = currentThread->process;
     Process* newProc = new Process();
     newProc->name = strclone(parent->name);
@@ -61,16 +84,17 @@ u32int TaskManager::fork() {
     Thread* newThread = new Thread(newProc);
     Scheduler::get()->addThread(newThread);
 
-    newProc->addrSpace = parent->addrSpace->clone();
 
     CPUSaveState(&currentThread->state);
-    memcpy(&newThread->state, &currentThread->state, 256);
 
     bool old = currentThread->process == parent;
     if (!old) {
         return 0;
     }
     else {
+        memcpy(&newThread->state, &currentThread->state, 256);
+        newProc->addrSpace = parent->addrSpace->clone();
+        Processor::enableInterrupts();
         return newProc->pid;
     }
 }

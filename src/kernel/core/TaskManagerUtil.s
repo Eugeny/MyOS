@@ -10,7 +10,7 @@ CPUSaveState:
     mov [ecx+16], edi
     mov [ecx+20], esi
 
-    ret
+    jmp eax
 
 
 global CPURestoreState
@@ -26,5 +26,6 @@ CPURestoreState:
     mov esi, [ecx+20]
     mov cr3, eax
     add esp, 4
+    sti
 
     jmp edx

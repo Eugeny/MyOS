@@ -20,8 +20,6 @@
 
 
 void on_timer(isrq_registers_t r) {
-    TaskManager::get()->switchTo(Scheduler::get()->pickThread());
-
 static    Terminal* sb = TTYManager::get()->getStatusBar();
 static    int ram = Memory::get()->getUsedFrames() * 100 / Memory::get()->getTotalFrames();
     sb->goTo(WIDTH-10, 0);
@@ -34,6 +32,8 @@ static    int ram = Memory::get()->getUsedFrames() * 100 / Memory::get()->getTot
     sb->write(to_dec(Memory::get()->getUsedFrames()));
 
     TTYManager::get()->draw();
+
+    TaskManager::get()->switchTo(Scheduler::get()->pickThread());
 }
 
 void kbdh(u32int mod, u32int sc) {
@@ -115,7 +115,8 @@ extern "C" void kmain (void* mbd, u32int esp) {
     tty->writeString("Hello!\n");
 
 // INIT DONE
-    int pid =fork();
+    int pid =0;
+//    pid=fork();
 
     if (pid ==0 ){
     list("/", 0);
