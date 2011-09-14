@@ -1,0 +1,9 @@
+Copyright (C) 2006-2007 Paolo Angelelli <angelell@cs.unibo.it>
+
+Credits to 	 	Renzo Davoli <renzo@cs.unibo.it> 
+			    ( bugfixes, big-endian architectures support, Makefile and various
+			      improvements to fuse module )
+			      
+			Ludovico Gardenghi <gardengl@cs.unibo.it> ( automake support )
+
+libfat and fuse-fat are part of View-OS project	( https://savannah.nongnu.org/projects/view-os/ )

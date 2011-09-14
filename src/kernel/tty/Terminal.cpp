@@ -27,6 +27,8 @@ void Terminal::write(char* buf, int offset, int len) {
     buf += offset;
     len -= offset;
     while (len--) {
+        if (_cursorX == width)
+            newLine();
         if (*buf == '\n') {
             newLine();
         } else {

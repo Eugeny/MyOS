@@ -42,7 +42,6 @@ void DevFS::registerDevice(FileObject* f, char* name) {
 FileObject* DevFS::open(char* path, int mode) {
     path++;
     LinkedListIter<DeviceEntry*>* i = devices->iter();
-DEBUG(path);
     for (; !i->end(); i->next())
         if (strcmp(i->get()->name, path)) {
             return i->get()->file;

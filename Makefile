@@ -22,6 +22,7 @@ SOURCES= \
     src/kernel/core/Thread.o \
     src/kernel/hardware/ATA.o \
     src/kernel/hardware/ATAUtil.o \
+    src/kernel/hardware/Disk.o \
     src/kernel/hardware/Keyboard.o \
     src/kernel/hardware/PIT.o \
     src/kernel/interrupts/IDT.o \
@@ -40,8 +41,15 @@ SOURCES= \
     src/kernel/util/Lock.o \
     src/kernel/vfs/VFS.o \
     src/kernel/vfs/FS.o \
+    src/kernel/vfs/FATFS.o \
     src/kernel/vfs/DevFS.o \
     src/kernel/vfs/RootFS.o \
+\
+    src/kernel/libfat/utf8.o \
+    src/kernel/libfat/utf8le.o \
+    src/kernel/libfat/utf8be.o \
+    src/kernel/libfat/simple_fold.o \
+    src/kernel/libfat/libfat.o \
 
 
 all: $(SOURCES) link

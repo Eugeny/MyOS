@@ -21,14 +21,14 @@ void ata_read(u32int lba, u8int* buf) {
 
     bool ready = false;
     do {
-    TRACE    char st = inb(0x1f7);
+
+        char st = inb(0x1f7);
         ready = st != 8;
     } while (!ready);
 
     for (int i = 0; i < 256; i++) {
         u16int word = inw(0x1f0);
-        buf[i*2] = (char)(word/256);
-        buf[i*2+1] = (char)(word%256);
+        ((u16int*)buf)[i] = word;
     }
 }/*
 

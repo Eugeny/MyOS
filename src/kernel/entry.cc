@@ -2,6 +2,7 @@
 #include <core/Processor.h>
 #include <core/TaskManager.h>
 #include <core/Scheduler.h>
+#include <hardware/Disk.h>
 #include <hardware/PIT.h>
 #include <hardware/Keyboard.h>
 #include <interrupts/IDT.h>
@@ -16,6 +17,7 @@
 #include <util/cpp.h>
 #include <vfs/DevFS.h>
 #include <vfs/RootFS.h>
+#include <vfs/FATFS.h>
 #include <vfs/VFS.h>
 #include <vfs/Stat.h>
 
@@ -73,7 +75,6 @@ void list(char* p, int d) {
 
 void thread(void* x) {
     DEBUG("Thread!");
-    DEBUG((char*)x);
 }
 
 #include <hardware/ATA.h>
@@ -119,13 +120,7 @@ extern "C" void kmain (void* mbd, u32int esp) {
     FileObject* tty = VFS::get()->open("/dev/tty0", MODE_R|MODE_W);
     ///tty->writeString("Hello!\n");
 
-    u8int buf[512];
-    ata_read(0, buf);
-    for (int i=0;i<8;i++) {
-        u8int b = 0;
-        b += buf[i];
-        klog(to_hex(b));
-    }
+    Disk::get()->init();
 
     int pid =0;
 //    list("/", 0);
@@ -133,6 +128,8 @@ extern "C" void kmain (void* mbd, u32int esp) {
   //  pid=fork();
     //pid=fork();
 //    newThread(thread,  (void*)"FFFU");
+
+    new FATFS();
 
 for(;;);
 

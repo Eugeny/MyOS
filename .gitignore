@@ -2,3 +2,5 @@ build/*
 uclibc
 bin/*
 *.o
+newlib
+fat

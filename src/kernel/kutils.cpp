@@ -52,9 +52,9 @@ extern "C" char* to_hex(u32int x) {
     int b = BS - 1;
 
     if (x == 0)
-        buf[b++] = '0';
+        buf[b--] = '0';
 
-    while (x) {
+    while (x || b == BS-1) {
         buf[--b] = digits[x%16];
         x /= 16;
     }
@@ -68,7 +68,7 @@ extern "C" char* to_dec(u32int x) {
     if (x == 0)
         buf[b++] = '0';
 
-    while (x) {
+    while (x || b == BS-1) {
         buf[--b] = '0' + x%10;
         x /= 10;
     }
