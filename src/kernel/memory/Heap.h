@@ -30,6 +30,7 @@ public:
     void   free(void* addr);
 
     u32int getFreeSpaceBoundary();
+    u32int getUsage();
     void   switchToHeap();
 private:
     u32int malloc_dumb(u32int sz, u8int align, u32int *phys);

@@ -1,6 +1,9 @@
 #ifndef UTIL_LINKEDLIST_H
 #define UTIL_LINKEDLIST_H
 
+#include <kutils.h>
+
+
 template <class T>
 class LinkedListEntry {
 public:
@@ -100,15 +103,17 @@ public:
 
     T remove(int idx) {
         if (idx < 0)
-            return (T)NULL;
+            return (T)0;
 
-        T ret = (T)NULL;
+        T ret = (T)0;
 
         if (!root)
             return ret;
         else if (idx == 0) {
             ret = root->value;
+            LinkedListEntry<T>* tmp = root;
             root = root->next;
+            delete tmp;
         } else {
             LinkedListEntry<T>* p = root;
             for (int i = 0; i < idx-1; i++)
@@ -117,7 +122,7 @@ public:
             LinkedListEntry<T>* tmp = p->next;
             p->next = p->next->next;
             ret = tmp->value;
-            delete p->next;
+            delete tmp;
         }
         return ret;
     }
@@ -134,7 +139,10 @@ public:
     void purge() {
         while (root) {
             delete root->value;
+            LinkedListEntry<T>* t;
+            t = root;
             root = root->next;
+            delete t;
         }
     }
 

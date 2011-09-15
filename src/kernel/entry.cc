@@ -24,13 +24,13 @@
 
 void on_timer(isrq_registers_t r) {
 static    Terminal* sb = TTYManager::get()->getStatusBar();
-static    int ram = Memory::get()->getUsedFrames() * 100 / Memory::get()->getTotalFrames();
-    sb->goTo(WIDTH-10, 0);
-    sb->write("RAM: xx%");
-    sb->setCh(WIDTH-4, 0, '0'+ram/10);
-    sb->setCh(WIDTH-5, 0, '0'+ram%10);
+//static    int ram = Memory::get()->getUsedFrames() * 100 / Memory::get()->getTotalFrames();
+    sb->goTo(WIDTH-20, 0);
+    sb->write("kheap: ");
+    sb->write(to_dec(Heap::get()->getUsage()));
+    sb->write(" b");
 
-    sb->goTo(WIDTH-22, 0);
+    sb->goTo(WIDTH-32, 0);
     sb->write("Frames ");
     sb->write(to_dec(Memory::get()->getUsedFrames()));
 
@@ -69,9 +69,13 @@ void list(char* p, int d) {
         if (s && s->isDirectory)
             list(path, d+1);
 
-        delete path;
         delete s;
+        delete path;
     }
+
+    l->purge();
+    delete i;
+    delete l;
 }
 
 void thread(void* x) {

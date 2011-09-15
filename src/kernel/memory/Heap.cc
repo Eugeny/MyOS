@@ -52,13 +52,15 @@ void *heap_alloc(heap_t *h, u8int align, u32int sz) {
     return (void*)a;
 }
 
-void heap_free(heap_t *h, u32int addr) {
-    u32int idx = -1;
+u32int heap_free(heap_t *h, u32int addr) {
+    u32int idx = -1, res = 0;
     for (u32int i = 0; i < h->index_length; i++)
         if (h->index[i].addr >= addr) {
             idx = i;
             break;
         }
+if (h->index[idx].addr > addr) {TRACE}
+    res = h->index[idx].size;
 
     if (idx < h->index_length-1)
         if (h->index[idx+1].flags & HEAP_HOLE) {
@@ -74,6 +76,7 @@ void heap_free(heap_t *h, u32int addr) {
         }
 
     h->index[idx].flags = HEAP_HOLE;
+    return res;
 }
 
 int heap__find_hole(heap_t *h, u8int align, u32int sz) {
@@ -125,6 +128,8 @@ void heap__remove(heap_t *h, int idx) {
 
 extern u32int end; // Linker provided, end of kernel image
 static u32int free_space_start = (u32int)&end;
+static u32int usage = 0;
+
 
 void heap_selfinit() {
     static Heap heap;
@@ -155,8 +160,9 @@ void* Heap::malloc(u32int sz, bool align, u32int *phys) {
 }
 
 void Heap::free(void* addr) {
-    if (heap_ready)
-        heap_free(&kheap, (u32int)addr);
+    if (heap_ready) {
+        usage -= heap_free(&kheap, (u32int)addr);
+    }
 }
 
 
@@ -187,6 +193,7 @@ u32int Heap::malloc_kheap(u32int sz, u8int align, u32int *phys) {
         page_t *page = Memory::get()->getKernelSpace()->getPage((u32int)addr, false);
         *phys = page->frame*0x1000 + (((u32int)addr)&0xFFF);
     }
+    usage += sz;
     return addr;
 }
 
@@ -209,6 +216,9 @@ void Heap::switchToHeap() {
     heap_ready = true;
 }
 
+u32int Heap::getUsage() {
+    return usage;
+}
 
 // Conventional functions
 
