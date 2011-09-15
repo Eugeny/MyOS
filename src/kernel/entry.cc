@@ -54,7 +54,6 @@ void list(char* p, int d) {
         for (int j=0;j<d;j++)
             klogn(" ");
         klog(i->get());
-        klog_flush();
 
         char* path = (char*)kmalloc(strlen(p)+strlen(i->get()) + 2);
         memcpy(path, p, strlen(p));
@@ -125,7 +124,7 @@ extern "C" void kmain (void* mbd, u32int esp) {
 
 
     int pid =0;
-    list("/boot", 0);
+    list("/", 0);
 //    pid=fork();
   //  pid=fork();
     //pid=fork();

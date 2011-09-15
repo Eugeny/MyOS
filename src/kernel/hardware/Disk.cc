@@ -20,6 +20,6 @@ void Disk::init() {
 }
 
 void Disk::read(u32int lba, void* buf) {
-    sleep(10);
+    sleep(10000);
     ata_read(base+lba, (u8int*)buf);
 }

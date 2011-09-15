@@ -14,8 +14,8 @@ for (int i =0;i<l;i++)
 klog(ss);
 
 for (int i =0;i<l;i++) {
-    klogn(to_hex(s[i]));
-    klogn(" ");
+//    klogn(to_hex(s[i]));
+//    klogn(" ");
 }
 
 klog("");
@@ -23,27 +23,32 @@ delete (ss);
 }
 
 u32int FATFS::getFATValue(u32int cluster) {
-    u32int cls = fat_boot->bytes_per_sector;
+   u32int cls = fat_boot->bytes_per_sector;
     u32int fat_offset = cluster * 4;
     u32int fat_sector = first_fat_sector + (fat_offset / cls);
-    u32int ent_offset = fat_offset % cls;
+   u32int ent_offset = fat_offset % cls;
     if (fat_sector != fat_page) {
-        Disk::get()->read(fat_sector, fat_table);
-        fat_page = fat_sector;
+//        DEBUG(to_hex(fat_sector));
+       Disk::get()->read(fat_sector, fat_table);
+       fat_page = fat_sector;
     }
-
-    return fat_table[ent_offset] & 0x0FFFFFFF;
+  //  DEBUG(to_hex(cluster));
+    //if (cluster > fat_boot->table_size_32*128)
+      //  return 0;
+    //DEBUG(to_hex(fat_table[ent_offset/4] & 0x0FFFFFFF));
+    return fat_table[ent_offset/4] & 0x0FFFFFFF;
 }
 
 void FATFS::readFile(u32int cluster, void* buffer) {
-    cluster -= fat_boot->root_cluster;
     u32int fatval = cluster;
     do {
         cluster = fatval;
         fatval = getFATValue(cluster);
-        DEBUG(to_hex(first_data_sector+cluster*fat_boot->sectors_per_cluster));
+//        DEBUG(to_hex((first_data_sector+(cluster-2)*fat_boot->sectors_per_cluster)*512));
         for (int i = 0; i < fat_boot->sectors_per_cluster; i++) {
-            Disk::get()->read(first_data_sector+cluster*fat_boot->sectors_per_cluster + i, buffer);
+            Disk::get()->read(first_data_sector+(cluster-2)*fat_boot->sectors_per_cluster + i, buffer);
+    //        if (i==0)
+  //          dumpsect((u8int*)buffer, 64);
             buffer += 512;
         }
     } while (fatval < 0x0FFFFFF7 && fatval > 0);
@@ -127,10 +132,9 @@ LinkedList<char*>* FATFS::listFiles(char* node) {
 fat_node* FATFS::findFile(char* name) {
     LinkedList<char*>* path = VFS::splitPath(name);
     void* buf = kmalloc(512*100);
-
     readFile(fat_boot->root_cluster, buf);
     for (int i = 0; i < path->length(); i++) {
-        DEBUG(path->get(i));
+//        DEBUG(path->get(i));
         void* ptr = buf;
         u32int offset = 0;
 
@@ -141,9 +145,7 @@ fat_node* FATFS::findFile(char* name) {
                 return NULL;
             }
             ptr += offset;
-
             if (strcmp(node->nameptr, path->get(i))) {
-            TRACE
                 if (i == path->length()-1) {
                     delete buf;
                     return node;
@@ -159,15 +161,15 @@ fat_node* FATFS::findFile(char* name) {
     delete buf;
 
     fat_node* r = (fat_node*)kmalloc(sizeof(fat_node));
-    r->cluster = 0;
+    r->cluster = fat_boot->root_cluster;
     return r;
 }
 
 
 Stat* FATFS::stat(char* path) {
-    DEBUG(path);
+//    DEBUG(path);
     fat_node* fn = findFile(path);
-    DEBUG(fn->nameptr);
+//    DEBUG(fn->nameptr);
     Stat* s = new Stat();
     s->isDirectory = fn->attr & 0x10;
     delete fn;
@@ -177,13 +179,10 @@ Stat* FATFS::stat(char* path) {
 FATFS::FATFS() {
     fat_page = -1;
     fat_boot = (fat_bs_t*)kmalloc(512);
-    fat_table = (u32int*)kmalloc(512);
 
     Disk::get()->read(0, fat_boot);
     first_data_sector = fat_boot->reserved_sector_count + (fat_boot->table_count * fat_boot->table_size_32);
     first_fat_sector = fat_boot->reserved_sector_count;
-    DEBUG(to_hex(fat_boot->root_cluster));
-          DEBUG(to_hex((first_data_sector+0x454*fat_boot->sectors_per_cluster)*512));
- //   for(;;);
-    root_cluster = fat_boot->root_cluster;
+
+    fat_table = (u32int*)kmalloc(512);
 }

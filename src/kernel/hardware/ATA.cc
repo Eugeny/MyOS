@@ -22,7 +22,7 @@ void ata_read(u32int lba, u8int* buf) {
     bool ready = false;
     do {
 
-        char st = inb(0x1f7);
+        u8int st = inb(0x1f7);
         ready = st & 8;
     } while (!ready);
 
