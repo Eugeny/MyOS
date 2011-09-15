@@ -49,12 +49,12 @@ typedef struct {
 
 typedef struct {
     u8int   seq;
-    u8int   text1[10];
+    char   text1[10];
     u16int  reserved_0;
     u8int   checksum;
-    u8int   text2[12];
+    char   text2[12];
     u16int  zero;
-    u8int   text3[4];
+    char   text3[4];
 } PACKED fat_lname_t;
 
 
@@ -70,9 +70,10 @@ typedef struct {
 class FATFS : public FS {
 public:
     FATFS();
-//    virtual LinkedList<char*>* listFiles(char* node);
-  //  virtual Stat* stat(char* path);
+    virtual LinkedList<char*>* listFiles(char* node);
+    virtual Stat* stat(char* path);
 private:
+    fat_node*  findFile(char* name);
     u32int     getFATValue(u32int cluster);
     void       readFile(u32int cluster, void* buffer);
     fat_node  *parseDir(void *data, u32int size, u32int *len);

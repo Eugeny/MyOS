@@ -48,10 +48,11 @@ void kbdh(u32int mod, u32int sc) {
 
 void list(char* p, int d) {
     LinkedList<char*>* l = VFS::get()->listFiles(p);
+    if (!l) return;
     LinkedListIter<char*>* i = l->iter();
     for (; !i->end(); i->next()) {
         for (int j=0;j<d;j++)
-        klogn(" ");
+            klogn(" ");
         klog(i->get());
         klog_flush();
 
@@ -63,6 +64,7 @@ void list(char* p, int d) {
         if (strcmp(p, "/"))
             memcpy(path + strlen(p), i->get(), strlen(i->get())+1);
 
+//        DEBUG(path);
         Stat* s = VFS::get()->stat(path);
 
         if (s && s->isDirectory)
@@ -77,7 +79,6 @@ void thread(void* x) {
     DEBUG("Thread!");
 }
 
-#include <hardware/ATA.h>
 
 extern "C" void kmain (void* mbd, u32int esp) {
     initialiseConstructors();
@@ -106,30 +107,30 @@ extern "C" void kmain (void* mbd, u32int esp) {
     SyscallManager::get()->registerDefaults();
 
 
+    Disk::get()->init();
+
     VFS::get()->init();
-    VFS::get()->mount(new RootFS(), "");
+    VFS::get()->mount(new FATFS(), "");
 
     DevFSMaster::get()->init();
 
     for (int i = 0; i < TTYManager::get()->getTTYCount(); i++)
         DevFSMaster::get()->addTTY(TTYManager::get()->getTTY(i));
 
-    VFS::get()->mount(DevFSMaster::get()->getFS(), "/dev");
+//    VFS::get()->mount(DevFSMaster::get()->getFS(), "/dev");
 
 // INIT DONE
-    FileObject* tty = VFS::get()->open("/dev/tty0", MODE_R|MODE_W);
+  //  FileObject* tty = VFS::get()->open("/dev/tty0", MODE_R|MODE_W);
     ///tty->writeString("Hello!\n");
 
-    Disk::get()->init();
 
     int pid =0;
-//    list("/", 0);
+    list("/boot", 0);
 //    pid=fork();
   //  pid=fork();
     //pid=fork();
 //    newThread(thread,  (void*)"FFFU");
 
-    new FATFS();
 
 for(;;);
 

@@ -4,6 +4,10 @@
 
 // Standard library
 
+void sleep(u32int ms) {
+    for (int i = 0; i < 10*ms; i++);
+}
+
 int strlen(char *s) {
     int r = 0;
     while (*(s++)) r++;

@@ -23,13 +23,14 @@ void ata_read(u32int lba, u8int* buf) {
     do {
 
         char st = inb(0x1f7);
-        ready = st != 8;
+        ready = st & 8;
     } while (!ready);
 
-    for (int i = 0; i < 256; i++) {
-        u16int word = inw(0x1f0);
-        ((u16int*)buf)[i] = word;
-    }
+    asm("rep insw" : : "c"(256), "d"(0x1f0), "D"(buf));
+//    for (int i = 0; i < 256; i++) {
+    //    u16int word = inw(0x1f0);
+  //      ((u16int*)buf)[i] = word;
+   // }
 }/*
 
 ;

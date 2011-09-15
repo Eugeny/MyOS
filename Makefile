@@ -1,7 +1,8 @@
 CC = g++
 
-CFLAGS = -c -g -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0
-LDFLAGS = -t -L uclibc/lib -static -T src/kernel/linker.ld -Map bin/kernel.map
+CFLAGS = -c -g -I src/kernel/ -I newlib/newlib/libc/include -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0
+LDFLAGS = -t -static -nostdlib -T src/kernel/linker.ld -Map bin/kernel.map
+#LDFLAGS = -t -L newlib/newlib/libc -lc -static -nostdlib -T src/kernel/linker.ld -Map bin/kernel.map
 ASFLAGS=-felf
 
 SOURCES= \
@@ -44,12 +45,7 @@ SOURCES= \
     src/kernel/vfs/FATFS.o \
     src/kernel/vfs/DevFS.o \
     src/kernel/vfs/RootFS.o \
-\
-    src/kernel/libfat/utf8.o \
-    src/kernel/libfat/utf8le.o \
-    src/kernel/libfat/utf8be.o \
-    src/kernel/libfat/simple_fold.o \
-    src/kernel/libfat/libfat.o \
+#    src/kernel/libfat/libfat.o \
 
 
 all: $(SOURCES) link

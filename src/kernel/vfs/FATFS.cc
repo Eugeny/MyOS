@@ -2,25 +2,24 @@
 #include <hardware/Disk.h>
 #include <memory/Heap.h>
 #include <kutils.h>
+#include <vfs/VFS.h>
 
 
+void dumpsect(u8int* s, int l){
+char* ss = (char*)kmalloc(l+1);
+memcpy(ss, s, l);
+ss[l] = 0;
+for (int i =0;i<l;i++)
+    if (ss[i] == 0) ss[i] = 1;
+klog(ss);
 
-void dumpsect(u8int* s){
-char ss[2];
-ss[1] = 0;
-for (int i =0;i<32;i++) {
-    ss[0]=(char)s[i];
-    klogn(ss);
-//    klogn(to_hex(s[i]));
-//    klogn(" ");
-}
-
-for (int i =0;i<32;i++) {
+for (int i =0;i<l;i++) {
     klogn(to_hex(s[i]));
     klogn(" ");
 }
 
 klog("");
+delete (ss);
 }
 
 u32int FATFS::getFATValue(u32int cluster) {
@@ -33,20 +32,21 @@ u32int FATFS::getFATValue(u32int cluster) {
         fat_page = fat_sector;
     }
 
-    return fat_table[ent_offset] & 0x0FFFFFF;
+    return fat_table[ent_offset] & 0x0FFFFFFF;
 }
 
 void FATFS::readFile(u32int cluster, void* buffer) {
-    u32int fatval = getFATValue(cluster);
-    DEBUG(to_hex(first_data_sector+cluster*fat_boot->sectors_per_cluster));
-    while (fatval < 0x0FFFFFF7 && fatval > 1) {
+    cluster -= fat_boot->root_cluster;
+    u32int fatval = cluster;
+    do {
+        cluster = fatval;
+        fatval = getFATValue(cluster);
+        DEBUG(to_hex(first_data_sector+cluster*fat_boot->sectors_per_cluster));
         for (int i = 0; i < fat_boot->sectors_per_cluster; i++) {
             Disk::get()->read(first_data_sector+cluster*fat_boot->sectors_per_cluster + i, buffer);
             buffer += 512;
         }
-        cluster = fatval;
-        fatval = getFATValue(cluster);
-    }
+    } while (fatval < 0x0FFFFFF7 && fatval > 0);
 }
 
 
@@ -64,39 +64,19 @@ fat_node *FATFS::parseDir(void *data, u32int size, u32int *len) {
     fat_file_t* file = (fat_file_t*)data;
     fat_node* node = (fat_node*)kmalloc(sizeof(fat_node));
     node->name[255] = 0;
-    node->nameptr = &(node->name[254]);
+    node->nameptr = &(node->name[255]);
 
-    dumpsect((u8int*)file);
     while (file->attr == 0xF) {
         fat_lname_t* name = (fat_lname_t*)data;
-        DEBUG(node->nameptr);
-        u8int* cptr;
+        char* cptr;
 
-        cptr = name->text3 + 5;
-        for (int i = 0; i < 2; i++) {
-            cptr -= 2;
-            if (*cptr == 0 || *cptr == 0xFF) continue;
-            DEBUG(to_hex(*cptr))
-            *(u8int*)node->nameptr = *cptr;
-            node->nameptr--;
-        }
+        int offsets[] = { 1, 3, 5, 7, 9, 14, 16, 18, 20, 22, 24, 28, 30 };
 
-        cptr = name->text2 + 13;
-        for (int i = 0; i < 6; i++) {
-            cptr -= 2;
-            if (*cptr == 0 || *cptr == 0xFF) continue;
-            DEBUG(to_hex(*cptr))
-            *(u8int*)node->nameptr = *cptr;
+        for (int i = 12; i >= 0; i--) {
+            cptr = (char*)((u32int)file + offsets[i]);
+            if (*cptr <= 0 || *cptr >= 0xFF) continue;
             node->nameptr--;
-        }
-
-        cptr = name->text1 + 11;
-        for (int i = 0; i < 5; i++) {
-            cptr -= 2;
-            DEBUG(to_hex(*cptr))
-            if (*cptr == 0 || *cptr == 0xFF) continue;
-            *(u8int*)node->nameptr = *cptr;
-            node->nameptr--;
+            *(node->nameptr) = *cptr;
         }
 
         offset += 0x20;
@@ -105,34 +85,105 @@ fat_node *FATFS::parseDir(void *data, u32int size, u32int *len) {
         file = (fat_file_t*)data;
     }
 
+    node->attr = file->attr;
+    node->size = file->size;
+    node->cluster = file->ch * 65536 + file->cl;
+    offset += 0x20;
+
     *len = offset;
     return node;
 }
 
+
+LinkedList<char*>* FATFS::listFiles(char* node) {
+    fat_node* fn = findFile(node);
+    if (!fn) return NULL;
+    u32int cls = fn->cluster;
+    delete fn;
+
+    LinkedList<char*>* r = new LinkedList<char*>();
+    void* buf = kmalloc(512*100);
+    readFile(cls, buf);
+    void* ptr = buf;
+    while (true) {
+        u32int offset = 0;
+        fat_node* node = parseDir(ptr, 512*100, &offset);
+        if (!node) {
+            delete buf;
+            return r;
+        }
+        if (strlen(node->nameptr) > 0) {
+            r->insertLast(strclone(node->nameptr));
+        }
+        delete node;
+        ptr += offset;
+    }
+
+    delete buf;
+    return r;
+}
+
+
+fat_node* FATFS::findFile(char* name) {
+    LinkedList<char*>* path = VFS::splitPath(name);
+    void* buf = kmalloc(512*100);
+
+    readFile(fat_boot->root_cluster, buf);
+    for (int i = 0; i < path->length(); i++) {
+        DEBUG(path->get(i));
+        void* ptr = buf;
+        u32int offset = 0;
+
+        while (true) {
+            fat_node* node = parseDir(ptr, 512*100, &offset);
+            if (!node) {
+                delete buf;
+                return NULL;
+            }
+            ptr += offset;
+
+            if (strcmp(node->nameptr, path->get(i))) {
+            TRACE
+                if (i == path->length()-1) {
+                    delete buf;
+                    return node;
+                }
+                readFile(node->cluster, buf);
+                delete node;
+                break;
+            }
+            delete node;
+        }
+    }
+
+    delete buf;
+
+    fat_node* r = (fat_node*)kmalloc(sizeof(fat_node));
+    r->cluster = 0;
+    return r;
+}
+
+
+Stat* FATFS::stat(char* path) {
+    DEBUG(path);
+    fat_node* fn = findFile(path);
+    DEBUG(fn->nameptr);
+    Stat* s = new Stat();
+    s->isDirectory = fn->attr & 0x10;
+    delete fn;
+    return s;
+}
 
 FATFS::FATFS() {
     fat_page = -1;
     fat_boot = (fat_bs_t*)kmalloc(512);
     fat_table = (u32int*)kmalloc(512);
 
-TRACE
     Disk::get()->read(0, fat_boot);
-TRACE
     first_data_sector = fat_boot->reserved_sector_count + (fat_boot->table_count * fat_boot->table_size_32);
-TRACE
     first_fat_sector = fat_boot->reserved_sector_count;
-TRACE
+    DEBUG(to_hex(fat_boot->root_cluster));
+          DEBUG(to_hex((first_data_sector+0x454*fat_boot->sectors_per_cluster)*512));
+ //   for(;;);
     root_cluster = fat_boot->root_cluster;
-
-TRACE
-    void* buf = kmalloc(512*100);
-TRACE
-    readFile(0, buf);
-TRACE
-
-    u32int offset = 0;
-TRACE
-    fat_node *n = parseDir(buf+32, 512*100, &offset);
-    dumpsect((u8int*)buf+32);
-    DEBUG(n->nameptr);
 }

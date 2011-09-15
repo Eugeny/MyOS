@@ -17,10 +17,9 @@ void Disk::init() {
         buf[0x1be + 9] * 256 +
         buf[0x1be + 10] * 65536 +
         buf[0x1be + 11] * 65536 * 256;
-
-    DEBUG(to_hex(base));
 }
 
 void Disk::read(u32int lba, void* buf) {
+    sleep(10);
     ata_read(base+lba, (u8int*)buf);
 }
