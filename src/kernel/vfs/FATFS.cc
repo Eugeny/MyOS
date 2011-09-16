@@ -51,7 +51,7 @@ fat_node *FATFS::parseDir(void *data, u32int size, u32int *len) {
     u32int offset = 0;
     if (*(u8int*)data == 0) return NULL;
 
-    while (offset < size && (*(u8int*)data == 0xe5)) {
+    while (offset < size && ((*(u8int*)data == 0xe5) || (*(u8int*)data == 0x2e))) {
         offset += 0x20;
         data += 0x20;
     }
@@ -62,6 +62,13 @@ fat_node *FATFS::parseDir(void *data, u32int size, u32int *len) {
     fat_node* node = (fat_node*)kmalloc(sizeof(fat_node));
     node->name[255] = 0;
     node->nameptr = &(node->name[255]);
+
+    while (file->attr == 0x8) {
+        offset += 0x20;
+        data += 0x20;
+        if (offset == size) return NULL;
+        file = (fat_file_t*)data;
+    }
 
     while (file->attr == 0xF) {
         fat_lname_t* name = (fat_lname_t*)data;
@@ -82,11 +89,25 @@ fat_node *FATFS::parseDir(void *data, u32int size, u32int *len) {
         file = (fat_file_t*)data;
     }
 
+    if (*(u8int*)data == 0 || *(u8int*)data == 0xe5)
+        return NULL;
+    if (*node->nameptr == 0) {
+        u8int* p = (u8int*)file->dosfn;
+        node->nameptr = node->name;
+        for (int i = 0; i < 11; i++) {
+            if (*p != 0x20 && *p != 0)
+                *node->nameptr++ = *p;
+            if (i == 7)
+                *node->nameptr++ = '.';
+            p++;
+        }
+        *node->nameptr++ = 0;
+        node->nameptr = node->name;
+    }
     node->attr = file->attr;
     node->size = file->size;
     node->cluster = file->ch * 65536 + file->cl;
     offset += 0x20;
-
     *len = offset;
     return node;
 }
@@ -161,7 +182,7 @@ fat_node* FATFS::findFile(char* name) {
 Stat* FATFS::stat(char* path) {
 //    DEBUG(path);
     fat_node* fn = findFile(path);
-//    DEBUG(fn->nameptr);
+//    DEBUG(to_hex(fn->attr));
     Stat* s = new Stat();
     s->isDirectory = fn->attr & 0x10;
     delete fn;
@@ -177,4 +198,26 @@ FATFS::FATFS() {
     first_fat_sector = fat_boot->reserved_sector_count;
     buf = kmalloc(512*100);
     fat_table = (u32int*)kmalloc(512);
+}
+
+
+FATFileObject::FATFileObject(u8int* buf, u32int size) {
+    buffer = buf;
+    this->size = size;
+    position = 0;
+}
+
+int FATFileObject::read(char* buf, int pos, int max) {
+    if (max > size-position)
+        max = size-position;
+    memcpy(buf+pos, buffer+position, max);
+    position += max;
+    return max;
+}
+
+FileObject* FATFS::open(char* path, int mode) {
+    fat_node* f = findFile(path);
+    u8int* buf = (u8int*)kmalloc(f->size);
+    readFile(f->cluster, buf);
+    return new FATFileObject(buf, f->size+512);
 }

@@ -21,6 +21,7 @@ SOURCES= \
     src/kernel/core/TaskManagerUtil.o \
     src/kernel/core/Process.o \
     src/kernel/core/Thread.o \
+    src/kernel/elf/ELF.o \
     src/kernel/hardware/ATA.o \
     src/kernel/hardware/ATAUtil.o \
     src/kernel/hardware/Disk.o \
@@ -48,7 +49,7 @@ SOURCES= \
 #    src/kernel/libfat/libfat.o \
 
 
-all: $(SOURCES) link
+all: $(SOURCES) link app
 
 clean:
 	find -name '*.o' -delete
@@ -56,6 +57,10 @@ clean:
 
 link:
 	ld $(LDFLAGS) -o bin/kernel $(SOURCES)
+
+app:
+	g++ -c -g -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0 src/apps/test/test.cc -o src/apps/test/test.o
+	ld -t -static -nostdlib -T src/apps/test/linker.ld -o bin/app src/apps/test/test.o src/kernel/syscall/Syscalls.o
 
 .s.o:
 	nasm $(ASFLAGS) $<
@@ -80,6 +85,7 @@ deploy: all
 	echo
 	vmware-mount ~/vmware/MyOS/MyOS-0.vmdk fs
 	sudo cp bin/kernel fs/kernel
+	sudo cp bin/app fs/app
 	vmware-mount -d fs || true
 	sleep 2
 	vmware-mount -d fs || true

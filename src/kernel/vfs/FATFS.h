@@ -3,6 +3,7 @@
 
 #include <util/cpp.h>
 #include <vfs/FS.h>
+#include <io/FileObject.h>
 
 
 typedef struct {
@@ -67,11 +68,27 @@ typedef struct {
 } fat_node;
 
 
+
+
+class FATFileObject : public FileObject {
+public:
+    FATFileObject(u8int* buffer, u32int size);
+//    virtual void write(char* buf, int pos, int count) {}
+    virtual int  read(char* buf, int pos, int max);
+private:
+    u8int* buffer;
+    u32int size;
+    u32int position;
+};
+
+
+
 class FATFS : public FS {
 public:
     FATFS();
     virtual LinkedList<char*>* listFiles(char* node);
     virtual Stat* stat(char* path);
+    virtual FileObject* open(char* path, int mode);
 private:
     fat_node*  findFile(char* name);
     u32int     getFATValue(u32int cluster);

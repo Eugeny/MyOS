@@ -2,6 +2,7 @@
 #include <core/Processor.h>
 #include <core/TaskManager.h>
 #include <core/Scheduler.h>
+#include <elf/ELF.h>
 #include <hardware/Disk.h>
 #include <hardware/PIT.h>
 #include <hardware/Keyboard.h>
@@ -128,14 +129,21 @@ extern "C" void kmain (void* mbd, u32int esp) {
 
 
     int pid =0;
-    list("/", 0);
-//    pid=fork();
-  //  pid=fork();
+//    list("/boot", 0);
+
+    FileObject* f = VFS::get()->open("/app", MODE_R);
+    char* ss = (char*)kmalloc(10000);
+    f->read(ss, 0, 65536);
+    ELF_exec((u8int*)ss);
+//    asm volatile ("jmp 0x100");
+//    klog(ss);
+
+
+    pid=fork();
+    pid=fork();
+
     //pid=fork();
 //    newThread(thread,  (void*)"FFFU");
-
-
-for(;;);
 
 
         char s[] = "> Process x x reporting\n";
