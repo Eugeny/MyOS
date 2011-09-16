@@ -6,7 +6,7 @@
 #include <kutils.h>
 
 void ELF_exec(u8int* data, int argc, char** argv, FileObject* stdin, FileObject* stdout, FileObject* stderr) {
-    int pid = syscall_fork();
+    int pid = fork();
 
     if (pid == 0) {
         AddressSpace* as = Memory::get()->getCurrentSpace();

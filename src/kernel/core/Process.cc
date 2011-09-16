@@ -2,6 +2,7 @@
 #include <memory/Heap.h>
 #include <vfs/VFS.h>
 #include <io/FileObject.h>
+#include <kutils.h>
 
 
 Process::Process() {
@@ -41,12 +42,18 @@ void Process::reopenFile(int fd, FileObject* f) {
 
 
 u32int Process::create(char* path, int argc, char** argv, FileObject* stdin, FileObject* stdout, FileObject* stderr) {
+TRACE
     Stat* stat = VFS::get()->stat(path);
+TRACE
     char* ss = (char*)kmalloc(stat->size);
+TRACE
 
     FileObject* f = VFS::get()->open(path, MODE_R);
+TRACE
     f->read(ss, 0, stat->size);
+TRACE
     f->close();
+TRACE
     delete f;
     delete stat;
 

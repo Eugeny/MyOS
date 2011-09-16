@@ -93,6 +93,14 @@ void IDT::init() {
     outb(0x21, 0x0);
     outb(0xA1, 0x0);
 
+
+// MMX/SSE
+u32int cr0;
+asm volatile(" mov %%cr0, %0": "=r"(cr0));
+cr0 &=0xFFFFFFF7;
+asm volatile(" mov %0, %%cr0":: "r"(cr0));
+
+
     setGate( 0, (u32int)isr0 , 0x08, 0x8E);
     setGate( 1, (u32int)isr1 , 0x08, 0x8E);
     setGate( 2, (u32int)isr2 , 0x08, 0x8E);

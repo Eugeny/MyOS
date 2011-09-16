@@ -37,7 +37,6 @@ static    Terminal* sb = TTYManager::get()->getStatusBar();
 
     TTYManager::get()->draw();
 
-
     TaskManager::get()->performRoutine();
     TaskManager::get()->nextTask();
 }
@@ -122,12 +121,9 @@ extern "C" void kmain (void* mbd, u32int esp) {
     for (int i = 0; i < TTYManager::get()->getTTYCount(); i++)
         DevFSMaster::get()->addTTY(TTYManager::get()->getTTY(i));
 
-//    VFS::get()->mount(DevFSMaster::get()->getFS(), "/dev");
+    VFS::get()->mount(DevFSMaster::get()->getFS(), "/dev");
 
 // INIT DONE
-  //  FileObject* tty = VFS::get()->open("/dev/tty0", MODE_R|MODE_W);
-    ///tty->writeString("Hello!\n");
-
 
     int pid =0;
 //    list("/boot", 0);
@@ -142,8 +138,12 @@ extern "C" void kmain (void* mbd, u32int esp) {
 
     //pid=fork();
 //    newThread(thread,  (void*)"FFFU");
+TRACE
+    FileObject* tty = VFS::get()->open("/dev/tty0", MODE_R|MODE_W);
+TRACE
+Process::create("/app", 0,0,tty,tty,tty);
 
-
+for(;;);
         char s[] = "> Process x x reporting\n";
         int c = 0;
         int p = TaskManager::get()->getCurrentThread()->id;

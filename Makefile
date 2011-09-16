@@ -1,6 +1,8 @@
-CC = g++
+CC = gcc
 
-CFLAGS = -c -g -I src/kernel/ -I newlib/newlib/libc/include -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0
+LIBS = local/i586-pc-myos/lib
+
+CFLAGS = -c -g -I src/kernel/ -I include -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0
 LDFLAGS = -t -static -nostdlib -T src/kernel/linker.ld -Map bin/kernel.map
 #LDFLAGS = -t -L newlib/newlib/libc -lc -static -nostdlib -T src/kernel/linker.ld -Map bin/kernel.map
 ASFLAGS=-felf
@@ -46,7 +48,6 @@ SOURCES= \
     src/kernel/vfs/FATFS.o \
     src/kernel/vfs/DevFS.o \
     src/kernel/vfs/RootFS.o \
-#    src/kernel/libfat/libfat.o \
 
 
 all: $(SOURCES) link app
@@ -59,8 +60,8 @@ link:
 	ld $(LDFLAGS) -o bin/kernel $(SOURCES)
 
 app:
-	gcc -c -g -I src/kernel/ newlib/newlib/libc/include -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0 src/apps/test/test.c -o src/apps/test/test.o
-	ld -t -static -nostdlib -T src/apps/test/linker.ld  -L newlib/newlib -lc -o bin/app src/apps/test/test.o
+	local/bin/i586-pc-myos-gcc -c -g -mtune=i386 -I src/kernel/ include -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0 src/apps/test/test.c -o src/apps/test/test.o
+	local/bin/i586-pc-myos-ld -t -static -T src/apps/test/linker.ld  -L $(LIBS) -lc -o bin/app src/apps/test/test.o local/i586-pc-myos/lib/libc.a src/kernel/syscall/Syscalls.o
 
 .s.o:
 	nasm $(ASFLAGS) $<

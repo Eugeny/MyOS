@@ -2,6 +2,7 @@
 #include <core/TaskManager.h>
 #include <core/Thread.h>
 #include <kutils.h>
+#include <vfs/VFS.h>
 
 
 void handler(isrq_registers_t* r) {
@@ -18,6 +19,7 @@ void SyscallManager::registerSyscall(int idx, interrupt_handler h) {
 }
 
 void SyscallManager::handleSyscall(isrq_registers_t* r) {
+DEBUG(to_dec(r->eax));
     handlers[r->eax](r);
 }
 
@@ -47,6 +49,48 @@ void handleWrite(isrq_registers_t* r) {
     fo->write((char*)r->ecx, 0, r->edx);
 }
 
+void handleMemReq(isrq_registers_t* r) {
+    u32int t= (u32int)TaskManager::get()->getCurrentThread()->process->requestMemory(r->ebx);
+r->eax=t;
+}
+
+
+
+   typedef short gid_t;
+   typedef short uid_t;
+   typedef short dev_t;
+   typedef short ino_t;
+   typedef int mode_t;
+   typedef int caddr_t;
+struct	stat
+{
+  dev_t		st_dev;
+  ino_t		st_ino;
+  mode_t	st_mode;
+//  nlink_t	st_nlink;
+  uid_t		st_uid;
+  gid_t		st_gid;
+  dev_t		st_rdev;
+//  off_t		st_size;
+//  struct timespec st_atim;
+//  struct timespec st_mtim;
+//  struct timespec st_ctim;
+//  blksize_t     st_blksize;
+//  blkcnt_t	st_blocks;
+};
+
+void handleStat(isrq_registers_t* r) {
+DEBUG(to_dec(r->ebx));
+*((u32int*)r->ecx +6)= 0020000;
+}
+
+void handleOpen(isrq_registers_t* r) {
+r->eax=TaskManager::get()->getCurrentThread()->process->openFile(VFS::get()->open((char*)r->ebx, MODE_R));
+}
+
+void handleIsTTY(isrq_registers_t* r) {
+r->eax=1;
+}
 
 void SyscallManager::registerDefaults() {
     registerSyscall(0, handlePrint);
@@ -54,4 +98,8 @@ void SyscallManager::registerDefaults() {
     registerSyscall(2, handleThread);
     registerSyscall(3, handleDie);
     registerSyscall(4, handleWrite);
+    registerSyscall(6, handleMemReq);
+    registerSyscall(8, handleStat);
+    registerSyscall(9, handleIsTTY);
+    registerSyscall(11, handleOpen);
 }

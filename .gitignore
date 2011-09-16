@@ -1,6 +1,5 @@
 build/*
-uclibc
+include
 bin/*
 *.o
-newlib
-fat
+local
