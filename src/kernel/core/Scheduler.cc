@@ -22,7 +22,9 @@ Thread *Scheduler::pickThread() {
     if (queue->length() == 0)
         return NULL;
     Thread *r;
-    r = queue->remove(0);
-    queue->insertLast(r);
+    do {
+        r = queue->remove(0);
+        queue->insertLast(r);
+    } while (r->dead || r->process->dead);
     return r;
 }

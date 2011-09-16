@@ -4,7 +4,7 @@
 #include <kutils.h>
 
 
-void handler(isrq_registers_t r) {
+void handler(isrq_registers_t* r) {
     SyscallManager::get()->handleSyscall(r);
 }
 
@@ -17,31 +17,34 @@ void SyscallManager::registerSyscall(int idx, interrupt_handler h) {
     handlers[idx] = h;
 }
 
-void SyscallManager::handleSyscall(isrq_registers_t r) {
-    handlers[r.eax](r);
+void SyscallManager::handleSyscall(isrq_registers_t* r) {
+    handlers[r->eax](r);
 }
 
 
-void handlePrint(isrq_registers_t r) {
-    klog((char*)r.ecx);
+void handlePrint(isrq_registers_t* r) {
+    klog((char*)r->ebx);
 }
 
-
-void handleFork(isrq_registers_t r) {
+void handleFork(isrq_registers_t* r) {
     int pid = TaskManager::get()->fork();
-    *((u32int*)r.ecx) = pid;
+    r->eax = pid;
 }
 
-void handleThread(isrq_registers_t r) {
-TRACE
-    thread_entry_point m = (thread_entry_point)r.ebx;
-    void* a = (void*)r.edx;
+void handleThread(isrq_registers_t* r) {
+    thread_entry_point m = (thread_entry_point)r->ebx;
+    void* a = (void*)r->ecx;
     int id = TaskManager::get()->newThread(m, a);
-    *((u32int*)r.ecx) = id;
+    r->eax = id;
+}
+
+void handleDie(isrq_registers_t* r) {
+    TaskManager::get()->requestKillProcess(TaskManager::get()->getCurrentThread()->process->pid);
 }
 
 void SyscallManager::registerDefaults() {
     registerSyscall(0, handlePrint);
     registerSyscall(1, handleFork);
     registerSyscall(2, handleThread);
+    registerSyscall(3, handleDie);
 }

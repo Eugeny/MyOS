@@ -4,7 +4,7 @@
 #include <kutils.h>
 
 
-static void dummy(isrq_registers_t r) {}
+static void dummy(isrq_registers_t *r) {}
 
 void Disk::init() {
     u8int buf[512];

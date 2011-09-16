@@ -113,7 +113,7 @@ static void move_stack(void *new_stack_start, u32int size, u32int initial_esp) {
 }
 
 
-void page_fault(isrq_registers_t regs);
+void page_fault(isrq_registers_t *regs);
 
 void Memory::startPaging(u32int initial_esp) {
     u32int mem_end_page = get_total_ram();
@@ -165,16 +165,16 @@ AddressSpace* Memory::getCurrentSpace() {
 }
 
 
-void page_fault(isrq_registers_t regs)
+void page_fault(isrq_registers_t *regs)
 {
    u32int faulting_address;
    asm volatile("mov %%cr2, %0" : "=r" (faulting_address));
 
-   int present   = !(regs.err_code & 0x1); // Page not present
-   int rw = regs.err_code & 0x2;           // Write operation?
-   int us = regs.err_code & 0x4;           // Processor was in user-mode?
-   int reserved = regs.err_code & 0x8;     // Overwritten CPU-reserved bits of page entry?
-   int id = regs.err_code & 0x10;          // Caused by an instruction fetch?
+   int present   = !(regs->err_code & 0x1); // Page not present
+   int rw = regs->err_code & 0x2;           // Write operation?
+   int us = regs->err_code & 0x4;           // Processor was in user-mode?
+   int reserved = regs->err_code & 0x8;     // Overwritten CPU-reserved bits of page entry?
+   int id = regs->err_code & 0x10;          // Caused by an instruction fetch?
 
    // Output an error message.
    klogn("PAGE FAULT: ");

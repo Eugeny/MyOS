@@ -20,19 +20,19 @@ void Interrupts::removeHandler(int n) {
     interrupt_handlers[n] = NULL;
 }
 
-static void default_interrupt_handler(isrq_registers_t regs) {
+static void default_interrupt_handler(isrq_registers_t* regs) {
     klogn("INT ");
-    klogn(to_dec(regs.int_no));
+    klogn(to_dec(regs->int_no));
     klogn(" ");
-    klog(to_dec(regs.err_code));
+    klog(to_dec(regs->err_code));
 }
 
-static void default_irq_handler(isrq_registers_t regs) {
+static void default_irq_handler(isrq_registers_t* regs) {
     char s[] = "  xx  xxxxxx";
 
     klogn("IRQ ");
 
-    int n = regs.int_no;
+    int n = regs->int_no;
 
     s[2] = (char)((int)'0' + n/100);
     s[3] = (char)((int)'0' + n/10%10);
@@ -59,12 +59,12 @@ extern "C" void isr_handler(isrq_registers_t regs) {
 
 
     if (interrupt_handlers[ino] != 0) {
-        interrupt_handlers[ino](regs);
+        interrupt_handlers[ino](&regs);
     } else {
         if (!irq) {
-            default_interrupt_handler(regs);
+            default_interrupt_handler(&regs);
         } else {
-            default_irq_handler(regs);
+            default_irq_handler(&regs);
         }
     }
 }

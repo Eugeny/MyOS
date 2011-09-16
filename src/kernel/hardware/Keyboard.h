@@ -15,7 +15,7 @@ typedef void(*keyboard_handler)(u32int, u32int);
 class Keyboard : public Singleton<Keyboard> {
 public:
     void init();
-    void handle(isrq_registers_t);
+    void handle(isrq_registers_t*);
     void setHandler(keyboard_handler h);
 private:
     bool _escaping;

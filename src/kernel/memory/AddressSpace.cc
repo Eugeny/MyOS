@@ -1,6 +1,7 @@
 #include <memory/AddressSpace.h>
 #include <memory/Heap.h>
 #include <memory/Memory.h>
+#include <kutils.h>
 
 
 extern "C" void copy_page_physical(u32int src, u32int dst);
@@ -15,6 +16,10 @@ void AddressSpace::reset() {
     memset(dir, 0, sizeof(page_directory_t));
     u32int offset = (u32int)dir->tablesPhysical - (u32int)dir;
     dir->physicalAddr = phys + offset;
+}
+
+AddressSpace::~AddressSpace() {
+    delete dir;
 }
 
 page_t *AddressSpace::getPage(u32int address, bool make) {
@@ -41,8 +46,7 @@ page_t *AddressSpace::allocatePage(u32int address, bool make, bool kernel, bool 
     return r;
 }
 
-static page_table_t *clone_table(page_table_t *src, u32int *physAddr)
-{
+static page_table_t *clone_table(page_table_t *src, u32int *physAddr) {
     page_table_t *table = (page_table_t*)kmalloc_ap(sizeof(page_table_t), physAddr);
     memset(table, 0, sizeof(page_directory_t));
 
@@ -61,8 +65,7 @@ static page_table_t *clone_table(page_table_t *src, u32int *physAddr)
     return table;
 }
 
-AddressSpace* AddressSpace::clone()
-{
+AddressSpace* AddressSpace::clone() {
     AddressSpace* n = new AddressSpace();
     for (int i = 0; i < 1024; i++) {
         if (!dir->tables[i])
@@ -78,4 +81,19 @@ AddressSpace* AddressSpace::clone()
         }
     }
     return n;
+}
+
+void AddressSpace::release() {
+    for (int i = 0; i < 1024; i++) {
+        if (!dir->tables[i])
+            continue;
+
+        if (Memory::get()->getKernelSpace()->dir->tables[i] != dir->tables[i]) {
+            for (int j = 0; j < 1024; j++) {
+                if (dir->tables[i]->pages[j].frame) {
+                    Memory::get()->free(&dir->tables[i]->pages[j]);
+                }
+            }
+        }
+    }
 }

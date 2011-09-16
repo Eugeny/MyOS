@@ -1,6 +1,7 @@
 #include <core/Thread.h>
 #include <core/Processor.h>
 #include <core/Process.h>
+#include <core/TaskManager.h>
 #include <kutils.h>
 #include <memory/Heap.h>
 
@@ -10,6 +11,7 @@ Thread::Thread(Process *p) {
     id = tid++;
     process = p;
     process->threads->insertLast(this);
+    stackSize = 0;
     TSS = (tss_t*)kmalloc_a(sizeof(tss_t));
     memset(TSS, 0, sizeof(tss_t));
     TSS->cr3 = process->addrSpace->dir->physicalAddr;
@@ -25,12 +27,6 @@ Thread::Thread(Process *p) {
     dead = false;
 }
 
-void Thread::die() {
-    dead = true;
-    while (true)
-        Processor::idle();
-}
-
-bool Thread::isDead() {
-    return dead;
+Thread::~Thread() {
+    delete TSS;
 }

@@ -5,6 +5,7 @@
 #include <util/Singleton.h>
 #include <util/LinkedList.h>
 #include <core/Thread.h>
+#include <core/Process.h>
 
 
 class Scheduler : public Singleton<Scheduler> {

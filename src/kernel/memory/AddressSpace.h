@@ -30,8 +30,11 @@ typedef struct page_directory {
 class AddressSpace {
 public:
     AddressSpace();
+    ~AddressSpace();
+
     void          reset();
     AddressSpace* clone();
+    void          release();
     page_t*       getPage(u32int addr, bool create);
     page_t*       allocatePage(u32int addr, bool create, bool kernel, bool rw);
     page_directory_t *dir;

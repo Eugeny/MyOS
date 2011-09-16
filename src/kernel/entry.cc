@@ -23,7 +23,7 @@
 #include <vfs/Stat.h>
 
 
-void on_timer(isrq_registers_t r) {
+void on_timer(isrq_registers_t *r) {
 static    Terminal* sb = TTYManager::get()->getStatusBar();
 //static    int ram = Memory::get()->getUsedFrames() * 100 / Memory::get()->getTotalFrames();
     sb->goTo(WIDTH-20, 0);
@@ -38,7 +38,8 @@ static    Terminal* sb = TTYManager::get()->getStatusBar();
     TTYManager::get()->draw();
 
 
-    TaskManager::get()->switchTo(Scheduler::get()->pickThread());
+    TaskManager::get()->performRoutine();
+    TaskManager::get()->nextTask();
 }
 
 void kbdh(u32int mod, u32int sc) {
@@ -134,13 +135,16 @@ extern "C" void kmain (void* mbd, u32int esp) {
     FileObject* f = VFS::get()->open("/app", MODE_R);
     char* ss = (char*)kmalloc(10000);
     f->read(ss, 0, 65536);
+
+    MEMTRACE
     ELF_exec((u8int*)ss);
+    MEMTRACE
 //    asm volatile ("jmp 0x100");
 //    klog(ss);
 
 
-    pid=fork();
-    pid=fork();
+//    pid=fork();
+//    pid=fork();
 
     //pid=fork();
 //    newThread(thread,  (void*)"FFFU");

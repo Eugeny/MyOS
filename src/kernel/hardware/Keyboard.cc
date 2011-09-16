@@ -3,7 +3,7 @@
 #include <kutils.h>
 
 
-void Keyboard::handle(isrq_registers_t r) {
+void Keyboard::handle(isrq_registers_t *r) {
     u8int scancode = inb(0x60);
 
     if (_escaping)
@@ -27,7 +27,7 @@ void Keyboard::handle(isrq_registers_t r) {
     else if ((_handler != NULL) && scancode >= 0x80) _handler(_modifiers, scancode);
 }
 
-static void kbdh(isrq_registers_t r) {
+static void kbdh(isrq_registers_t *r) {
     Keyboard::get()->handle(r);
 }
 

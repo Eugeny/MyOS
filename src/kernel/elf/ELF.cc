@@ -1,13 +1,14 @@
 #include <elf/ELF.h>
+#include <core/TaskManager.h>
 #include <memory/AddressSpace.h>
 #include <memory/Memory.h>
 #include <syscall/Syscalls.h>
 #include <kutils.h>
 
 void ELF_exec(u8int* data) {
-    int pid = fork();
-    if (pid == 0) {
+    int pid = syscall_fork();
 
+    if (pid == 0) {
         AddressSpace* as = Memory::get()->getCurrentSpace();
         elfHeader* hdr = (elfHeader*)data;
         for (int i = 0; i < hdr->phnum; i++) {
@@ -22,8 +23,6 @@ void ELF_exec(u8int* data) {
             }
         }
 
-
         asm volatile ("mov %0, %%eax; jmp *%%eax" :: "r"(hdr->entry));
-        for(;;);
     }
 }

@@ -16,7 +16,7 @@ typedef struct registers
 
 #define IRQ(x)  ((x)+32)
 
-typedef void (*interrupt_handler)(isrq_registers_t);
+typedef void (*interrupt_handler)(isrq_registers_t*);
 
 
 class Interrupts : public Singleton<Interrupts> {

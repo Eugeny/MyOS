@@ -32,14 +32,15 @@ typedef struct TSS32 {
 class Thread {
 public:
     Thread(Process *p);
-    void die();
-    bool isDead();
+    ~Thread();
+    bool   dead;
 
     u32int id;
+    u32int stackBottom;
+    u32int stackSize;
     Process *process;
     tss_t* TSS;
 private:
-    bool   dead;
 };
 
 #endif

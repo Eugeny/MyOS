@@ -45,6 +45,7 @@ void TaskManager::init() {
 
     processes = new LinkedList<Process*>();
     processes->insertLast(kproc);
+    kernelProcess = kproc;
 
     GDT::get()->setGate(5, (u32int)&(kernel->TSS), sizeof(tss_t), 0x89, 0x40);
     ltr(0x08*5);
@@ -77,7 +78,7 @@ void TaskManager::switchTo(Thread* t) {
     selector[1] = 0x08*6;
 
 //DEBUG("IN");
-    asm volatile ("ljmp %0" :: "m"(*selector));
+    asm volatile ("ljmp *%0" :: "m"(*selector));
 //DEBUG("OUT");
 
     lock->release();
@@ -113,7 +114,7 @@ u32int TaskManager::fork() {
     static u32int selector[2];
     selector[0] = 0;
     selector[1] = 0x08*6;
-    asm volatile ("lcall %0" :: "m"(*selector));
+    asm volatile ("lcall *%0" :: "m"(*selector));
     bool old = TaskManager::get()->getCurrentThread()->process == parent;
     if (!old) {
         lock->release();
@@ -157,7 +158,7 @@ u32int TaskManager::newThread(void (*main)(void*), void* arg) {
     static u32int selector[2];
     selector[0] = 0;
     selector[1] = 0x08*6;
-    asm volatile ("lcall %0" :: "m"(*selector));
+    asm volatile ("lcall *%0" :: "m"(*selector));
 
     u32int st;
     asm volatile ("mov 0x4(%%esp), %0" : "=r"(st));
@@ -168,7 +169,8 @@ u32int TaskManager::newThread(void (*main)(void*), void* arg) {
         asm volatile ("mov 0x8(%%esp), %0" : "=r"(main));
         asm volatile ("mov 0xC(%%esp), %0" : "=r"(arg));
         main(arg);
-        TaskManager::get()->getCurrentThread()->die();
+        requestKillThread(TaskManager::get()->getCurrentThread()->id);
+        while (true) Processor::idle();
         return 0;
     }
     else {
@@ -178,13 +180,85 @@ u32int TaskManager::newThread(void (*main)(void*), void* arg) {
         *(u32int*)(stack+4) = THREADSWITCH_MAGIC;
         *(u32int*)(stack+8) = (u32int)main;
         *(u32int*)(stack+12) = (u32int)arg;
-        //newThread->TSS->esp0 = stack;
         lock->release();
         Processor::enableInterrupts();
         return newProc->pid;
     }
 }
 
+void TaskManager::killProcess(Process* p) {
+    if (p == currentThread->process) return;
+
+    for (int i = 0; i < p->threads->length(); i++)
+        killThread(p->threads->get(i));
+    for (int i = 0; i < p->children->length(); i++)
+        p->children->get(i)->parent = kernelProcess;
+    p->addrSpace->release();
+    processes->remove(p);
+    delete p->addrSpace;
+    delete p;
+}
+
+void TaskManager::killThread(Thread* t) {
+    if (t == currentThread) return;
+
+    // Free stack
+    for (u32int j = t->stackBottom; j < t->stackBottom + t->stackSize; j += 0x1000)
+        Memory::get()->free(t->process->addrSpace->getPage(j, false));
+    Scheduler::get()->removeThread(t);
+    t->process->threads->remove(t);
+    if (t->process->threads->length() == 0)
+        requestKillProcess(t->process->pid);
+    delete t;
+    return;
+}
+
+void TaskManager::requestKillProcess(u32int pid) {
+    for (int i = 0; i < processes->length(); i++)
+        if (processes->get(i)->pid == pid) {
+            Process* p = processes->get(i);
+            p->dead = true;
+            if (p == currentThread->process) {
+                nextTask();
+                while (true) Processor::idle();
+            }
+        }
+}
+
+void TaskManager::requestKillThread(u32int tid) {
+    for (int i = 0; i < processes->length(); i++) {
+        Process* proc = processes->get(i);
+        for (int i = 0; i < proc->threads->length(); i++)
+            if (proc->threads->get(i)->id == tid) {
+                Thread* t = proc->threads->get(i);
+                t->dead = true;
+                if (t == currentThread) {
+                    nextTask();
+                    while (true) Processor::idle();
+                }
+                return;
+            }
+    }
+}
+
+void TaskManager::nextTask() {
+    switchTo(Scheduler::get()->pickThread());
+}
+
+void TaskManager::performRoutine() {
+    for (int i = 0; i < processes->length(); i++) {
+        Process* proc = processes->get(i);
+        for (int j = 0; j < proc->threads->length(); j++)
+            if (proc->threads->get(j)->dead) {
+                killThread(proc->threads->get(j));
+                return;
+            }
+        if (proc->dead) {
+            killProcess(proc);
+            return;
+        }
+    }
+}
 
 Thread* TaskManager::getCurrentThread() {
     return currentThread;

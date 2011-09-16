@@ -9,7 +9,7 @@
 class SyscallManager : public Singleton<SyscallManager> {
 public:
     void init();
-    void handleSyscall(isrq_registers_t r);
+    void handleSyscall(isrq_registers_t *r);
     void registerSyscall(int cmd, interrupt_handler h);
     void registerDefaults();
 private:

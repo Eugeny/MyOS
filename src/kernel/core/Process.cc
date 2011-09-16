@@ -5,6 +5,7 @@
 Process::Process() {
     static int id = 0;
     pid = id++;
+    dead = false;
     threads = new LinkedList<Thread*>();
     children = new LinkedList<Process*>();
     allocatorTop = Heap::get()->getFreeSpaceBoundary();
@@ -16,4 +17,10 @@ void *Process::requestMemory(u32int sz) {
         addrSpace->allocatePage(i, true, false, true);
     allocatorTop += sz;
     return res;
+}
+
+Process::~Process() {
+    delete children;
+    delete threads;
+    delete name;
 }
