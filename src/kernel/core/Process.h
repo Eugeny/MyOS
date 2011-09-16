@@ -6,13 +6,17 @@
 #include <core/Thread.h>
 #include <memory/AddressSpace.h>
 #include <io/FileObject.h>
+#include <elf/ELF.h>
 
 
 class Process {
 public:
     Process();
     ~Process();
-    void* requestMemory(u32int sz);
+    static u32int create(char* path, int argc, char** argv, FileObject* stdin, FileObject* stdout, FileObject* stderr);
+    void*         requestMemory(u32int sz);
+    u32int        openFile(FileObject* f);
+    void          reopenFile(int fd, FileObject* f);
 
     u32int pid;
     char* name;
@@ -24,6 +28,6 @@ public:
     AddressSpace* addrSpace;
 
 private:
-    u32int allocatorTop;
+    u32int allocatorTop, lastFD;
 };
 #endif

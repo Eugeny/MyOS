@@ -23,6 +23,7 @@ Stat* DevFS::stat(char* path) {
     path++;
     Stat* s = new Stat();
     s->isDevice = true;
+    s->size = 0;
     LinkedList<char*>* p = VFS::splitPath(path);
     if (strstarts(p->get(p->length()-1), "tty"))
         s->isTTY = true;

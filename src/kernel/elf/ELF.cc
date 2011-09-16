@@ -5,7 +5,7 @@
 #include <syscall/Syscalls.h>
 #include <kutils.h>
 
-void ELF_exec(u8int* data) {
+void ELF_exec(u8int* data, int argc, char** argv, FileObject* stdin, FileObject* stdout, FileObject* stderr) {
     int pid = syscall_fork();
 
     if (pid == 0) {
@@ -23,6 +23,17 @@ void ELF_exec(u8int* data) {
             }
         }
 
-        asm volatile ("mov %0, %%eax; jmp *%%eax" :: "r"(hdr->entry));
+        Process* p = TaskManager::get()->getCurrentThread()->process;
+        p->reopenFile(0, stdin);
+        p->reopenFile(1, stdout);
+        p->reopenFile(2, stderr);
+        asm volatile ("    \
+            push %2;       \
+            push %1;       \
+            mov %0, %%eax; \
+            jmp *%%eax     \
+            " :: "r"(hdr->entry),
+                 "r"(argc),
+                 "r"(argv));
     }
 }

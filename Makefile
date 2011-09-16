@@ -59,8 +59,8 @@ link:
 	ld $(LDFLAGS) -o bin/kernel $(SOURCES)
 
 app:
-	g++ -c -g -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0 src/apps/test/test.cc -o src/apps/test/test.o
-	ld -t -static -nostdlib -T src/apps/test/linker.ld -o bin/app src/apps/test/test.o src/kernel/syscall/Syscalls.o
+	gcc -c -g -I src/kernel/ newlib/newlib/libc/include -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0 src/apps/test/test.c -o src/apps/test/test.o
+	ld -t -static -nostdlib -T src/apps/test/linker.ld  -L newlib/newlib -lc -o bin/app src/apps/test/test.o
 
 .s.o:
 	nasm $(ASFLAGS) $<

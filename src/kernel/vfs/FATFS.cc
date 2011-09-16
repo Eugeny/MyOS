@@ -185,6 +185,7 @@ Stat* FATFS::stat(char* path) {
 //    DEBUG(to_hex(fn->attr));
     Stat* s = new Stat();
     s->isDirectory = fn->attr & 0x10;
+    s->size = fn->size;
     delete fn;
     return s;
 }

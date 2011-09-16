@@ -42,9 +42,16 @@ void handleDie(isrq_registers_t* r) {
     TaskManager::get()->requestKillProcess(TaskManager::get()->getCurrentThread()->process->pid);
 }
 
+void handleWrite(isrq_registers_t* r) {
+    FileObject* fo = TaskManager::get()->getCurrentThread()->process->files[(u32int)r->ebx];
+    fo->write((char*)r->ecx, 0, r->edx);
+}
+
+
 void SyscallManager::registerDefaults() {
     registerSyscall(0, handlePrint);
     registerSyscall(1, handleFork);
     registerSyscall(2, handleThread);
     registerSyscall(3, handleDie);
+    registerSyscall(4, handleWrite);
 }

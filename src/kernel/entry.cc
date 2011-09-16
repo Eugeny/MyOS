@@ -132,12 +132,6 @@ extern "C" void kmain (void* mbd, u32int esp) {
     int pid =0;
 //    list("/boot", 0);
 
-    FileObject* f = VFS::get()->open("/app", MODE_R);
-    char* ss = (char*)kmalloc(10000);
-    f->read(ss, 0, 65536);
-
-    MEMTRACE
-    ELF_exec((u8int*)ss);
     MEMTRACE
 //    asm volatile ("jmp 0x100");
 //    klog(ss);

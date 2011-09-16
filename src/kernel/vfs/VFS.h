@@ -13,6 +13,7 @@ class Mountpoint {
 public:
     FS* fs;
     char* path;
+    u32int size;
 };
 
 

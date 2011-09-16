@@ -11,7 +11,7 @@
 #ifndef GEEKOS_ELF_H
 #define GEEKOS_ELF_H
 #include <util/cpp.h>
-
+#include <io/FileObject.h>
 
 #define PT_NULL 0
 #define PT_LOAD 1
@@ -98,5 +98,5 @@ struct Exe_Format {
 };
 
 
-void ELF_exec(u8int* data);
+void ELF_exec(u8int* data, int argc, char** argv, FileObject* stdin, FileObject* stdout, FileObject* stderr);
 #endif  /* GEEKOS_ELF_H */

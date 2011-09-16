@@ -65,4 +65,5 @@ DECL_SYSCALL1(kprint, char*);
 DECL_SYSCALL0(fork);
 DECL_SYSCALL2(newThread, thread_entry_point, void*);
 DECL_SYSCALL0(die);
+DECL_SYSCALL2(write, void*, u32int);
 #endif
