@@ -38,22 +38,17 @@ u32int Process::openFile(FileObject* f) {
 
 void Process::reopenFile(int fd, FileObject* f) {
     files[fd] = f;
+    if (lastFD <= fd) lastFD = fd + 1;
 }
 
 
 u32int Process::create(char* path, int argc, char** argv, FileObject* stdin, FileObject* stdout, FileObject* stderr) {
-TRACE
     Stat* stat = VFS::get()->stat(path);
-TRACE
     char* ss = (char*)kmalloc(stat->size);
-TRACE
 
     FileObject* f = VFS::get()->open(path, MODE_R);
-TRACE
     f->read(ss, 0, stat->size);
-TRACE
     f->close();
-TRACE
     delete f;
     delete stat;
 

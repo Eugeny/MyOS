@@ -60,8 +60,9 @@ link:
 	ld $(LDFLAGS) -o bin/kernel $(SOURCES)
 
 app:
-	local/bin/i586-pc-myos-gcc -c -g -mtune=i386 -I src/kernel/ include -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0 src/apps/test/test.c -o src/apps/test/test.o
-	local/bin/i586-pc-myos-ld -t -static -T src/apps/test/linker.ld  -L $(LIBS) -lc -o bin/app src/apps/test/test.o local/i586-pc-myos/lib/libc.a src/kernel/syscall/Syscalls.o
+	local/bin/i586-pc-myos-gcc -c -g -I src/kernel/ include -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0 src/apps/crt0.c -o src/apps/crt0.o
+	local/bin/i586-pc-myos-gcc -c -g -I src/kernel/ include -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0 src/apps/test/test.c -o src/apps/test/test.o
+	local/bin/i586-pc-myos-ld -t -static -T src/apps/test/linker.ld  -L $(LIBS) -lc -o bin/app src/apps/test/test.o src/kernel/syscall/Syscalls.o src/apps/crt0.o local/i586-pc-myos/lib/libc.a
 
 .s.o:
 	nasm $(ASFLAGS) $<

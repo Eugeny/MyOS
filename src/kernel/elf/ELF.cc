@@ -5,6 +5,9 @@
 #include <syscall/Syscalls.h>
 #include <kutils.h>
 
+
+typedef int(*mainf)(int,char**);
+
 void ELF_exec(u8int* data, int argc, char** argv, FileObject* stdin, FileObject* stdout, FileObject* stderr) {
     int pid = fork();
 
@@ -27,6 +30,10 @@ void ELF_exec(u8int* data, int argc, char** argv, FileObject* stdin, FileObject*
         p->reopenFile(0, stdin);
         p->reopenFile(1, stdout);
         p->reopenFile(2, stderr);
+        mainf main = (mainf)hdr->entry;
+        main(argc, argv);
+
+        TaskManager::get()->requestKillProcess(TaskManager::get()->getCurrentThread()->id);
         asm volatile ("    \
             push %2;       \
             push %1;       \

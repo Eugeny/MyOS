@@ -1,22 +1,18 @@
+#include <stdio.h>
+#include <unistd.h>
 
-extern int main(); //, char **environ);
+extern int main(int,char**,char**env);
 
-extern char __bss_start, _end; // BSS should be the last think before _end
+extern char __bss, _end;
 
-// XXX: environment
 char *__env[1] = { 0 };
 char **environ = __env;
 
 _start(int argc, char **argv) {
-  char *i;
+    char *i;
+    for(i = &__bss; i < &_end; i++){
+        *i = 0;
+    }
 
-  // zero BSS
-  for(i = &__bss_start; i < &_end; i++){
-    *i = 0;
-  }
-
-
-  // XXX: get argc and argv
-
-  exit(main(argc,argv, __env));
+  _exit(main(argc,argv, __env));
 }

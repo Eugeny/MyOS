@@ -19,7 +19,7 @@ void SyscallManager::registerSyscall(int idx, interrupt_handler h) {
 }
 
 void SyscallManager::handleSyscall(isrq_registers_t* r) {
-DEBUG(to_dec(r->eax));
+//DEBUG(to_dec(r->eax));
     handlers[r->eax](r);
 }
 
@@ -47,6 +47,7 @@ void handleDie(isrq_registers_t* r) {
 void handleWrite(isrq_registers_t* r) {
     FileObject* fo = TaskManager::get()->getCurrentThread()->process->files[(u32int)r->ebx];
     fo->write((char*)r->ecx, 0, r->edx);
+    r->eax = r->edx;
 }
 
 void handleMemReq(isrq_registers_t* r) {
@@ -80,7 +81,6 @@ struct	stat
 };
 
 void handleStat(isrq_registers_t* r) {
-DEBUG(to_dec(r->ebx));
 *((u32int*)r->ecx +6)= 0020000;
 }
 
@@ -92,6 +92,10 @@ void handleIsTTY(isrq_registers_t* r) {
 r->eax=1;
 }
 
+void handleClose(isrq_registers_t* r) {
+r->eax=1;
+}
+
 void SyscallManager::registerDefaults() {
     registerSyscall(0, handlePrint);
     registerSyscall(1, handleFork);
@@ -99,6 +103,7 @@ void SyscallManager::registerDefaults() {
     registerSyscall(3, handleDie);
     registerSyscall(4, handleWrite);
     registerSyscall(6, handleMemReq);
+    registerSyscall(7, handleMemReq);
     registerSyscall(8, handleStat);
     registerSyscall(9, handleIsTTY);
     registerSyscall(11, handleOpen);

@@ -24,25 +24,12 @@
 
 
 void on_timer(isrq_registers_t *r) {
-static    Terminal* sb = TTYManager::get()->getStatusBar();
-//static    int ram = Memory::get()->getUsedFrames() * 100 / Memory::get()->getTotalFrames();
-    sb->goTo(WIDTH-20, 0);
-    sb->write("kheap: ");
-    sb->write(to_dec(Heap::get()->getUsage()));
-    sb->write(" b");
-
-    sb->goTo(WIDTH-32, 0);
-    sb->write("Frames ");
-    sb->write(to_dec(Memory::get()->getUsedFrames()));
-
-    TTYManager::get()->draw();
-
     TaskManager::get()->performRoutine();
     TaskManager::get()->nextTask();
 }
 
 void kbdh(u32int mod, u32int sc) {
-    klogn("K");klogn(to_hex(sc));klogn("-");klog(to_hex(mod));
+    klogn("K");klogn(to_hex(sc));klogn("-");klog(to_hex(mod));klog_flush();
     TTYManager::get()->processKey(mod, sc);
 }
 
@@ -79,8 +66,21 @@ void list(char* p, int d) {
     delete l;
 }
 
-void thread(void* x) {
-    DEBUG("Thread!");
+
+void repainterThread(void* a) {
+while(true) {
+    Terminal* sb = TTYManager::get()->getStatusBar();
+    sb->goTo(WIDTH-20, 0);
+    sb->write("kheap: ");
+    sb->write(to_dec(Heap::get()->getUsage()));
+    sb->write(" b");
+
+    sb->goTo(WIDTH-32, 0);
+    sb->write("Frames ");
+    sb->write(to_dec(Memory::get()->getUsedFrames()));
+
+    TTYManager::get()->draw();
+}
 }
 
 
@@ -123,27 +123,14 @@ extern "C" void kmain (void* mbd, u32int esp) {
 
     VFS::get()->mount(DevFSMaster::get()->getFS(), "/dev");
 
-// INIT DONE
+TRACE
+    newThread(repainterThread, 0);
 
-    int pid =0;
-//    list("/boot", 0);
-
-    MEMTRACE
-//    asm volatile ("jmp 0x100");
-//    klog(ss);
-
-
-//    pid=fork();
-//    pid=fork();
-
-    //pid=fork();
-//    newThread(thread,  (void*)"FFFU");
 TRACE
     FileObject* tty = VFS::get()->open("/dev/tty0", MODE_R|MODE_W);
 TRACE
 Process::create("/app", 0,0,tty,tty,tty);
-
-for(;;);
+TRACE
         char s[] = "> Process x x reporting\n";
         int c = 0;
         int p = TaskManager::get()->getCurrentThread()->id;

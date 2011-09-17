@@ -46,6 +46,9 @@ int fn(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5) \
   return a; \
 }
 
+#include <errno.h>
+#undef errno
+int errno;
 
 typedef void(*thread_entry_point)(void*);
 
@@ -53,7 +56,7 @@ typedef void(*thread_entry_point)(void*);
 DEFN_SYSCALL1(kprint, 0, char*);
 DEFN_SYSCALL0(fork, 1);
 DEFN_SYSCALL2(newThread, 2, thread_entry_point, void*);
-DEFN_SYSCALL0(die, 3);
+DEFN_SYSCALL0(_exit, 3);
 DEFN_SYSCALL2(write, 4, void*, unsigned int);
 DEFN_SYSCALL2(read, 5, void*, unsigned int);
 DEFN_SYSCALL1(sbrk, 6, unsigned int);
@@ -61,7 +64,7 @@ DEFN_SYSCALL1(close, 7, int);
 //DEFN_SYSCALL1(fstat, 8, char*);
 #include <sys/stat.h>
     int fstat(int file, struct stat *st) {
-      st->st_mode = S_IFCHR;
+      st->st_mode = S_IFCHR|S_IWRITE;
       return 0;
     }
 

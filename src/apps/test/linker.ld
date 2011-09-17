@@ -1,4 +1,4 @@
-ENTRY (main)
+ENTRY (_start)
 
 SECTIONS
 {
@@ -30,6 +30,7 @@ SECTIONS
 
 	.bss ALIGN(4096) :
 	{
+	    bss = .; _bss = .; __bss = .;
 		*(.COMMON*)
 		*(.bss*)
 		*(.gnu.linkonce.b*)

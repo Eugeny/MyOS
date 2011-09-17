@@ -77,9 +77,7 @@ void TaskManager::switchTo(Thread* t) {
     selector[0] = 0;
     selector[1] = 0x08*6;
 
-//DEBUG("IN");
     asm volatile ("ljmp *%0" :: "m"(*selector));
-//DEBUG("OUT");
 
     lock->release();
 //        Memory::get()->getCurrentSpace()->dir->physicalAddr,
@@ -87,7 +85,6 @@ void TaskManager::switchTo(Thread* t) {
 }
 
 void dofork() {
-    TRACE
     asm volatile ("iret");
 }
 
@@ -169,7 +166,7 @@ u32int TaskManager::newThread(void (*main)(void*), void* arg) {
         asm volatile ("mov 0x8(%%esp), %0" : "=r"(main));
         asm volatile ("mov 0xC(%%esp), %0" : "=r"(arg));
         main(arg);
-        requestKillThread(TaskManager::get()->getCurrentThread()->id);
+        TaskManager::get()->requestKillThread(TaskManager::get()->getCurrentThread()->id);
         while (true) Processor::idle();
         return 0;
     }

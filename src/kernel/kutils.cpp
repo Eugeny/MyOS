@@ -98,7 +98,7 @@ void backtrace() {
     int c=0;
     asm volatile ("mov %%ebp, %0" : "=r" (p));
 
-    while ((u32int)p < 0xE0000000 && c <12) {
+    while ((u32int)p < 0xE0000000 && c <1) {
         if ((u32int)(&start_text) < *p && *p < (u32int)(&end_text)) {
             klogn(to_hex(*p));
             klogn(" ");
