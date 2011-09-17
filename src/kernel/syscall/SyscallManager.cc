@@ -81,7 +81,7 @@ struct	stat
 };
 
 void handleStat(isrq_registers_t* r) {
-*((u32int*)r->ecx +6)= 0020000;
+*((u32int*)r->ecx +2)= 0020000;
 }
 
 void handleOpen(isrq_registers_t* r) {

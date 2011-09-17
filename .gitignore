@@ -3,3 +3,5 @@ include
 bin/*
 *.o
 local
+src/apps/dash
+src/apps/busybox
