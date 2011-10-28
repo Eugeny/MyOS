@@ -52,6 +52,6 @@ u32int Process::create(char* path, int argc, char** argv, FileObject* stdin, Fil
     delete f;
     delete stat;
 
-    ELF_exec((u8int*)ss, argc, argv, stdin, stdout, stderr);
+    ELF_exec((u8int*)ss, path, argc, argv, stdin, stdout, stderr);
     delete ss;
 }

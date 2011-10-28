@@ -1,8 +1,8 @@
-ENTRY (loader)
+ENTRY (_myos_start)
 
 SECTIONS
 {
-	. = 0x1000000;
+	. = 0x500000;
 
 	.text ALIGN(4096) :
 	{
@@ -30,6 +30,7 @@ SECTIONS
 
 	.bss ALIGN(4096) :
 	{
+	    bss = .; _bss = .; __bss = .;
 		*(.COMMON*)
 		*(.bss*)
 		*(.gnu.linkonce.b*)

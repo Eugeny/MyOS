@@ -23,10 +23,15 @@ public:
 
     void    nextTask();
     void    performRoutine();
+    void    idle();
+
+    void    pause();
+    void    resume();
 private:
     LinkedList<Process*>* processes;
     Thread* currentThread;
     Process* kernelProcess;
+    bool     paused;
 };
 
 #endif

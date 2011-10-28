@@ -7,7 +7,7 @@ RootFS::RootFS() {
 
 LinkedList<char*>* RootFS::listFiles(char* node) {
     LinkedList<char*>* r = new LinkedList<char*>();
-    if (strcmp(node, "/")) {
+    if (strcmp(node, (char*)"/")) {
         r->insertLast("dev");
     }
     return r;

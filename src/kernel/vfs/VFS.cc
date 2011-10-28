@@ -14,7 +14,7 @@ LinkedList<char*>* VFS::splitPath(char* p) {
     while (*p++) {
         if (*p == '/') {
             *pp++ = 0;
-            r->insertLast(strclone(tmp));
+            r->insertLast(strdup(tmp));
             pp = tmp;
         } else {
             *pp++ = *p;
@@ -24,7 +24,7 @@ LinkedList<char*>* VFS::splitPath(char* p) {
     *pp++ = 0;
 
     if (strlen(tmp) > 0)
-        r->insertLast(strclone(tmp));
+        r->insertLast(strdup(tmp));
 
     return r;
 }
@@ -48,7 +48,7 @@ FileObject* VFS::open(char* path, int mode) {
 }
 
 Mountpoint* VFS::getFS(char* p, bool mounted) {
-    if (strcmp(p, "/"))
+    if (strcmp(p, (char*)"/"))
         return mounts->get(0);
 
     int best = 0;

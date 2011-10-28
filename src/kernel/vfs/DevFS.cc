@@ -10,7 +10,7 @@ DevFS::DevFS() {
 LinkedList<char*>* DevFS::listFiles(char* node) {
     LinkedList<char*>* r = new LinkedList<char*>();
 
-    if (strcmp(node, "")) {
+    if (strcmp(node, (char*)"")) {
         LinkedListIter<DeviceEntry*>* i = devices->iter();
         for (; !i->end(); i->next())
             r->insertLast(i->get()->name);
@@ -36,7 +36,7 @@ Stat* DevFS::stat(char* path) {
 void DevFS::registerDevice(FileObject* f, char* name) {
     DeviceEntry* e = new DeviceEntry();
     e->file = f;
-    e->name = strclone(name);
+    e->name = strdup(name);
     devices->insertLast(e);
 }
 

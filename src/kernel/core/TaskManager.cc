@@ -2,6 +2,7 @@
 #include <core/Processor.h>
 #include <core/Scheduler.h>
 #include <core/Process.h>
+#include <interrupts/Interrupts.h>
 #include <memory/GDT.h>
 #include <memory/Memory.h>
 #include <kutils.h>
@@ -13,15 +14,16 @@ static Lock* lock;
 TaskManager::TaskManager() {
     processes = NULL;
     lock = new Lock();
+    paused = false;
 }
 
 
-void ltr(u16int selector)
+static void ltr(u16int selector)
 {
    asm ("ltr %0": :"r" (selector));
 }
 
-unsigned int str(void)
+static unsigned int str(void)
 {
    unsigned int selector;
 
@@ -30,6 +32,9 @@ unsigned int str(void)
 }
 
 
+void task_fail(isrq_registers_t* r) {
+    PANIC("INT6");
+}
 
 void TaskManager::init() {
     Processor::disableInterrupts();
@@ -50,11 +55,18 @@ void TaskManager::init() {
     GDT::get()->setGate(5, (u32int)&(kernel->TSS), sizeof(tss_t), 0x89, 0x40);
     ltr(0x08*5);
 
+    Interrupts::get()->setHandler(6, task_fail);
     Processor::enableInterrupts();
 }
 
 
+void TaskManager::pause() {
+    paused = true;
+}
 
+void TaskManager::resume() {
+    paused = false;
+}
 
 
 void TaskManager::switchTo(Thread* t) {
@@ -62,9 +74,13 @@ void TaskManager::switchTo(Thread* t) {
         return;}
 
     if (!lock->attempt()) {TRACE;return;}
-//klog("SWITCHING");
-//klogn("from: ");klog(to_dec(currentThread->id));
-//klogn("to:   ");klog(to_dec(t->id));klog_flush();
+
+    if (TASKSWITCH_DEBUG) {
+        klog("SWITCHING");
+        klogn("from: ");klog(to_dec(currentThread->id));
+        klogn("to:   ");klog(to_dec(t->id));klog_flush();
+    }
+    
     Thread* oldThread = currentThread;
     currentThread = t;
     Memory::get()->setAddressSpace(currentThread->process->addrSpace);
@@ -94,7 +110,7 @@ u32int TaskManager::fork() {
 
     Process* parent = currentThread->process;
     Process* newProc = new Process();
-    newProc->name = strclone(parent->name);
+    newProc->name = strdup(parent->name);
     newProc->parent = parent;
 
     processes->insertLast(newProc);
@@ -111,6 +127,7 @@ u32int TaskManager::fork() {
     static u32int selector[2];
     selector[0] = 0;
     selector[1] = 0x08*6;
+    Processor::enableInterrupts();
     asm volatile ("lcall *%0" :: "m"(*selector));
     bool old = TaskManager::get()->getCurrentThread()->process == parent;
     if (!old) {
@@ -121,7 +138,6 @@ u32int TaskManager::fork() {
         memcpy(newThread->TSS, currentThread->TSS, sizeof(tss_t));
         newThread->TSS->cr3 = newThread->process->addrSpace->dir->physicalAddr;
         lock->release();
-        Processor::enableInterrupts();
         return newProc->pid;
     }
 }
@@ -134,7 +150,7 @@ u32int TaskManager::newThread(void (*main)(void*), void* arg) {
 
     Process* parent = currentThread->process;
     Process* newProc = new Process();
-    newProc->name = strclone(parent->name);
+    newProc->name = strdup(parent->name);
     newProc->parent = parent;
 
     processes->insertLast(newProc);
@@ -239,6 +255,9 @@ void TaskManager::requestKillThread(u32int tid) {
 }
 
 void TaskManager::nextTask() {
+    if (paused)
+        return;
+        
     switchTo(Scheduler::get()->pickThread());
 }
 
@@ -259,4 +278,9 @@ void TaskManager::performRoutine() {
 
 Thread* TaskManager::getCurrentThread() {
     return currentThread;
+}
+
+void TaskManager::idle() {
+    TaskManager::get()->performRoutine();
+    TaskManager::get()->nextTask();
 }

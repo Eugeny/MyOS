@@ -14,7 +14,7 @@
 #include <memory/Memory.h>
 #include <tty/TTYManager.h>
 #include <syscall/SyscallManager.h>
-#include <syscall/Syscalls.h>
+#include <syscall/Syscalls.c>
 #include <util/cpp.h>
 #include <vfs/DevFS.h>
 #include <vfs/RootFS.h>
@@ -48,8 +48,8 @@ void list(char* p, int d) {
         path[strlen(p)] = '/';
         memcpy(path + strlen(p) + 1, i->get(), strlen(i->get())+1);
 
-        if (strcmp(p, "/"))
-            memcpy(path + strlen(p), i->get(), strlen(i->get())+1);
+        if (strcmp((char*)p, (char*)"/"))
+            memcpy((void*)(path + strlen(p)), i->get(), strlen(i->get())+1);
 
 //        DEBUG(path);
         Stat* s = VFS::get()->stat(path);
@@ -68,19 +68,21 @@ void list(char* p, int d) {
 
 
 void repainterThread(void* a) {
-while(true) {
     Terminal* sb = TTYManager::get()->getStatusBar();
-    sb->goTo(WIDTH-20, 0);
-    sb->write("kheap: ");
-    sb->write(to_dec(Heap::get()->getUsage()));
-    sb->write(" b");
+    while(true) {
+        sb->goTo(WIDTH-20, 0);
+        sb->write("kheap: ");
+        sb->write(to_dec(Heap::get()->getUsage()));
+        sb->write(" b");
 
-    sb->goTo(WIDTH-32, 0);
-    sb->write("Frames ");
-    sb->write(to_dec(Memory::get()->getUsedFrames()));
+        sb->goTo(WIDTH-32, 0);
+        sb->write("Frames ");
+        sb->write(to_dec(Memory::get()->getUsedFrames()));
 
-    TTYManager::get()->draw();
-}
+        TTYManager::get()->draw();
+        klog_flush();
+//        TaskManager::get()->idle();
+    }
 }
 
 
@@ -98,39 +100,51 @@ extern "C" void kmain (void* mbd, u32int esp) {
     Memory::get()->startPaging(esp);
 
     TTYManager::get()->init(5);
-    PIT::get()->setFrequency(50);
-    PIT::get()->setHandler(on_timer);
+    klog("MyOS booting");
 
     Keyboard::get()->init();
     Keyboard::get()->setHandler(kbdh);
 
+    klog("Initializing scheduler");
     Scheduler::get()->init();
     TaskManager::get()->init();
 
     SyscallManager::get()->init();
     SyscallManager::get()->registerDefaults();
 
-
+    klog("Preparing VFS");
     Disk::get()->init();
 
     VFS::get()->init();
     VFS::get()->mount(new FATFS(), "");
 
+    klog("Mounting /dev");
     DevFSMaster::get()->init();
-
     for (int i = 0; i < TTYManager::get()->getTTYCount(); i++)
         DevFSMaster::get()->addTTY(TTYManager::get()->getTTY(i));
-
     VFS::get()->mount(DevFSMaster::get()->getFS(), "/dev");
 
-TRACE
-    newThread(repainterThread, 0);
+    TaskManager::get()->newThread(repainterThread, 0);
 
-TRACE
+    PIT::get()->setFrequency(50);
+    PIT::get()->setHandler(on_timer);
+
+    klogn("Memory barrier:");
+    klog(to_hex(Heap::get()->getFreeSpaceBoundary()));
+
+    //exec("/sbin/init", "/dev/tty0");
+
     FileObject* tty = VFS::get()->open("/dev/tty0", MODE_R|MODE_W);
-TRACE
-Process::create("/app", 0,0,tty,tty,tty);
-TRACE
+    klog("Starting /sbin/init");
+    Process::create("/sbin/init", 0,0,tty,tty,tty);
+    klog("Started");
+    //Process::create("/sbin/init", 0,0,tty,tty,tty);
+    //Process::create("/sbin/init", 0,0,tty,tty,tty);
+
+    for(;;);
+
+
+/*    for(;;);
         char s[] = "> Process x x reporting\n";
         int c = 0;
         int p = TaskManager::get()->getCurrentThread()->id;
@@ -141,7 +155,7 @@ TRACE
             TTYManager::get()->getTTY(p)->writeString(s);
             for (int i=0;i<100000000;i++);
         }
-
+*/
 
 
     for(;;);

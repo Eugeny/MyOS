@@ -23,6 +23,7 @@ Thread::Thread(Process *p) {
     TSS->gs = 0x10;
     TSS->ss = 0x10;
     TSS->esp = Processor::getStackPointer();
+    TSS->esp0 = Processor::getStackPointer();
     TSS->iomapbase = sizeof(tss_t);
     dead = false;
 }

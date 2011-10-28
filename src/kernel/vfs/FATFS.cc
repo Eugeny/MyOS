@@ -131,7 +131,7 @@ LinkedList<char*>* FATFS::listFiles(char* node) {
             return r;
         }
         if (strlen(node->nameptr) > 0) {
-            r->insertLast(strclone(node->nameptr));
+            r->insertLast(strdup(node->nameptr));
         }
         delete node;
         ptr += offset;

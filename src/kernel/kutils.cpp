@@ -2,7 +2,7 @@
 #include <tty/Terminal.h>
 #include <tty/TTYManager.h>
 #include <core/Processor.h>
-
+#include <core/TaskManager.h>
 
 Terminal* kterm;
 
@@ -92,31 +92,74 @@ extern "C" void kpanic(char* file, u32int line, char* msg) {
     for (;;);
 }
 
+void procinfo() {
+    klogn("Process: ");
+    klogn(to_dec(TaskManager::get()->getCurrentThread()->process->pid));
+    klogn(" ");
+    klog(TaskManager::get()->getCurrentThread()->process->name);
+}
+
+
+
+
+#define _SIGSET_NWORDS (1024 / (8 * sizeof (unsigned long int)))
+typedef struct
+  {
+    unsigned long int __val[_SIGSET_NWORDS];
+  } __sigset_t;
+
+
+typedef struct sigaltstack
+  {
+    void *ss_sp;
+    int ss_flags;
+    size_t ss_size;
+  } stack_t;
+
+
 extern u32int start_text, end_text;
 void backtrace() {
-    u32int* p;
-    int c=0;
-    asm volatile ("mov %%ebp, %0" : "=r" (p));
-
-    while ((u32int)p < 0xE0000000 && c <1) {
-        if ((u32int)(&start_text) < *p && *p < (u32int)(&end_text)) {
-            klogn(to_hex(*p));
+    u32int bp, ip, c=0;
+    asm volatile ("mov %%ebp, %0" : "=r" (bp));
+    while (bp < 0xE0000000 && c < 17) {
+        if (!TaskManager::get()->getCurrentThread()->process->addrSpace->getPage(bp, false))
+            break;
+        if (!TaskManager::get()->getCurrentThread()->process->addrSpace->getPage(bp+4, false))
+            break;
+        ip = *((u32int*)bp+4);
+        if (((u32int)(&start_text) < ip && ip < (u32int)(&end_text)) ||
+           (0x500000 < ip && ip < 0x3000000)) {
+            klogn(to_hex(bp));
             klogn(" ");
-            klog(to_hex((u32int)p));
+            klog(to_hex(ip));
+            klog_flush();
             c++;
         }
-        p++;
+        bp += 4;
     }
 
+    procinfo();
     klog_flush();
 }
 
+
+void memdump(void* m) {
+    klogn("Memory dump at 0x");
+    klog(to_hex((u32int)m));
+    for (int i = 0; i < 128; i++) {
+        klogn(to_hex(0x1000+*(u8int*)(m+i)));
+        klogn(" ");
+    }
+    klog("");
+    klog_flush();
+}
+
+static    u32int* p;
+static    int c=0;
 void stacktrace() {
-    u32int* p;
-    int c=0;
     asm volatile ("mov %%esp, %0" : "=r" (p));
 
-    while ((u32int)p < 0xE0000000 && c <9) {
+    while ((u32int)p < 0xE0000000 && c <12) {
             klogn(to_hex(*p));
             klogn(" ");
             klog(to_hex((u32int)p));
@@ -124,5 +167,6 @@ void stacktrace() {
         p++;
     }
 
+    procinfo();
     klog_flush();
 }

@@ -38,7 +38,7 @@ void TTYManager::draw() {
     bgTerm->setAttr(activeIdx*3+7, 0, 0x0F);
 
     bgTerm->draw();
-    if (activeTerminal->dirty)
+    //if (activeTerminal->dirty)
         activeTerminal->draw();
 }
 

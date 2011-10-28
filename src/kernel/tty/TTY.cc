@@ -1,4 +1,6 @@
 #include <tty/TTY.h>
+#include <kutils.h>
+
 
 TTY::TTY(Terminal *t) {
     inputBufferLen = 0;

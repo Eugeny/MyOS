@@ -98,5 +98,5 @@ struct Exe_Format {
 };
 
 
-void ELF_exec(u8int* data, int argc, char** argv, FileObject* stdin, FileObject* stdout, FileObject* stderr);
+void ELF_exec(u8int* data, char* pname, int argc, char** argv, FileObject* stdin, FileObject* stdout, FileObject* stderr);
 #endif  /* GEEKOS_ELF_H */

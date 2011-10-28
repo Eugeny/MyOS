@@ -27,4 +27,9 @@ extern "C" void klogn(char *s);
 extern "C" void kpanic(char* file, u32int line, char* msg);
 extern void backtrace();
 extern void stacktrace();
+extern void memdump(void*);
 #endif
+
+
+#define TASKSWITCH_DEBUG false
+#define STRACE true
