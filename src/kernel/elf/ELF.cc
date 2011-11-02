@@ -18,8 +18,8 @@ void ELF_exec(u8int* data, char* pname, int argc, char** argv, FileObject* stdin
             if (ph->type == PT_LOAD) {
                 for (int j = ph->vaddr; j < ph->vaddr + ph->memSize; j += 0x1000)
                     as->allocatePage(j, true, false, false);
-                DEBUG("COPY");
-                DEBUG(to_hex(ph->vaddr));
+                //DEBUG("COPY");
+                //DEBUG(to_hex(ph->vaddr));
                 //DEBUG(to_hex((u32int)(data+ph->offset)));
                 //DEBUG(to_hex(ph->fileSize));
                 memcpy((void*)ph->vaddr, (void*)(data + ph->offset), ph->fileSize);
@@ -36,12 +36,11 @@ void ELF_exec(u8int* data, char* pname, int argc, char** argv, FileObject* stdin
         p->reopenFile(0, stdin);
         p->reopenFile(1, stdout);
         p->reopenFile(2, stderr);
-        TRACE
+        //TRACE
         mainf main = (mainf)hdr->entry;
-        TRACE
-        DEBUG(to_hex((u32int)main));
+        //TRACE
+        //DEBUG(to_hex((u32int)main));
         main(argc, argv);
-        TRACE
         for(;;);
 //        kprint("out");
 

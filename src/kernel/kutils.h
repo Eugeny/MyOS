@@ -32,4 +32,4 @@ extern void memdump(void*);
 
 
 #define TASKSWITCH_DEBUG false
-#define STRACE true
+//#define STRACE

@@ -13,6 +13,7 @@ public:
     virtual void write(char* buf, int pos, int count);
     virtual int  read(char* buf, int pos, int max);
     void sendInput(char* s);
+    void sendInputByte(char s);
 private:
     Terminal *terminal;
     int  inputBufferLen;

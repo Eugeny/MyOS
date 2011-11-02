@@ -55,11 +55,11 @@ DEFN_SYSCALL1(kprint, 0, char*);
 
 DEFN_SYSCALL0(__exit, 1);
 DEFN_SYSCALL0(fork, 2);
-DEFN_SYSCALL2(read, 3, void*, unsigned int);
+DEFN_SYSCALL3(read, 3, void*, unsigned int, unsigned int);
 DEFN_SYSCALL3(write, 4, int, void*, unsigned int);
-DEFN_SYSCALL3(open, 5, char*, unsigned int, int);
+DEFN_SYSCALL3(open, 5, char*, int, int);
 DEFN_SYSCALL1(close, 6, int);
-DEFN_SYSCALL1(fstat, 7, char*);
+DEFN_SYSCALL2(fstat, 7, int, void*);
 DEFN_SYSCALL1(isatty, 8, char*);
 
 DEFN_SYSCALL1(sbrk, 45, unsigned int);

@@ -57,7 +57,8 @@ SOURCES= \
 all: $(SOURCES) link apps
 
 clean:
-	find -name '*.o' -delete
+	find src/kernel -name '*.o' -delete 
+	find src/apps -name '*.o' -delete 
 	rm bin/kernel || true
 
 link:

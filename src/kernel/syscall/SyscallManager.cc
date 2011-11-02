@@ -19,30 +19,56 @@ void SyscallManager::registerSyscall(int idx, interrupt_handler h) {
 }
 
 void SyscallManager::handleSyscall(isrq_registers_t* r) {
-    TaskManager::get()->pause();
+//    TaskManager::get()->pause();
     int scid = r->eax;
-    if (STRACE) {
-        klogn(">> Syscall #");
+
+    #ifdef STRACE
+    klogn("** ");
+    klogn(to_dec(TaskManager::get()->getCurrentThread()->process->pid));
+    klogn(" ");
+    klog_flush();
+    #endif
+
+    if (handlers[scid] != 0)
+        handlers[scid](r);
+    else {
+        #ifdef STRACE
+        klogn("#");
         klogn(to_dec(scid));
-        klogn(" from PID ");
-        klog(to_dec(TaskManager::get()->getCurrentThread()->process->pid));
-        klog_flush();
+        #endif
     }
-    handlers[scid](r);
-    if (STRACE) {
-        klogn("<< Syscall #");
-        klog(to_dec(scid));
-    }
+
+    #ifdef STRACE
+    klog("<<");
+    klog_flush();
+    #endif
+
     TaskManager::get()->resume();
 }
 
 
 void handlePrint(isrq_registers_t* r) {
+    #ifdef STRACE
+    klogn("kprint(");
+    klogn("str=");
+    klogn((char*)r->ebx);
+    klogn(")");
+    #endif
+
     klog((char*)r->ebx);
 }
 
 
 void sys_newthread(isrq_registers_t* r) {
+    #ifdef STRACE
+    klogn("newthread(");
+    klogn("entry=");
+    klogn(to_hex((u32int)r->ebx));
+    klogn(", arg=");
+    klogn(to_hex((u32int)r->ecx));
+    klogn(")");
+    #endif
+
     thread_entry_point m = (thread_entry_point)r->ebx;
     void* a = (void*)r->ecx;
     int id = TaskManager::get()->newThread(m, a);
@@ -51,18 +77,31 @@ void sys_newthread(isrq_registers_t* r) {
 
 
 void sys_sbrk(isrq_registers_t* r) {
+    #ifdef STRACE
+    klogn("sbrk(");
+    klogn("size=");
+    klogn(to_hex((u32int)r->ebx));
+    klogn(")");
+    #endif
+
     u32int t= (u32int)TaskManager::get()->getCurrentThread()->process->requestMemory(r->ebx);
-r->eax=t;
+
+    #ifdef STRACE
+    klogn(" = ");
+    klogn(to_hex((u32int)t));
+    #endif
+
+    r->eax=t;
 }
 
 
 
-   typedef short gid_t;
-   typedef short uid_t;
-   typedef short dev_t;
-   typedef short ino_t;
-   typedef int mode_t;
-   typedef int caddr_t;
+typedef short gid_t;
+typedef short uid_t;
+typedef short dev_t;
+typedef short ino_t;
+typedef int mode_t;
+typedef int caddr_t;
 
 struct  stat 
 {
@@ -78,54 +117,179 @@ struct  stat
 
 
 void sys_stat(isrq_registers_t* r) {
-  ((stat*)r->ecx)->st_mode= 0x0020000;
+    #ifdef STRACE
+    klogn("stat(");
+    klogn("fd=");
+    klogn(to_dec((u32int)r->ebx));
+    klogn(", stat_t=");
+    klogn(to_hex((u32int)r->ecx));
+    klogn(")");
+    #endif
+    ((stat*)r->ecx)->st_mode= 0x0020000;
 }
 
 void sys_open(isrq_registers_t* r) {
-r->eax=TaskManager::get()->getCurrentThread()->process->openFile(VFS::get()->open((char*)r->ebx, MODE_R));
+    #ifdef STRACE
+    klogn("open(");
+    klogn("path=");
+    klogn((char*)r->ebx);
+    klogn(", flags=");
+    klogn(to_hex((u32int)r->ecx));
+    klogn(", mode=");
+    klogn(to_hex((u32int)r->edx));
+    klogn(")");
+    #endif
+
+    r->eax=TaskManager::get()->getCurrentThread()->process->openFile(VFS::get()->open((char*)r->ebx, r->edx));
+
+    #ifdef STRACE
+    klogn(" = ");
+    klogn(to_hex((u32int)r->eax));
+    #endif
 }
 
 void sys_isatty(isrq_registers_t* r) {
-r->eax=1;
+    #ifdef STRACE
+    klogn("isatty(");
+    klogn("fd=");
+    klogn(to_dec(r->ebx));
+    klogn(")");
+    #endif
+
+    r->eax=1; //TODO
 }
 
 void sys_close(isrq_registers_t* r) {
-r->eax=1;
+    #ifdef STRACE
+    klogn("close(");
+    klogn("fd=");
+    klogn(to_dec(r->ebx));
+    klogn(")");
+    #endif
+
+    r->eax=1; //TODO
 }
 
 void sys_fcntl(isrq_registers_t* r) {
+    #ifdef STRACE
+    klogn("fcntl(");
+    klogn("fd=");
+    klogn(to_dec(r->ebx));
+    klogn(", cmd=");
+    klogn(to_hex((u32int)r->ecx));
+    klogn(", arg=");
+    klogn(to_hex((u32int)r->edx));
+    klogn(")");
+    #endif
+
     r->eax = 0;
+
+    #ifdef STRACE
+    klogn(" = ");
+    klogn(to_hex((u32int)r->eax));
+    #endif
 }
 
 void sys_ioctl(isrq_registers_t* r) {
+    #ifdef STRACE
+    klogn("fcntl(");
+    klogn("fd=");
+    klogn(to_dec(r->ebx));
+    klogn(", cmd=");
+    klogn(to_hex((u32int)r->ecx));
+    klogn(", arg=");
+    klogn(to_hex((u32int)r->edx));
+    klogn(")");
+    #endif
+
     r->eax = 0;
+
+    #ifdef STRACE
+    klogn(" = ");
+    klogn(to_hex((u32int)r->eax));
+    #endif
 }
 
 void sys_exit(isrq_registers_t* r) {
-    TaskManager::get()->requestKillProcess(TaskManager::get()->getCurrentThread()->process->pid);
+    #ifdef STRACE
+    klogn("exit(");
+    klogn("code=");
+    klogn(to_dec(r->ebx));
+    klogn(")");
+    #endif
+    //TaskManager::get()->requestKillProcess(TaskManager::get()->getCurrentThread()->process->pid);
 }
 
 void sys_fork(isrq_registers_t* r) {
+    #ifdef STRACE
+    klogn("fork()");
+    klogn(")");
+    #endif
+
     r->eax = TaskManager::get()->fork();
+
+    #ifdef STRACE
+    klogn(" = ");
+    klogn(to_hex((u32int)r->eax));
+    #endif
 }
 
 void sys_read(isrq_registers_t* r) {
+    #ifdef STRACE
+    klogn("read(");
+    klogn("fd=");
+    klogn(to_dec(r->ebx));
+    klogn(", buf=");
+    klogn(to_hex((u32int)r->ecx));
+    klogn(", count=");
+    klogn(to_hex((u32int)r->edx));
+    klogn(")");
+    #endif
+
     FileObject* fo = TaskManager::get()->getCurrentThread()->process->files[(u32int)r->ebx];
+
+    __asm__("sti");
     r->eax = fo->read((char*)r->ecx, 0, r->edx);
+    __asm__("cli");
+
+    #ifdef STRACE
+    klogn(" = ");
+    klogn(to_hex((u32int)r->eax));
+    #endif
 }
 
 void sys_write(isrq_registers_t* r) {
+    #ifdef STRACE
+    klogn("write(");
+    klogn("fd=");
+    klogn(to_dec(r->ebx));
+    klogn(", buf=");
+    klogn(to_hex((u32int)r->ecx));
+    klogn(", count=");
+    klogn(to_hex((u32int)r->edx));
+    klogn(")");
+    #endif
+
     FileObject* fo = TaskManager::get()->getCurrentThread()->process->files[(u32int)r->ebx];
-//    DEBUG(to_hex(r->ebx));
-//    DEBUG(to_hex(r->ecx));
-//    DEBUG(to_hex(r->edx));
     fo->write((char*)r->ecx, 0, r->edx);
     r->eax = r->edx;
+
+    #ifdef STRACE
+    klogn(" = ");
+    klogn(to_hex((u32int)r->eax));
+    #endif
 }
 
 void sys_exec(isrq_registers_t* r) {
-    DEBUG((char*)r->ebx);
-    DEBUG((char*)r->ecx);
+    #ifdef STRACE
+    klogn("exec(");
+    klogn("path=");
+    klogn((char*)(r->ebx));
+    klogn(", stdout=");
+    klogn((char*)r->ecx);
+    klogn(")");
+    #endif
+
     FileObject* tty = VFS::get()->open((char*)r->ecx, MODE_R|MODE_W);
     Process::create((char*)r->ebx,0,0,tty,tty,tty);
 }

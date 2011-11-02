@@ -12,6 +12,7 @@ void TTY::write(char* buf, int pos, int count) {
 }
 
 int TTY::read(char* buf, int pos, int max) { //TODO blocking?
+    while (inputBufferLen == 0);
     memcpy(buf + pos, inputBuffer, max);
     int tmp = inputBufferLen;
     inputBufferLen = 0;
@@ -19,6 +20,12 @@ int TTY::read(char* buf, int pos, int max) { //TODO blocking?
 }
 
 void TTY::sendInput(char* s) {
+	writeString(s);
     while (*s)
         inputBuffer[inputBufferLen++] = *(s++);
+}
+
+void TTY::sendInputByte(char s) {
+    inputBuffer[inputBufferLen++] = s;
+    writeByte(s);
 }

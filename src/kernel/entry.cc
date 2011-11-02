@@ -29,7 +29,7 @@ void on_timer(isrq_registers_t *r) {
 }
 
 void kbdh(u32int mod, u32int sc) {
-    klogn("K");klogn(to_hex(sc));klogn("-");klog(to_hex(mod));klog_flush();
+    //klogn("K");klogn(to_hex(sc));klogn("-");klog(to_hex(mod));klog_flush();
     TTYManager::get()->processKey(mod, sc);
 }
 
@@ -91,12 +91,13 @@ extern "C" void kmain (void* mbd, u32int esp) {
 
     heap_selfinit();
     Heap::get()->init();
+    
+    IDT::get()->init();
 
     GDT::get()->init();
     GDT::get()->setDefaults();
     GDT::get()->flush();
 
-    IDT::get()->init();
     Memory::get()->startPaging(esp);
 
     TTYManager::get()->init(5);
