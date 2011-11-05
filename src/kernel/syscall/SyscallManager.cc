@@ -295,15 +295,18 @@ void sys_readdir(isrq_registers_t* r) {
     klogn(")");
     #endif
 
+    r->eax = (u32int)TaskManager::get()->getCurrentThread()->process->dirs[r->ebx]->read();
+}
 
-    char* n = TaskManager::get()->getCurrentThread()->process->dirs[r->ebx]->read();
-    if (n == 0) {
-        r->eax = 0;
-    } else {
-        stat* s = (stat*)kmalloc(sizeof(stat));
-        memcpy(s->st_name, n, strlen(n)+1);
-        r->eax = (u32int)s;
-    }
+void sys_closedir(isrq_registers_t* r) {
+    #ifdef STRACE
+    klogn("closedir(");
+    klogn("path=");
+    klogn((char*)(r->ebx));
+    klogn(")");
+    #endif
+
+    TaskManager::get()->getCurrentThread()->process->closeDir(r->ebx);
 }
 
 
@@ -327,4 +330,5 @@ void SyscallManager::registerDefaults() {
     registerSyscall(100, sys_exec);
     registerSyscall(101, sys_opendir);
     registerSyscall(102, sys_readdir);
+    registerSyscall(103, sys_closedir);
 }

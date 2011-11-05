@@ -1,5 +1,5 @@
 BASEDIR = /home/eugeny/myos
-CC = $(BASEDIR)/local/bin/i586-pc-myos-g++
+CC = $(BASEDIR)/local/bin/i586-pc-myos-gcc
 LD = $(BASEDIR)/local/bin/i586-pc-myos-ld
 SOURCES = main.o ../crt0.o
 LIBS = $(BASEDIR)/local/i586-pc-myos/lib

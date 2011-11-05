@@ -2,7 +2,7 @@ CC = gcc
 
 LIBS = local/i586-pc-myos/lib
 
-CFLAGS = -c -g -I src/kernel/ -I include -I libunwind/include -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0
+CFLAGS = -c -g -DKERNEL -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0
 LDFLAGS = -static -nostdlib -T src/kernel/linker.ld -Map bin/kernel.map
 #LDFLAGS = -t -L newlib/newlib/libc -lc -static -nostdlib -T src/kernel/linker.ld -Map bin/kernel.map
 ASFLAGS=-felf

@@ -7,7 +7,7 @@ int fn() \
 }
 
 #define DEFN_SYSCALL1(fn, num, P1) \
-int fn(P1 p1) \
+extern int fn(P1 p1) \
 { \
   int a; \
   asm volatile("int $0x80" : "=a" (a) : "0" (num), "b" ((int)p1)); \
@@ -82,4 +82,5 @@ DEFN_SYSCALL2(newThread, 99, thread_entry_point, void*);
 DEFN_SYSCALL2(exec, 100, char*, char*);
 
 DEFN_SYSCALL1(opendir, 101, char*);
-DEFN_SYSCALL1(readdir, 102, void*);
+DEFN_SYSCALL1(readdir, 102, int*);
+DEFN_SYSCALL1(closedir, 103, int*);

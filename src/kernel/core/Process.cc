@@ -38,17 +38,19 @@ u32int Process::openFile(FileObject* f) {
     return lastFD - 1;
 }
 
-void Process::reopenFile(int fd, FileObject* f) {
+void Process::reopenFile(u32int fd, FileObject* f) {
     files[fd] = f;
     if (lastFD <= fd) lastFD = fd + 1;
 }
 
 u32int Process::openDir(char* path) {
-    ProcessDirFDHolder* fdh = new ProcessDirFDHolder();
-    fdh->nodes = VFS::get()->listFiles(path);
-    fdh->pos = 0;
+    ProcessDirFDHolder* fdh = new ProcessDirFDHolder(path);
     dirs[lastDFD++] = fdh;
     return lastDFD-1;
+}
+
+void Process::closeDir(u32int dfd) {
+    delete dirs[dfd];
 }
 
 u32int Process::create(char* path, int argc, char** argv, FileObject* stdin, FileObject* stdout, FileObject* stderr) {
@@ -67,7 +69,7 @@ u32int Process::create(char* path, int argc, char** argv, FileObject* stdin, Fil
 
 
 
-char* ProcessDirFDHolder::read() {
+dirent* ProcessDirFDHolder::read() {
     if (pos < nodes->length())
         return nodes->get(pos++);
     else
@@ -76,4 +78,27 @@ char* ProcessDirFDHolder::read() {
 
 void ProcessDirFDHolder::rewind() {
     pos = 0;
+}
+
+ProcessDirFDHolder::ProcessDirFDHolder(char* path) {
+    nodes = new LinkedList<dirent*>();
+    pos = 0;
+    LinkedList<char*>* files = VFS::get()->listFiles(path);
+    LinkedListIter<char*>* i = files->iter();
+    for (; !i->end(); i->next()) {
+        dirent* d = (dirent*)kmalloc(sizeof(dirent));
+        d->d_ino = 0;
+        char* n = i->get();
+        memcpy(d->d_name, n, strlen(n)+1);
+        nodes->insertLast(d);
+    }
+
+    delete i;
+    files->purge();
+    delete files;
+}
+
+ProcessDirFDHolder::~ProcessDirFDHolder() {
+    nodes->purge();
+    delete nodes;
 }

@@ -14,7 +14,6 @@
 #include <memory/Memory.h>
 #include <tty/TTYManager.h>
 #include <syscall/SyscallManager.h>
-#include <syscall/Syscalls.c>
 #include <util/cpp.h>
 #include <vfs/DevFS.h>
 #include <vfs/RootFS.h>
@@ -80,7 +79,6 @@ void repainterThread(void* a) {
         sb->write(to_dec(Memory::get()->getUsedFrames()));
 
         TTYManager::get()->draw();
-        klog_flush();
 //        TaskManager::get()->idle();
     }
 }
@@ -102,9 +100,6 @@ extern "C" void kmain (void* mbd, u32int esp) {
 
     TTYManager::get()->init(5);
     klog("MyOS booting");
-
-    Keyboard::get()->init();
-    Keyboard::get()->setHandler(kbdh);
 
     klog("Initializing scheduler");
     Scheduler::get()->init();
@@ -128,37 +123,19 @@ extern "C" void kmain (void* mbd, u32int esp) {
 
     TaskManager::get()->newThread(repainterThread, 0);
 
-    PIT::get()->setFrequency(50);
+    PIT::get()->setFrequency(250);
     PIT::get()->setHandler(on_timer);
 
-    klogn("Memory barrier:");
-    klog(to_hex(Heap::get()->getFreeSpaceBoundary()));
+    Keyboard::get()->init();
+    Keyboard::get()->setHandler(kbdh);
 
-    //exec("/sbin/init", "/dev/tty0");
+    //klogn("Memory barrier:");
+    //klog(to_hex(Heap::get()->getFreeSpaceBoundary()));
 
     FileObject* tty = VFS::get()->open("/dev/tty0", MODE_R|MODE_W);
-    klog("Starting /sbin/init");
+    klog("Starting init");
+
     Process::create("/sbin/init", 0,0,tty,tty,tty);
-    klog("Started");
-    //Process::create("/sbin/init", 0,0,tty,tty,tty);
-    //Process::create("/sbin/init", 0,0,tty,tty,tty);
-
-    for(;;);
-
-
-/*    for(;;);
-        char s[] = "> Process x x reporting\n";
-        int c = 0;
-        int p = TaskManager::get()->getCurrentThread()->id;
-        while (1) {
-            s[10] = (char)((int)'0' + p%10);
-            //klog(to_dec(getpid()));
-            //klog(s);klog_flush();
-            TTYManager::get()->getTTY(p)->writeString(s);
-            for (int i=0;i<100000000;i++);
-        }
-*/
-
 
     for(;;);
 }

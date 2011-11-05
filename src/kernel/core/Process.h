@@ -8,12 +8,17 @@
 #include <io/FileObject.h>
 #include <elf/ELF.h>
 
+#include <dirent.h>
+
 
 class ProcessDirFDHolder {
 public:
-    char*    read();
+    ProcessDirFDHolder(char* path);
+    ~ProcessDirFDHolder();
+    dirent*    read();
     void     rewind();
-    LinkedList<char*>* nodes;
+private:    
+    LinkedList<dirent*>* nodes;
     int pos;
 };
 
@@ -25,8 +30,9 @@ public:
     static u32int create(char* path, int argc, char** argv, FileObject* stdin, FileObject* stdout, FileObject* stderr);
     void*         requestMemory(u32int sz);
     u32int        openFile(FileObject* f);
-    void          reopenFile(int fd, FileObject* f);
+    void          reopenFile(u32int fd, FileObject* f);
     u32int        openDir(char* path);
+    void          closeDir(u32int dfd);
 
     u32int pid;
     char* name;
