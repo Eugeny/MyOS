@@ -80,3 +80,6 @@ DEFN_SYSCALL3(fcntl, 55, unsigned int, unsigned int, int);
 typedef void(*thread_entry_point)(void*);
 DEFN_SYSCALL2(newThread, 99, thread_entry_point, void*);
 DEFN_SYSCALL2(exec, 100, char*, char*);
+
+DEFN_SYSCALL1(opendir, 101, char*);
+DEFN_SYSCALL1(readdir, 102, void*);

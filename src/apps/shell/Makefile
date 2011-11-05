@@ -1,10 +1,10 @@
 BASEDIR = /home/eugeny/myos
-CC = $(BASEDIR)/local/bin/i586-pc-myos-gcc
+CC = $(BASEDIR)/local/bin/i586-pc-myos-g++
 LD = $(BASEDIR)/local/bin/i586-pc-myos-ld
 SOURCES = main.o ../crt0.o
 LIBS = $(BASEDIR)/local/i586-pc-myos/lib
 #LIBS=/usr/lib/newlib/i686-linux-gnu/lib
-CFLAGS = -c -g -I $(BASEDIR)/src/kernel/ -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0
+CFLAGS = -c -g -I $(BASEDIR)/src/kernel/ -I $(BASEDIR)/local/i586-pc-myos/include -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0
 LDFLAGS = -T linker.ld -static 
 
 all: $(SOURCES) link

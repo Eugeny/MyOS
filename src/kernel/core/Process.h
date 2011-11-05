@@ -9,6 +9,15 @@
 #include <elf/ELF.h>
 
 
+class ProcessDirFDHolder {
+public:
+    char*    read();
+    void     rewind();
+    LinkedList<char*>* nodes;
+    int pos;
+};
+
+
 class Process {
 public:
     Process();
@@ -17,17 +26,20 @@ public:
     void*         requestMemory(u32int sz);
     u32int        openFile(FileObject* f);
     void          reopenFile(int fd, FileObject* f);
+    u32int        openDir(char* path);
 
     u32int pid;
     char* name;
     bool dead;
     FileObject* files[256];
+    ProcessDirFDHolder* dirs[256];
+
     Process* parent;
     LinkedList<Thread*>* threads;
     LinkedList<Process*>* children;
     AddressSpace* addrSpace;
 
 private:
-    u32int allocatorTop, lastFD;
+    u32int allocatorTop, lastFD, lastDFD;
 };
 #endif

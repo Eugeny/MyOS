@@ -3,12 +3,14 @@
 #include <vfs/VFS.h>
 #include <io/FileObject.h>
 #include <kutils.h>
+#include <vfs/VFS.h>
 
 
 Process::Process() {
     static int id = 0;
     pid = id++;
     lastFD = 0;
+    lastDFD = 0;
     dead = false;
     memset(files, 0, sizeof(files));
     threads = new LinkedList<Thread*>();
@@ -41,6 +43,13 @@ void Process::reopenFile(int fd, FileObject* f) {
     if (lastFD <= fd) lastFD = fd + 1;
 }
 
+u32int Process::openDir(char* path) {
+    ProcessDirFDHolder* fdh = new ProcessDirFDHolder();
+    fdh->nodes = VFS::get()->listFiles(path);
+    fdh->pos = 0;
+    dirs[lastDFD++] = fdh;
+    return lastDFD-1;
+}
 
 u32int Process::create(char* path, int argc, char** argv, FileObject* stdin, FileObject* stdout, FileObject* stderr) {
     Stat* stat = VFS::get()->stat(path);
@@ -54,4 +63,17 @@ u32int Process::create(char* path, int argc, char** argv, FileObject* stdin, Fil
 
     ELF_exec((u8int*)ss, path, argc, argv, stdin, stdout, stderr);
     delete ss;
+}
+
+
+
+char* ProcessDirFDHolder::read() {
+    if (pos < nodes->length())
+        return nodes->get(pos++);
+    else
+        return NULL;
+}
+
+void ProcessDirFDHolder::rewind() {
+    pos = 0;
 }

@@ -110,6 +110,7 @@ extern "C" void kmain (void* mbd, u32int esp) {
     Scheduler::get()->init();
     TaskManager::get()->init();
 
+    klog("Initializing syscalls");
     SyscallManager::get()->init();
     SyscallManager::get()->registerDefaults();
 

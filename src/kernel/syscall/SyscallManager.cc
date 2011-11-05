@@ -3,6 +3,7 @@
 #include <core/Thread.h>
 #include <kutils.h>
 #include <vfs/VFS.h>
+#include <stat.h>
 
 
 void handler(isrq_registers_t* r) {
@@ -93,25 +94,6 @@ void sys_sbrk(isrq_registers_t* r) {
 
     r->eax=t;
 }
-
-
-
-typedef short gid_t;
-typedef short uid_t;
-typedef short dev_t;
-typedef short ino_t;
-typedef int mode_t;
-typedef int caddr_t;
-
-struct  stat 
-{
-  dev_t         st_dev;
-  ino_t         st_ino;
-  mode_t        st_mode;
-  uid_t         st_uid;
-  gid_t         st_gid;
-  dev_t         st_rdev;
-};
 
 
 
@@ -294,6 +276,37 @@ void sys_exec(isrq_registers_t* r) {
     Process::create((char*)r->ebx,0,0,tty,tty,tty);
 }
 
+void sys_opendir(isrq_registers_t* r) {
+    #ifdef STRACE
+    klogn("opendir(");
+    klogn("path=");
+    klogn((char*)(r->ebx));
+    klogn(")");
+    #endif
+
+    r->eax=TaskManager::get()->getCurrentThread()->process->openDir((char*)r->ebx);
+}
+
+void sys_readdir(isrq_registers_t* r) {
+    #ifdef STRACE
+    klogn("readdir(");
+    klogn("dfd=");
+    klogn(to_dec(r->ebx));
+    klogn(")");
+    #endif
+
+
+    char* n = TaskManager::get()->getCurrentThread()->process->dirs[r->ebx]->read();
+    if (n == 0) {
+        r->eax = 0;
+    } else {
+        stat* s = (stat*)kmalloc(sizeof(stat));
+        memcpy(s->st_name, n, strlen(n)+1);
+        r->eax = (u32int)s;
+    }
+}
+
+
 void SyscallManager::registerDefaults() {
     registerSyscall(0, handlePrint);
     registerSyscall(1, sys_exit);
@@ -312,4 +325,6 @@ void SyscallManager::registerDefaults() {
 
     registerSyscall(99, sys_newthread);
     registerSyscall(100, sys_exec);
+    registerSyscall(101, sys_opendir);
+    registerSyscall(102, sys_readdir);
 }

@@ -25,6 +25,8 @@ void Keyboard::handle(isrq_registers_t *r) {
     else if (_buffer == 0xE0DB) _modifiers &= !KBD_MOD_META;
 
     else if ((_handler != NULL) && scancode >= 0x80) _handler(_modifiers, scancode);
+
+    outb(0x20, 0x20);
 }
 
 static void kbdh(isrq_registers_t *r) {

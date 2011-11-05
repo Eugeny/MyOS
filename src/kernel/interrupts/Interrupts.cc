@@ -21,11 +21,12 @@ void Interrupts::removeHandler(int n) {
 }
 
 static void default_interrupt_handler(isrq_registers_t* regs) {
-u32int cr0;
-asm volatile(" mov %%cr0, %0": "=r"(cr0));
-cr0 &=0xFFFFFFF7;
-regs->err_code=cr0;
-asm volatile(" mov %0, %%cr0":: "r"(cr0));
+    // Enable FPU
+    u32int cr0;
+    asm volatile(" mov %%cr0, %0": "=r"(cr0));
+    cr0 &=0xFFFFFFF7;
+    regs->err_code=cr0;
+    asm volatile(" mov %0, %%cr0":: "r"(cr0));
     klogn("INT ");
     klogn(to_dec(regs->int_no));
     klogn(" ");
