@@ -28,6 +28,7 @@ extern "C" void kpanic(char* file, u32int line, char* msg);
 extern void backtrace();
 extern void stacktrace();
 extern void memdump(void*);
+extern void tasklist();
 #endif
 
 

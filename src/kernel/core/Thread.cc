@@ -12,6 +12,7 @@ Thread::Thread(Process *p) {
     process = p;
     process->threads->insertLast(this);
     stackSize = 0;
+    wait = NULL;
     TSS = (tss_t*)kmalloc_a(sizeof(tss_t));
     memset(TSS, 0, sizeof(tss_t));
     TSS->cr3 = process->addrSpace->dir->physicalAddr;

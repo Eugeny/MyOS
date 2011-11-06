@@ -123,7 +123,7 @@ void heap__remove(heap_t *h, int idx) {
 
 
 #define KHEAP_BASE 0xC0000000
-#define KHEAP_INDEX_SIZE 0x200000
+#define KHEAP_INDEX_SIZE 0x300000
 #define KHEAP_SIZE 0x4000000
 
 extern u32int end; // Linker provided, end of kernel image

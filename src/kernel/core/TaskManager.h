@@ -27,8 +27,9 @@ public:
 
     void    pause();
     void    resume();
-private:
+    
     LinkedList<Process*>* processes;
+private:
     Thread* currentThread;
     Process* kernelProcess;
     bool     paused;

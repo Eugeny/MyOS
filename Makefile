@@ -54,7 +54,7 @@ SOURCES= \
 	src/kernel/vfs/RootFS.o \
 
 
-all: $(SOURCES) link apps
+all: $(SOURCES) src/kernel/gccutil.o link apps
 
 clean:
 	find src/kernel -name '*.o' -delete 
@@ -62,13 +62,14 @@ clean:
 	rm bin/kernel || true
 
 link:
-	@ld -o bin/kernel $(LDFLAGS) $(SOURCES)
+	ld -o bin/kernel $(LDFLAGS) $(SOURCES) local/lib/gcc/i586-pc-myos/4.5.0/libgcc.a src/kernel/gccutil.o
 	@echo "LD  " kernel
 
 apps:
 	gcc -c src/apps/crt0.c -o src/apps/crt0.o
 	make -C src/apps/shell
 	make -C src/apps/init
+	make -C src/apps/guess
 
 .s.o:
 	@nasm $(ASFLAGS) $<
@@ -96,8 +97,9 @@ deploy: all
 	echo
 	vmware-mount ~/vmware/MyOS/MyOS-0.vmdk fs
 	sudo cp bin/kernel fs/kernel
-	sudo cp src/apps/init/init fs/sbin/init
-	sudo cp src/apps/shell/sh fs/bin/sh
+	sudo cp src/apps/init/init fs/sbin/
+	sudo cp src/apps/shell/sh fs/bin/
+	sudo cp src/apps/guess/guess fs/bin/
 	vmware-mount -d fs || true
 	sleep 2
 	vmware-mount -d fs || true

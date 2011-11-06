@@ -46,7 +46,7 @@ extern void heap_selfinit();
 extern void *kmalloc_a(u32int sz);
 extern void *kmalloc_p(u32int sz, u32int *phys);
 extern void *kmalloc_ap(u32int sz, u32int *phys);
-extern void *kmalloc(u32int sz);
-extern void  kfree(void* addr);
+extern "C" void *kmalloc(u32int sz);
+extern "C" void  kfree(void* addr);
 
 #endif

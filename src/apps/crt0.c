@@ -10,13 +10,6 @@ char **environ = __env;
 
 int _myos_start(int argc, char **argv) {
     char *i;
-    //FILE* ff = fopen("/dev/tty0","r");
-    //fprintf(ff,"fdopen!");
-    //close(ff);
-    //FILE* f = fdopen(0,"r");
-    //fprintf(f,"fdopen!");
-    //return 0;
-    //printf("STDIN");
 
     for(i = &__bss; i < &_end; i++){
         *i = 0;

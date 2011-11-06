@@ -101,27 +101,11 @@ void procinfo() {
 
 
 
-
-#define _SIGSET_NWORDS (1024 / (8 * sizeof (unsigned long int)))
-typedef struct
-  {
-    unsigned long int __val[_SIGSET_NWORDS];
-  } __sigset_t;
-
-
-typedef struct sigaltstack
-  {
-    void *ss_sp;
-    int ss_flags;
-    size_t ss_size;
-  } stack_t;
-
-
 extern u32int start_text, end_text;
 void backtrace() {
     u32int bp, ip, c=0;
     asm volatile ("mov %%ebp, %0" : "=r" (bp));
-    while (bp < 0xE0000000 && c < 17) {
+    while (bp < 0xE0000000 && c < 12) {
         if (!TaskManager::get()->getCurrentThread()->process->addrSpace->getPage(bp, false))
             break;
         if (!TaskManager::get()->getCurrentThread()->process->addrSpace->getPage(bp+4, false))
@@ -168,5 +152,38 @@ void stacktrace() {
     }
 
     procinfo();
+    klog_flush();
+}
+
+void tasklist() {
+    klog("*** Task list ***");
+    LinkedListIter<Process*>* i = TaskManager::get()->processes->iter();
+
+    for (; !i->end(); i->next()) {
+        Process* p = i->get();
+        klogn("Process ");
+        klogn(to_dec(p->pid));
+        klogn(" parent ");
+        klogn(to_dec(p->parent->pid));
+        klogn(" ");
+        klog(p->name);
+    
+        LinkedListIter<Thread*>* ti = p->threads->iter();
+        for (; !ti->end(); ti->next()) {
+            Thread* t = ti->get();
+            klogn(" Thread ");
+            klogn(to_dec(t->id));
+
+            if (t->wait != NULL) {
+                klogn(" waiting ");
+                char* s = t->wait->toString();
+                klogn(s);
+                delete s;
+            }
+            klog("");
+        }
+        delete ti;
+    }
+    delete i;
     klog_flush();
 }

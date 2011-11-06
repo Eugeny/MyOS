@@ -27,6 +27,11 @@ static void default_interrupt_handler(isrq_registers_t* regs) {
     cr0 &=0xFFFFFFF7;
     regs->err_code=cr0;
     asm volatile(" mov %0, %%cr0":: "r"(cr0));
+
+    if (regs->int_no == 7) {
+        // Mute INT7
+        return;
+    }
     klogn("INT ");
     klogn(to_dec(regs->int_no));
     klogn(" ");

@@ -2,6 +2,7 @@
 #define CORE_THREAD_H
 
 #include <util/cpp.h>
+#include <core/Wait.h>
 
 class Process;
 
@@ -33,6 +34,7 @@ class Thread {
 public:
     Thread(Process *p);
     ~Thread();
+    Wait  *wait;
     bool   dead;
 
     u32int id;

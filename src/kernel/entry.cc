@@ -23,12 +23,15 @@
 
 
 void on_timer(isrq_registers_t *r) {
-    TaskManager::get()->performRoutine();
     TaskManager::get()->nextTask();
+    TaskManager::get()->performRoutine();
 }
 
 void kbdh(u32int mod, u32int sc) {
     //klogn("K");klogn(to_hex(sc));klogn("-");klog(to_hex(mod));klog_flush();
+    if (sc == 0x99 && mod == KBD_MOD_CTRL) {
+        tasklist(); return;
+    }
     TTYManager::get()->processKey(mod, sc);
 }
 
@@ -79,7 +82,6 @@ void repainterThread(void* a) {
         sb->write(to_dec(Memory::get()->getUsedFrames()));
 
         TTYManager::get()->draw();
-//        TaskManager::get()->idle();
     }
 }
 
@@ -137,5 +139,6 @@ extern "C" void kmain (void* mbd, u32int esp) {
 
     Process::create("/sbin/init", 0,0,tty,tty,tty);
 
+    TaskManager::get()->idle();
     for(;;);
 }

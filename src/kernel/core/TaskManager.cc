@@ -7,6 +7,7 @@
 #include <memory/Memory.h>
 #include <kutils.h>
 #include <util/Lock.h>
+#include <core/Wait.h>
 
 
 static Lock* lock;
@@ -33,7 +34,7 @@ static unsigned int str(void)
 
 
 void task_fail(isrq_registers_t* r) {
-    PANIC("INT6");
+    PANIC("Invalid opcode");
 }
 
 void TaskManager::init() {
@@ -42,7 +43,7 @@ void TaskManager::init() {
     Process* kproc = new Process();
     kproc->name = "kernel";
     kproc->addrSpace = Memory::get()->getCurrentSpace();
-    kproc->parent = NULL;
+    kproc->parent = kproc;
 
     Thread* kernel = new Thread(kproc);
     currentThread = kernel;
@@ -73,7 +74,12 @@ void TaskManager::switchTo(Thread* t) {
     if (!t || t == currentThread) {
         return;}
 
-    if (!lock->attempt()) {TRACE;return;}
+    if (!lock->attempt()) {
+        if (TASKSWITCH_DEBUG) {
+            DEBUG("Failed to acquire task lock");
+        }
+        return;
+    }
 
     if (TASKSWITCH_DEBUG) {
         klog("SWITCHING");
@@ -149,15 +155,8 @@ u32int TaskManager::newThread(void (*main)(void*), void* arg) {
     if (!lock->attempt()) return -1;
 
     Process* parent = currentThread->process;
-    Process* newProc = new Process();
-    newProc->name = strdup(parent->name);
-    newProc->parent = parent;
 
-    processes->insertLast(newProc);
-    parent->children->insertLast(newProc);
-    newProc->addrSpace = parent->addrSpace;//->clone();
-
-    Thread* newThread = new Thread(newProc);
+    Thread* newThread = new Thread(parent);
     Scheduler::get()->addThread(newThread);
 
 
@@ -195,7 +194,7 @@ u32int TaskManager::newThread(void (*main)(void*), void* arg) {
         *(u32int*)(stack+12) = (u32int)arg;
         lock->release();
         Processor::enableInterrupts();
-        return newProc->pid;
+        return newThread->id;
     }
 }
 
@@ -206,6 +205,7 @@ void TaskManager::killProcess(Process* p) {
         killThread(p->threads->get(i));
     for (int i = 0; i < p->children->length(); i++)
         p->children->get(i)->parent = kernelProcess;
+
     p->addrSpace->release();
     processes->remove(p);
     delete p->addrSpace;
@@ -231,10 +231,7 @@ void TaskManager::requestKillProcess(u32int pid) {
         if (processes->get(i)->pid == pid) {
             Process* p = processes->get(i);
             p->dead = true;
-            if (p == currentThread->process) {
-                nextTask();
-                while (true) Processor::idle();
-            }
+            if (p == currentThread->process) idle();
         }
 }
 
@@ -245,10 +242,7 @@ void TaskManager::requestKillThread(u32int tid) {
             if (proc->threads->get(i)->id == tid) {
                 Thread* t = proc->threads->get(i);
                 t->dead = true;
-                if (t == currentThread) {
-                    nextTask();
-                    while (true) Processor::idle();
-                }
+                if (t == currentThread) idle();
                 return;
             }
     }
@@ -281,6 +275,7 @@ Thread* TaskManager::getCurrentThread() {
 }
 
 void TaskManager::idle() {
-    TaskManager::get()->performRoutine();
+    getCurrentThread()->wait = new WaitForever();
     TaskManager::get()->nextTask();
+    TaskManager::get()->performRoutine();
 }

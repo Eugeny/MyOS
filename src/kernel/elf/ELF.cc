@@ -42,9 +42,5 @@ void ELF_exec(u8int* data, char* pname, int argc, char** argv, FileObject* stdin
         //DEBUG(to_hex((u32int)main));
         main(argc, argv);
         for(;;);
-//        kprint("out");
-
-
-        TaskManager::get()->requestKillProcess(TaskManager::get()->getCurrentThread()->id);
     }
 }

@@ -199,7 +199,7 @@ void sys_exit(isrq_registers_t* r) {
     klogn(to_dec(r->ebx));
     klogn(")");
     #endif
-    //TaskManager::get()->requestKillProcess(TaskManager::get()->getCurrentThread()->process->pid);
+    TaskManager::get()->requestKillProcess(TaskManager::get()->getCurrentThread()->process->pid);
 }
 
 void sys_fork(isrq_registers_t* r) {

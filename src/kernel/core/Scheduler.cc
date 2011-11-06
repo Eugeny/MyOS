@@ -25,6 +25,9 @@ Thread *Scheduler::pickThread() {
     do {
         r = queue->remove(0);
         queue->insertLast(r);
+
+        if (r->wait != NULL && !r->wait->check())
+            continue;
     } while (r->dead || r->process->dead);
     return r;
 }

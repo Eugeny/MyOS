@@ -44,18 +44,10 @@ void *memset(void *s, char d, int l) {
 
 void *memcpy(void *dest, const void *src, int n) {
     for (volatile int i = 0; i < n; i++) {
-        //*(u8int*)((u32int)dest+i) = *(u8int*)((u32int)src+i);
         u8int* a = (u8int*)(src+i);
         u8int* b = (u8int*)(dest+i);
         *b = *a;
     }
-    u8int* a = (u8int*)(src+4);
-    u8int* b = (u8int*)(dest+4);
-    *b = *a;
-
-    a = (u8int*)(src+8);
-    b = (u8int*)(dest+8);
-    *b = *a;
     return dest;
 }
 
