@@ -5,10 +5,10 @@
 
 #define NAME_MAX 256
 
-typedef struct {
+struct dirent {
 	int d_ino;
 	char d_name[NAME_MAX];
-} dirent;
+} ;
 
 
 #ifndef KERNEL

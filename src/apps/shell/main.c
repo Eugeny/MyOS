@@ -5,6 +5,11 @@
 #include <dirent.h>
 
 
+void run(char* s) {
+	int pid = exec(s, NULL, 0, NULL);
+	waitpid(pid);
+}
+
 int main() {
     printf("MyOS shell\n");
     char s[256];
@@ -20,7 +25,7 @@ int main() {
 		char *cmd = strtok(s, " ");
 
         if (strcmp(cmd, "ls") == 0) {
-    		dirent* dit;
+    		struct dirent* dit;
 		    DIR *d = opendir(cwd);
 			while ((dit = readdir(d)) != NULL)
                 printf("%s\n", dit->d_name);
@@ -40,6 +45,9 @@ int main() {
 					strcat(cwd, "/");
 				strcat(cwd, f);
 			}
+		} else if (strcmp(cmd, "exec") == 0) {
+			char *f = strtok(NULL, " ");
+			run(f);
         } else {
         	printf("Unknown command\n");
         }

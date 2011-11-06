@@ -33,4 +33,4 @@ extern void tasklist();
 
 
 #define TASKSWITCH_DEBUG false
-//#define STRACE
+#define STRACE

@@ -10,6 +10,7 @@ ASFLAGS=-felf
 BASEDIR = /home/eugeny/myos
 LIBS = $(BASEDIR)/local/i586-pc-myos/lib
 
+#	src/kernel/syscall/Syscalls.o\
 
 SOURCES= \
 	src/kernel/bootstrap.o \
@@ -27,6 +28,7 @@ SOURCES= \
 	src/kernel/core/TaskManagerUtil.o \
 	src/kernel/core/Process.o \
 	src/kernel/core/Thread.o \
+	src/kernel/core/Wait.o \
 	src/kernel/elf/ELF.o \
 	src/kernel/hardware/ATA.o \
 	src/kernel/hardware/ATAUtil.o \
@@ -41,7 +43,6 @@ SOURCES= \
 	src/kernel/memory/GDT.o \
 	src/kernel/memory/Memory.o \
 	src/kernel/syscall/SyscallManager.o\
-	src/kernel/syscall/Syscalls.o\
 	src/kernel/tty/Terminal.o\
 	src/kernel/tty/TTY.o\
 	src/kernel/tty/TTYManager.o\
@@ -100,6 +101,7 @@ deploy: all
 	sudo cp src/apps/init/init fs/sbin/
 	sudo cp src/apps/shell/sh fs/bin/
 	sudo cp src/apps/guess/guess fs/bin/
+	sudo cp src/apps/dash/src/dash fs/bin/
 	vmware-mount -d fs || true
 	sleep 2
 	vmware-mount -d fs || true

@@ -6,7 +6,14 @@ struct stat {
 	int st_mode;
 	int st_size;
 	int st_blksize;
+	int st_mtime;
+	int st_ino;
+	int st_dev;
+	int st_uid;
+	int st_gid;
 };
+
+#define stat64 stat
 
 #define S_IFMT        0170000 /* These bits determine file type.  */
 
@@ -42,6 +49,16 @@ struct stat {
 #define S_IXOTH (S_IXGRP >> 3)  /* Execute by others.  */
 /* Read, write, and execute by others.  */
 #define S_IRWXO (S_IRWXG >> 3)
+
+
+#define S_ISTYPE(mode, mask)  (((mode) & S_IFMT) == (mask))
+#define S_ISDIR(mode)    S_ISTYPE((mode), S_IFDIR)
+#define S_ISCHR(mode)    S_ISTYPE((mode), S_IFCHR)
+#define S_ISBLK(mode)    S_ISTYPE((mode), S_IFBLK)
+#define S_ISREG(mode)    S_ISTYPE((mode), S_IFREG)
+#define S_ISFIFO(mode)   S_ISTYPE((mode), S_IFIFO)
+#define S_ISLNK(mode)    S_ISTYPE((mode), S_IFLNK)
+#define S_ISSOCK(mode)   S_ISTYPE((mode), S_IFSOCK)
 
 
 #endif

@@ -3,6 +3,7 @@
 #include <core/Thread.h>
 #include <kutils.h>
 #include <vfs/VFS.h>
+#include <core/Wait.h>
 #include <stat.h>
 
 
@@ -96,9 +97,32 @@ void sys_sbrk(isrq_registers_t* r) {
 }
 
 
+void sys_waitpid(isrq_registers_t* r) {
+    #ifdef STRACE
+    klogn("waitpid(");
+    klogn("pid=");
+    klogn(to_dec((u32int)r->ebx));
+    klogn(")");
+    #endif
+
+    TaskManager::get()->getCurrentThread()->wait = new WaitPID(r->ebx);
+    TaskManager::get()->nextTask();
+}
 
 
 void sys_stat(isrq_registers_t* r) {
+    #ifdef STRACE
+    klogn("stat(");
+    klogn("fd=");
+    klogn(to_dec((u32int)r->ebx));
+    klogn(", stat_t=");
+    klogn(to_hex((u32int)r->ecx));
+    klogn(")");
+    #endif
+    ((stat*)r->ecx)->st_mode= 0x0020000;
+}
+
+void sys_fstat(isrq_registers_t* r) {
     #ifdef STRACE
     klogn("stat(");
     klogn("fd=");
@@ -272,8 +296,22 @@ void sys_exec(isrq_registers_t* r) {
     klogn(")");
     #endif
 
-    FileObject* tty = VFS::get()->open((char*)r->ecx, MODE_R|MODE_W);
-    Process::create((char*)r->ebx,0,0,tty,tty,tty);
+    FileObject *stdin, *stdout, *stderr;
+
+    if (r->ecx == 0) {
+        stdin  = TaskManager::get()->getCurrentThread()->process->files[0];
+        stdout = TaskManager::get()->getCurrentThread()->process->files[1];
+        stderr = TaskManager::get()->getCurrentThread()->process->files[2];
+    } else {
+        stdin = stdout = stderr = VFS::get()->open((char*)r->ecx, MODE_R|MODE_W);
+    }
+
+    r->eax = Process::create((char*)r->ebx, r->edx, (char**)(r->esi), stdin, stdout, stderr);
+
+    #ifdef STRACE
+    klogn(" = ");
+    klogn(to_hex((u32int)r->eax));
+    #endif
 }
 
 void sys_opendir(isrq_registers_t* r) {
@@ -318,10 +356,12 @@ void SyscallManager::registerDefaults() {
     registerSyscall(4, sys_write);
     registerSyscall(5, sys_open);
     registerSyscall(6, sys_close);
-    registerSyscall(7, sys_stat);
+    registerSyscall(7, sys_waitpid);
     registerSyscall(8, sys_isatty);
 //    registerSyscall(9, sys_link);
 //    registerSyscall(10, sys_unlink);
+    registerSyscall(18, sys_stat);
+    registerSyscall(28, sys_fstat);
     registerSyscall(45, sys_sbrk);
     registerSyscall(54, sys_ioctl);
     registerSyscall(55, sys_fcntl);
