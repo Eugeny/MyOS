@@ -9,18 +9,20 @@ int main() {}
 
 
 extern "C" void kmain (void* mbd, int sp) {
-    KTRACEMSG("started");
-
-    char buf[1024];
-    sprintf(buf, "test");
-    sout(buf);
-
-    sout("before vector init");
+    KTRACEMSG("started")
+    KTRACEMSG("before vector init")
     
-    std::vector<std::string> i { "one", "two", "three" };
-    sout("after vector init");
+    KTRACEMEM
+    auto i = new std::vector<std::string> { "one", "two", "three" };
+    KTRACEMEM
 
-    for (std::string &s : i) {
-        sout(s.c_str());
+    KTRACEMSG("after vector init")
+
+    for (std::string &s : *i) {
+        KTRACEMSG(s.c_str());
     }
+
+    KTRACEMEM
+    delete i;
+    KTRACEMEM
 }

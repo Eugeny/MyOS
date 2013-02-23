@@ -1,3 +1,5 @@
+#include "malloc.h"
+#include "lang/lang.h"
 #include "kutil.h"
 
 // -----------------------------
@@ -5,9 +7,10 @@
 // -----------------------------
 
     #define USE_DL_PREFIX
-    #define MORECORE dlmalloc_sbrk
-    #define ABORT dlmalloc_abort
-    #define MALLOC_FAILURE_ACTION dlmalloc_fail
+    #define MORECORE __dlmalloc_sbrk
+    #define ABORT __dlmalloc_abort
+    #define MALLOC_FAILURE_ACTION __dlmalloc_fail
+    #define MALLINFO_FIELD_TYPE uint32_t
     #define ENOMEM 0
     #define EINVAL 0
     #define HAVE_MMAP 0
@@ -29,18 +32,24 @@
     char heap[10240];
     void* hptr = (void*)heap;
 
-    extern "C" void* dlmalloc_sbrk(int size) {
+    extern "C" void* __dlmalloc_sbrk(int size) {
         KTRACE
         void* r = hptr;
         hptr = (void*)((int)hptr + size);
+
+        #ifdef KCFG_ENABLE_TRACING
+        char buf[1024];
+        sprintf(buf, "dlmalloc_sbrk(%i) = %i", size, r);
+        KTRACEMSG(buf);
+        #endif
         return r;
     }
 
-    extern "C" void dlmalloc_abort() {
+    extern "C" void __dlmalloc_abort() {
         KTRACE
     }
 
-    extern "C" void dlmalloc_fail() {
+    extern "C" void __dlmalloc_fail() {
         KTRACE
     }
 
@@ -55,7 +64,15 @@
 // -----------------------------
 
 
-extern "C" void* kmalloc(int size) {
+extern void* kmalloc(int size) {
     KTRACE
     return dlmalloc(size);
+}
+
+extern kheap_info_t kmallinfo() {
+    kheap_info_t info;
+    mallinfo mi = dlmallinfo();
+    info.total_bytes = mi.arena;
+    info.used_bytes =  mi.uordblks;
+    return info;
 }

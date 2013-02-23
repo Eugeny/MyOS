@@ -20,11 +20,15 @@ void ktrace(const char* file, int line) {
     ktrace(file, line, "tracepoint");
 }
 
-void ktrace(const char* file, int line, char* msg) {
+void ktrace(const char* file, int line, const char* msg) {
     char buffer[1024];
     sprintf(buffer, "%s:%i : %s", file, line, msg);
     sout(buffer);
 }
 
-
-//extern "C" void* __real_malloc(int c);
+void ktracemem(const char* file, int line) {
+    kheap_info_t mem = kmallinfo();
+    char buffer[1024];
+    sprintf(buffer, "%s:%i : %i/%i bytes", file, line, mem.used_bytes, mem.total_bytes);
+    sout(buffer);   
+}
