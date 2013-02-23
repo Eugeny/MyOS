@@ -1,0 +1,1 @@
+#define KCFG_ENABLE_TRACING

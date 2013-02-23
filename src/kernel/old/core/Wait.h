@@ -22,7 +22,7 @@ public:
 		this->pid = pid;
 	}
 
-	virtual bool check();
+	//virtual bool check();
 
 	virtual char *toString() { 
 		return strdup(to_dec(pid)); 

@@ -1,1 +1,0 @@
-/home/eugeny/myos/src/apps/crt0.c

@@ -1,6 +1,6 @@
 extern int main(int,char**,char**env);
 
-extern char __bss, _end;
+extern char __bss_start, _end;
 
 char *__env[1] = { 0 };
 char **environ = __env;
@@ -11,10 +11,11 @@ char **environ = __env;
 int _myos_start(int argc, char **argv) {
     char *i;
 
-    for(i = &__bss; i < &_end; i++){
+    for(i = &__bss_start; i < &_end; i++){
         *i = 0;
     }
 
     int code = main(argc,argv, __env);
-    __exit(code);
+    return code;
+    //__exit(code);
 }

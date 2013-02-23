@@ -6,8 +6,8 @@
 
 
 void run(char* s) {
-	int pid = exec(s, NULL, 0, NULL);
-	waitpid(pid);
+	//int pid = exec(s, NULL, 0, NULL);
+	//waitpid(pid);
 }
 
 int main() {

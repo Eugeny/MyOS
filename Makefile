@@ -1,107 +1,70 @@
 CC = gcc
 
-LIBS = local/i586-pc-myos/lib
+#LIBS = -L libs 
+CFLAGS = -c -m32 -g -std=c++0x -DKERNEL -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0
 
-CFLAGS = -c -g -DKERNEL -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0
-LDFLAGS = -static -nostdlib -T src/kernel/linker.ld -Map bin/kernel.map
-#LDFLAGS = -t -L newlib/newlib/libc -lc -static -nostdlib -T src/kernel/linker.ld -Map bin/kernel.map
-ASFLAGS=-felf
+LDWRAP = \
+	-Xlinker --wrap=malloc \
+	-Xlinker --wrap=sbrk \
 
-BASEDIR = /home/eugeny/myos
-LIBS = $(BASEDIR)/local/i586-pc-myos/lib
-
-#	src/kernel/syscall/Syscalls.o\
+LDFLAGS = -static -m32 -static-libstdc++  -T src/kernel/linker.ld -Xlinker -Map bin/kernel.map $(LDWRAP)
+ASFLAGS=-felf32
 
 SOURCES= \
 	src/kernel/bootstrap.o \
-	src/kernel/core/ProcessorUtil.o \
-	src/kernel/interrupts/IDTUtil.o \
-	src/kernel/interrupts/InterruptsUtil.o \
-	src/kernel/memory/AddressSpaceUtil.o \
-	src/kernel/memory/GDTUtil.o \
-\
+	\
 	src/kernel/entry.o \
-	src/kernel/kutils.o \
-	src/kernel/core/Processor.o \
-	src/kernel/core/Scheduler.o \
-	src/kernel/core/TaskManager.o \
-	src/kernel/core/TaskManagerUtil.o \
-	src/kernel/core/Process.o \
-	src/kernel/core/Thread.o \
-	src/kernel/core/Wait.o \
-	src/kernel/elf/ELF.o \
-	src/kernel/hardware/ATA.o \
-	src/kernel/hardware/ATAUtil.o \
-	src/kernel/hardware/Disk.o \
-	src/kernel/hardware/Keyboard.o \
-	src/kernel/hardware/PIT.o \
-	src/kernel/interrupts/IDT.o \
-	src/kernel/interrupts/Interrupts.o \
-	src/kernel/io/FileObject.o \
-	src/kernel/memory/AddressSpace.o \
-	src/kernel/memory/Heap.o \
-	src/kernel/memory/GDT.o \
-	src/kernel/memory/Memory.o \
-	src/kernel/syscall/SyscallManager.o\
-	src/kernel/tty/Terminal.o\
-	src/kernel/tty/TTY.o\
-	src/kernel/tty/TTYManager.o\
-	src/kernel/util/cpp.o \
-	src/kernel/util/Lock.o \
-	src/kernel/vfs/VFS.o \
-	src/kernel/vfs/FS.o \
-	src/kernel/vfs/FATFS.o \
-	src/kernel/vfs/DevFS.o \
-	src/kernel/vfs/RootFS.o \
+	src/kernel/alloc/malloc.o \
+	\
+	src/kernel/kutil.o \
+	src/kernel/lang/libc-wrap.o \
 
 
-all: $(SOURCES) src/kernel/gccutil.o link apps
+all: $(SOURCES) link apps
 
 clean:
-	find src/kernel -name '*.o' -delete 
-	find src/apps -name '*.o' -delete 
-	rm bin/kernel || true
+	@find . -name '*.o' -delete 
+	@rm bin/kernel || true
 
-link:
-	ld -o bin/kernel $(LDFLAGS) $(SOURCES) local/lib/gcc/i586-pc-myos/4.5.0/libgcc.a src/kernel/gccutil.o
-	@echo "LD  " kernel
+link: $(SOURCES)
+	@g++ -o bin/kernel $(LDFLAGS) $(SOURCES) $(LIBS)
+	@echo " LD " kernel
 
 apps:
-	gcc -c src/apps/crt0.c -o src/apps/crt0.o
-	make -C src/apps/shell
-	make -C src/apps/init
-	make -C src/apps/guess
+	@#gcc -c src/apps/crt0.c -o src/apps/crt0.o
+	@#make -C src/apps/shell
+	@#make -C src/apps/init
+	@#make -C src/apps/guess
 
 .s.o:
 	@nasm $(ASFLAGS) $<
-	@echo "ASM" $<
+	@echo " ASM" $<
 
 .cc.o:
 	@$(CC) $(CFLAGS) $< -o $@
-	@echo "CC " $<
+	@echo " CC " $<
 
 .cpp.o:
 	@$(CC) $(CFLAGS) $< -o $@
-	@echo "CC " $<
-
-
+	@echo " CC " $<
 
 mount: umount
-	vmware-mount ~/vmware/MyOS/MyOS-0.vmdk fs
+	@echo "VMDK mount"
+	@vmware-mount image.vmdk fs
 
 umount:
-	vmware-mount -d fs || true
-	sleep 2
-	vmware-mount -d fs || true
+	@echo "VMDK umount"
+	@sleep 1
+	@vmware-mount -d fs || true
+	@sleep 1
+	@vmware-mount -d fs || true
 
 deploy: all
-	echo
-	vmware-mount ~/vmware/MyOS/MyOS-0.vmdk fs
-	sudo cp bin/kernel fs/kernel
-	sudo cp src/apps/init/init fs/sbin/
-	sudo cp src/apps/shell/sh fs/bin/
-	sudo cp src/apps/guess/guess fs/bin/
-	sudo cp src/apps/dash/src/dash fs/bin/
-	vmware-mount -d fs || true
-	sleep 2
-	vmware-mount -d fs || true
+	@make mount
+	@sudo cp bin/kernel fs/kernel
+	@echo " CP  kernel"
+	@#sudo cp src/apps/init/init fs/sbin/
+	@#sudo cp src/apps/shell/sh fs/bin/
+	@#sudo cp src/apps/guess/guess fs/bin/
+	@#sudo cp src/apps/dash/src/dash fs/bin/
+	@make umount
