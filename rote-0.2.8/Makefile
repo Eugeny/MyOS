@@ -27,7 +27,7 @@ ROTE_VERSION=0.2.8
 ROTE_SONAME=librote.so.0
 
 CC=gcc
-CFLAGS=-g -O2 -Wall -fPIC -m32
+CFLAGS=-g -O2 -Wall -fPIC
 LIBS=-lutil
 LDFLAGS=
 prefix=/usr/local

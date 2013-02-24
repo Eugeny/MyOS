@@ -8,7 +8,7 @@
 class IDT : public Singleton<IDT> {
 public:
     void init();
-    void setGate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);
+    void setGate(uint8_t num, uint64_t base, uint16_t sel, uint8_t flags);
     void flush();
 };
 

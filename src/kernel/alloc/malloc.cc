@@ -36,7 +36,7 @@
     extern "C" void* __dlmalloc_sbrk(int size) {
         KTRACE
         void* r = hptr;
-        hptr = (void*)((int)hptr + size);
+        hptr = (void*)((uint64_t)hptr + size);
         return r;
     }
 

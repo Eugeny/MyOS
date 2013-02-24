@@ -1,26 +1,56 @@
 global loader, end
-extern kmain
-
-MODULEALIGN equ  1<<0                   ; align loaded modules on page boundaries
-MEMINFO     equ  1<<1                   ; provide memory map
-FLAGS       equ  MODULEALIGN | MEMINFO  ; this is the Multiboot 'flag' field
-MAGIC       equ    0x1BADB002           ; 'magic number' lets bootloader find the header
-CHECKSUM    equ -(MAGIC + FLAGS)        ; checksum required
+extern _start, _end
 
 section .text
-align 4
-MultiBootHeader:
-   dd MAGIC
-   dd FLAGS
-   dd CHECKSUM
 
+[BITS 32]
+
+
+ALIGN 16
+MbHdr:
+    ; Magic
+    DD  0xE85250D6
+    ; Architecture
+    DD  0
+    ; Length
+    DD  HdrEnd - MbHdr
+    ; Checksum
+    DD  -(0xE85250D6 + 0 + (HdrEnd - MbHdr))
+ 
+    ;
+    ; Tags
+    ;
+    _mbir_start:
+    DW  1, 0
+    DD  16
+    DD  3,1
+    _mbir_end:
+
+    ; End Of Tags
+    DW  0, 0
+    DD  8
+ 
+    ; Hdr End Mark
+HdrEnd:
+
+
+
+
+; CODE --------------------------------
+; 32 bit bootstrap
 
 loader:
-    cli
-    push    esp
-    push    ebx
-    call    kmain
-    jmp     $
+    ;cli
+    ;push    esp
+    ;push    ebx
+
+    mov dword [0xb8000], 0x07690748
+
+    push ebx
+    call loader
+    
+    jmp $
+
 
 section .bss
 align 4

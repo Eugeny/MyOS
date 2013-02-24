@@ -30,7 +30,7 @@ static uint64_t interrupt_counter = 0;
 static void default_interrupt_handler(isrq_registers_t* regs) {
 
     // Enable FPU
-    uint32_t cr0;
+    uint64_t cr0;
     asm volatile(" mov %%cr0, %0": "=r"(cr0));
     cr0 &= 0xFFFFFFF7;
     regs->err_code = cr0;

@@ -15,33 +15,48 @@
     jmp isr_common_stub
 %endmacro
 
+%macro PUSHAQ 0
+    push rax
+    push rbx
+    push rcx
+    push rdx
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+    push rsi
+    push rdi
+    push rbp
+%endmacro
+
+%macro POPAQ 0
+    pop rbp
+    pop rdi
+    pop rsi
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop r11
+    pop r10
+    pop rdx
+    pop rcx
+    pop rbx
+    pop rax
+%endmacro
 
 extern isr_handler
 
 isr_common_stub:
-    pushad
+    PUSHAQ
 
-    mov ax, ds
-    push eax
-
-    mov ax, 0x10  ; kernel DS
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-
-    push ebp
     call isr_handler
-    pop ebp
 
-    pop ebx
-    mov ds, bx
-    mov es, bx
-    mov fs, bx
-    mov gs, bx
+    POPAQ
 
-    popad
-    add esp, 8     ; 2*u32int params
+    add esp, 16     ; 2*uint64 params
     sti
     iret
 

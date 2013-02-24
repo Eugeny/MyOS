@@ -9,7 +9,6 @@
 #include <hardware/pit/PIT.h>
 #include <interrupts/IDT.h>
 #include <interrupts/Interrupts.h>
-#include <memory/GDT.h>
 #include <tty/Terminal.h>
 #include <tty/Escape.h>
 #include <tty/PhysicalTerminalManager.h>
@@ -21,6 +20,7 @@ int main() {}
 void pit_handler(isrq_registers_t* regs) {
     static int counter = 0;
     counter++;
+    if (counter > 100)return;
     if (counter % 20 == 0)
         klog('t', "Timer %i!", counter);
     if (counter % 25 == 0)
@@ -37,12 +37,6 @@ extern "C" void kmain (void* mbd, int sp) {
 
     klog('i', "Setting IDT");
     IDT::get()->init();
-
-    klog('i', "Setting GDT");
-    GDT::get()->init();
-    GDT::get()->setDefaults();
-    klog('d', "Flushing GDT");
-    GDT::get()->flush();
 
     klog('i', "Configuring timer");
     PIT::get()->setFrequency(2500);
