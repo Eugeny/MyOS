@@ -28,12 +28,9 @@ extern "C" void __wrap_free(void* ptr) {
     #ifdef KCFG_ENABLE_TRACING
     sprintf(buffer, "free(%i)\0", 5);
     //strcpy(buffer,"qwe");
-    sout("b");
-    sout(buffer);
-    sout("a");
     
     for(;;);
-    //KTRACEMSG(buf);
+    KTRACEMSG(buffer);
     #endif
 
     //kfree(ptr);

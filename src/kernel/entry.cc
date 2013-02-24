@@ -7,6 +7,8 @@
 
 #include <tty/Terminal.h>
 #include <tty/Escape.h>
+#include <tty/PhysicalTerminalManager.h>
+
 
 int main() {}
 
@@ -18,14 +20,17 @@ extern "C" void kmain (void* mbd, int sp) {
         //KTRACEMSG(s.c_str());
     //}
 
+    PhysicalTerminalManager::get()->init(5);
+    klog_init();
+
     KTRACEMEM
     //auto i = new std::map<std::string,std::string> { { "a", "b" }, { "c", "d"} };
-    auto i = new std::map<char*,char*> { { "a", "b" }, { "c", "d"} };
-    KTRACEMEM
-    delete i;
-    KTRACEMEM
+    //auto i = new std::map<char*,char*> { { "a", "b" }, { "c", "d"} };
+    //KTRACEMEM
+    //delete i;
+    //KTRACEMEM
 
-    Terminal* t = new Terminal(80,25);
+    Terminal* t = PhysicalTerminalManager::get()->getActiveTerminal();
 
     t->write(Escape::C_B_RED);
     t->write(":K: ");
@@ -36,6 +41,6 @@ extern "C" void kmain (void* mbd, int sp) {
     t->write(Escape::C_B_YELLOW);
     t->write(":Y: ");
     t->write(Escape::C_OFF);
-    t->write("test");
+    t->write("test\n");
     t->render();
 }

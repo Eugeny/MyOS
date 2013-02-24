@@ -12,15 +12,18 @@ LDFLAGS = -static -m32 -static-libstdc++  -T src/kernel/linker.ld -Xlinker -Map 
 ASFLAGS=-felf32
 
 SOURCES= \
-	src/kernel/bootstrap.o \
-	\
-	src/kernel/entry.o \
-	src/kernel/alloc/malloc.o \
-	src/kernel/tty/Terminal.o \
-	\
-	src/kernel/kutil.o \
-	\
-	src/kernel/lang/libc-wrap.o \
+	src/kernel/bootstrap.o 						\
+												\
+	src/kernel/entry.o 							\
+	src/kernel/alloc/malloc.o 					\
+												\
+	src/kernel/tty/Escape.o 					\
+	src/kernel/tty/Terminal.o 					\
+	src/kernel/tty/PhysicalTerminalManager.o 	\
+												\
+	src/kernel/kutil.o 							\
+												\
+	src/kernel/lang/libc-wrap.o 				\
 
 
 all: $(SOURCES) link apps

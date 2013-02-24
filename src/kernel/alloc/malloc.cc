@@ -30,7 +30,7 @@
 
     typedef int ptrdiff_t;
 
-    char heap[10240];
+    char heap[1024000];
     void* hptr = (void*)heap;
 
     extern "C" void* __dlmalloc_sbrk(int size) {
@@ -60,12 +60,12 @@
 
 
 extern void* kmalloc(int size) {
-    KTRACE
+    //KTRACE
     return dlmalloc(size);
 }
 
 extern void  kfree(void* ptr) {
-    KTRACE
+    //KTRACE
     dlfree(ptr);
 }
 

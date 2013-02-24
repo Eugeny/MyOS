@@ -22,6 +22,7 @@ void Terminal::write(const char* buf, int offset, int len) {
     render(); // TODO!
 }
 
+
 uint8_t COLORMAP[16] = {
     0, 4, 2, 6, 1, 5, 3, 7,
     8,12,10,14, 9,13,11,15,
