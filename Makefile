@@ -18,7 +18,14 @@ SOURCES= \
 	src/kernel/alloc/malloc.o 					\
 												\
 	src/kernel/hardware/io.o 					\
+	src/kernel/hardware/cmos/CMOS.o 			\
+	src/kernel/hardware/pit/PIT.o 				\
 	src/kernel/hardware/vga/vga.o 				\
+												\
+	src/kernel/interrupts/IDT.o 				\
+	src/kernel/interrupts/IDTUtil.o				\
+	src/kernel/interrupts/Interrupts.o 			\
+	src/kernel/interrupts/InterruptsUtil.o 		\
 												\
 	src/kernel/memory/GDT.o  					\
 	src/kernel/memory/GDTUtil.o 				\

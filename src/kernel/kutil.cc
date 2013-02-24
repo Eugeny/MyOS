@@ -57,7 +57,10 @@ void klog(char type, const char* format, ...) {
         t->write(buffer);
         t->write(Escape::C_OFF);
         t->write("\n");
-        t->render(); // force render ASAP
+
+        #ifdef KCFG_LOG_FORCE_RENDER
+            t->render(); // force render ASAP
+        #endif
     } else {
         sout(buffer);
     }
@@ -66,8 +69,11 @@ void klog(char type, const char* format, ...) {
 }
 
 void microtrace() {
+    static char icons[] = "/-\\|";
+    static int index = 0;
+    index = (index + 1) % 4;
     char *vram = (char *)0xb8000;
-    *vram = '+';
+    *vram = icons[index];
 }
 
 

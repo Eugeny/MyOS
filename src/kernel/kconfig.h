@@ -1,1 +1,2 @@
 #define KCFG_ENABLE_TRACING
+//#define KCFG_LOG_FORCE_RENDER

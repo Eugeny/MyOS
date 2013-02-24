@@ -18,6 +18,7 @@ void PhysicalTerminalManager::init(int terminalCount) {
 
 void PhysicalTerminalManager::switchTo(int a) {
     activeIdx = a;
+    getActiveTerminal()->makeDirty();
 }
 
 void PhysicalTerminalManager::render() {

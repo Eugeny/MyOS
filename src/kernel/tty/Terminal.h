@@ -12,6 +12,7 @@ public:
     void write(const char* data);
     void write(const char* buf, int offset, int len);
     void render();
+    void makeDirty();
 private:
     int         width, height;
     bool        dirty;
