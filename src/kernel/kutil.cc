@@ -6,6 +6,11 @@
 #include "alloc/malloc.h"
 
 
+void microtrace() {
+    char *vram = (char *)0xb8000;
+    *vram = '+';
+}
+
 void sout(const char* str) {
     static int line = 0;
 
@@ -13,7 +18,9 @@ void sout(const char* str) {
     for (unsigned int i = 0; i < strlen(str); i++) {
         *(vram + i * 2 + 160 * line) = str[i];
     }
+    
     line++;
+    line %=25;
 }
 
 void ktrace(const char* file, int line) {

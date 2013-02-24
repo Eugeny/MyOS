@@ -3,10 +3,11 @@
 #include "alloc/malloc.h"
 
 
-int head[10240];
+bool __heap_ready = false;
 
 extern "C" void* __wrap_malloc(int c) {
-    void* r = kmalloc(c); // (void*)head;
+    void* r = kmalloc(c);
+    __heap_ready = true;
 
     #ifdef KCFG_ENABLE_TRACING
     char buf[1024];
@@ -17,22 +18,42 @@ extern "C" void* __wrap_malloc(int c) {
     return r;
 }
 
-extern "C" void* __wrap_sbrk(int c) {
-    void* r = 0;
+#include <string.h>
+// DEFUNCT
+extern "C" void __wrap_free(void* ptr) {
+    char buffer[102];
+    microtrace();
 
+    if (__heap_ready) {
     #ifdef KCFG_ENABLE_TRACING
-    char buf[1024];
-    sprintf(buf, "sbrk(%i) = %i", c, r);
-    KTRACEMSG(buf);
-    #endif
+    sprintf(buffer, "free(%i)\0", 5);
+    //strcpy(buffer,"qwe");
+    sout("b");
+    sout(buffer);
+    sout("a");
     
-    return r;
+    for(;;);
+    //KTRACEMSG(buf);
+    #endif
+
+    //kfree(ptr);
+    }
 }
 
 
 
-void* operator new(size_t s) { return __wrap_malloc(s); }
-void operator delete(void* p) { }
-void* operator new[](size_t s) { return __wrap_malloc(s); }
-void operator delete[](void* p) { }
+void* operator new(size_t s) { 
+    return __wrap_malloc(s); 
+}
 
+void operator delete(void* p) { 
+    kfree(p);
+}
+
+void* operator new[](size_t s) { 
+    return __wrap_malloc(s); 
+}
+
+void operator delete[](void* p) { 
+    kfree(p);
+}

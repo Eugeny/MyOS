@@ -1,11 +1,12 @@
 CC = gcc
 
-#LIBS = -L libs 
-CFLAGS = -c -m32 -g -std=c++0x -DKERNEL -I src/kernel/ -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0
+LIBS = -L libs libs/librote.a
+INCLUDES = -I include -I src/kernel
+CFLAGS = -c -m32 -g -std=c++0x -DKERNEL -fno-builtin -fno-stack-protector -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0 $(INCLUDES)
 
 LDWRAP = \
 	-Xlinker --wrap=malloc \
-	-Xlinker --wrap=sbrk \
+#	-Xlinker --wrap=free \
 
 LDFLAGS = -static -m32 -static-libstdc++  -T src/kernel/linker.ld -Xlinker -Map bin/kernel.map $(LDWRAP)
 ASFLAGS=-felf32
@@ -15,8 +16,10 @@ SOURCES= \
 	\
 	src/kernel/entry.o \
 	src/kernel/alloc/malloc.o \
+	src/kernel/tty/Terminal.o \
 	\
 	src/kernel/kutil.o \
+	\
 	src/kernel/lang/libc-wrap.o \
 
 
@@ -44,12 +47,9 @@ apps:
 	@$(CC) $(CFLAGS) $< -o $@
 	@echo " CC " $<
 
-.cpp.o:
-	@$(CC) $(CFLAGS) $< -o $@
-	@echo " CC " $<
-
 mount: umount
 	@echo "VMDK mount"
+	@vmware-vdiskmanager -R image.vmdk
 	@vmware-mount image.vmdk fs
 
 umount:
@@ -68,3 +68,6 @@ deploy: all
 	@#sudo cp src/apps/guess/guess fs/bin/
 	@#sudo cp src/apps/dash/src/dash fs/bin/
 	@make umount
+
+run: deploy
+	@VirtualBox --startvm VM

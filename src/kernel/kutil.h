@@ -19,6 +19,7 @@ void ktrace(const char* file, int line);
 void ktrace(const char* file, int line, const char* msg);
 void ktracemem(const char* file, int line);
 
+void microtrace();
 void sout(const char* str);
 
 #endif

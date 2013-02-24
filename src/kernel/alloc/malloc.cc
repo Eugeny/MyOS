@@ -8,6 +8,7 @@
 
     #define USE_DL_PREFIX
     #define MORECORE __dlmalloc_sbrk
+    #define MORECORE_CANNOT_TRIM
     #define ABORT __dlmalloc_abort
     #define MALLOC_FAILURE_ACTION __dlmalloc_fail
     #define MALLINFO_FIELD_TYPE uint32_t
@@ -36,12 +37,6 @@
         KTRACE
         void* r = hptr;
         hptr = (void*)((int)hptr + size);
-
-        #ifdef KCFG_ENABLE_TRACING
-        char buf[1024];
-        sprintf(buf, "dlmalloc_sbrk(%i) = %i", size, r);
-        KTRACEMSG(buf);
-        #endif
         return r;
     }
 
@@ -68,6 +63,12 @@ extern void* kmalloc(int size) {
     KTRACE
     return dlmalloc(size);
 }
+
+extern void  kfree(void* ptr) {
+    KTRACE
+    dlfree(ptr);
+}
+
 
 extern kheap_info_t kmallinfo() {
     kheap_info_t info;
