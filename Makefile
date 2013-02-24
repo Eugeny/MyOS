@@ -17,6 +17,12 @@ SOURCES= \
 	src/kernel/entry.o 							\
 	src/kernel/alloc/malloc.o 					\
 												\
+	src/kernel/hardware/io.o 					\
+	src/kernel/hardware/vga/vga.o 				\
+												\
+	src/kernel/memory/GDT.o  					\
+	src/kernel/memory/GDTUtil.o 				\
+												\
 	src/kernel/tty/Escape.o 					\
 	src/kernel/tty/Terminal.o 					\
 	src/kernel/tty/PhysicalTerminalManager.o 	\

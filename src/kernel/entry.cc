@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 
+#include <memory/GDT.h>
 #include <tty/Terminal.h>
 #include <tty/Escape.h>
 #include <tty/PhysicalTerminalManager.h>
@@ -14,14 +15,15 @@ int main() {}
 
 
 extern "C" void kmain (void* mbd, int sp) {
-    //auto i = new std::vector<std::string> { "one", "two" };
-
-    //for (std::string &s : *i) {
-        //KTRACEMSG(s.c_str());
-    //}
-
     PhysicalTerminalManager::get()->init(5);
     klog_init();
+    klog('i', "Kernel log started");
+
+    klog('i', "Setting GDT");
+    GDT::get()->init();
+    GDT::get()->setDefaults();
+    klog('d', "Flushing GDT");
+    GDT::get()->flush();
 
     KTRACEMEM
     //auto i = new std::map<std::string,std::string> { { "a", "b" }, { "c", "d"} };

@@ -40,6 +40,15 @@ void klog(char type, const char* format, ...) {
         if (type == 't') {
             t->write(Escape::C_GRAY);
             t->write("TRACE");
+        } else if (type == 'd') {
+            t->write(Escape::C_B_GRAY);
+            t->write("DEBUG");
+        } else if (type == 'w') {
+            t->write(Escape::C_B_YELLOW);
+            t->write("WARN ");
+        } else if (type == 'i') {
+            t->write(Escape::C_B_CYAN);
+            t->write("INFO ");
         } else {
             t->write(Escape::C_CYAN);
             t->write("???  ");

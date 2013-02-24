@@ -3,4 +3,8 @@
 
 #include <stdint.h>
 
+#define PACKED __attribute__((packed))
+#define ALIGN(x) __attribute__ ((aligned (x)))
+
+
 #endif

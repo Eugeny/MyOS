@@ -2,6 +2,8 @@
 #include <tty/Terminal.h>
 #include <string.h>
 
+#include <hardware/vga/vga.h>
+
 
 Terminal::Terminal(int w, int h) {
     width = w;
@@ -43,4 +45,6 @@ void Terminal::render() {
 
             *(cell+1) = attr;
         }
+        
+    vga_move_cursor(terminal->ccol, terminal->crow);
 }
