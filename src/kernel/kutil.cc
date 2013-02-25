@@ -19,7 +19,8 @@ void sout(const char* str) {
     static int line = 0;
 
     char *vram = (char *)0xb8000;
-    for (unsigned int i = 0; i < strlen(str); i++) {
+    for (unsigned int i = 0; i < 20; i++) {
+//    for (unsigned int i = 0; i < strlen(str); i++) {
         *(vram + i * 2 + 160 * line) = str[i];
     }
     
@@ -32,7 +33,9 @@ void klog(char type, const char* format, ...) {
     va_start(args, format);
 
     char buffer[1024];
+    sout("3");
     vsprintf(buffer, format, args);
+    sout("4");
 
     if (__logging_terminal_ready) {
         Terminal* t = PhysicalTerminalManager::get()->getActiveTerminal();    

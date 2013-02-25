@@ -1,6 +1,11 @@
 global loader, end
 extern _start, _end, kmain
 
+
+section .data
+    stack resb 102400
+    stacktop dd 0
+
 section .text
 
 [BITS 32]
@@ -40,10 +45,9 @@ HdrEnd:
 ; 32 bit bootstrap
 
 loader:
-    ;cli
-    ;push    esp
-    ;push    ebx
-
+    cli
+    mov  eax, stacktop
+    mov  esp, eax
 
     lgdt    [cs:GDTR]  
          mov     eax,cr0                 ; switch to protected mode 
@@ -61,20 +65,29 @@ gdt_flushed:
 
 
     ; Zero out pages
-    mov     edi, 20000h 
-    mov     ecx, 8000h >> 2 
+    mov     edi, 1000h 
+    mov     ecx, 80000h 
     xor     eax, eax 
     rep     stosd                   
 
     mov     dword [1000h], 2000h + 111b ; first PDP table 
     mov     dword [2000h], 3000h + 111b ; first page directory 
-    mov     dword [3000h], 4000h + 111b ; first page table 
-    mov     dword [3008h], 5000h + 111b ; 2 page table 
+
+    mov     edi, 3000h
+    mov     edx, 4000h + 111b
+    mov     ecx, 20
+
+_loop_make_pd_entries:
+    mov     dword [edi], edx
+    add     edx, 1000h
+    add     edi, 8h
+    dec     ecx
+    cmp     ecx, 0
+    jnz     _loop_make_pd_entries
 
     mov     edi,4000h              ; address of first page table 
     mov     eax,0 + 111b 
-    mov     ecx,512                 ; number of pages to map (1 MB) 
-
+    mov     ecx,512*20                ; number of pages to map (1 MB) 
 _loop_make_page_entries: 
     stosd 
     add     edi,4 
@@ -83,17 +96,7 @@ _loop_make_page_entries:
 
 
 
-    mov     edi,5000h              ; address of first page table 
-    mov     ecx,512                 ; number of pages to map (1 MB) 
-
-_loop_make_page_entries2: 
-    stosd 
-    add     edi,4 
-    add     eax,1000h 
-    loop    _loop_make_page_entries2
-
-
-    ; Load PDPT
+    ; Load PML4
     mov     eax, 1000h 
     mov     cr3, eax
 
@@ -111,10 +114,9 @@ _loop_make_page_entries2:
 
     ; Enable paging
     mov     eax,cr0 
-    or      eax,1 << 31
+    ;or      eax, 1 << 31
+    bts     eax, 31
     mov     cr0,eax                 ; enable paging 
-    mov dword [0xb8000], 0x07690748
-    ;jmp $
 
     jmp     LONG_SELECTOR:loader64 
 

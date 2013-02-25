@@ -3,7 +3,7 @@
   isr%1:
     cli
     push byte 0
-    push byte %1
+    push byte 055h; %1
     jmp isr_common_stub
 %endmacro
 
@@ -11,7 +11,7 @@
   global isr%1
   isr%1:
     cli
-    push byte %1
+    push byte 055h;%1
     jmp isr_common_stub
 %endmacro
 
@@ -49,16 +49,31 @@
 
 extern isr_handler
 
+FAKEIDT:
+    dd 0,0,0,0
+
 isr_common_stub:
+    mov rax, 022222222h
+    mov rbx, 033333333h
+    mov rcx, 044444444h
+    mov rdx, 055555555h
+    mov rsi, 066666666h
+    mov rdi, 077777777h
     PUSHAQ
 
+    mov rdi, rsp
+    ;add rdi, 8
     call isr_handler
+
+    mov rax, FAKEIDT
+    lidt [rax]
+    int 5 ; crash
 
     POPAQ
 
-    add esp, 16     ; 2*uint64 params
+    ;add rsp, 16     ; 2*uint64 params
     sti
-    iret
+    iretq
 
 
 ISR_NOERRCODE 0

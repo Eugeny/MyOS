@@ -30,7 +30,7 @@
 
     typedef int ptrdiff_t;
 
-    char heap[1024000];
+    char heap[10240000];
     void* hptr = (void*)heap;
 
     extern "C" void* __dlmalloc_sbrk(int size) {

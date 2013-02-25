@@ -79,6 +79,8 @@ extern "C" void isr255 ();
 
 
 void IDT::init() {
+    sout("TRACE");for(;;);
+
     memset(&idt_entries, 0, sizeof(idt_entry_t)*256);
 
     // Remapping IRQs

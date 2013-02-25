@@ -1,6 +1,6 @@
 global _IDT_Flush
 _IDT_Flush:
-    mov rax, [rsp+8]
+    mov rax, rdi
     lidt [rax]
     sti
-    ret
+    retq

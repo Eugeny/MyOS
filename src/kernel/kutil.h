@@ -20,6 +20,7 @@ void ktrace(const char* file, int line, const char* msg);
 void ktracemem(const char* file, int line);
 
 void microtrace();
+void sout(const char* str);
 
 void klog_init();
 void klog(char type, const char* format, ...);

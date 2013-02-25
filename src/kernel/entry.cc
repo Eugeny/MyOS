@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <map>
-#include <string>
 
 #include <hardware/cmos/CMOS.h>
 #include <hardware/pit/PIT.h>
@@ -28,15 +27,49 @@ void pit_handler(isrq_registers_t* regs) {
     microtrace();
 }
 
-extern "C" void kmain (void* mbd, int sp) {
+extern "C" void kmain () {
+    char* ptr = 0;
+    for (char c = 0; c < 20; c++) {
+        volatile char data = *(ptr + c * 1024*1024);
+        *((char *)0xb8000) = ('0'+c);
+    }
+
+    asm volatile("cli");
+
+
+    //klog('i', "Setting IDT");
+    IDT idt;
+    idt.init();
+    sout("idt ok");
+
+    
+    float a = 0.1;
+    PhysicalTerminalManager::get()->init(5);
+
+    uint64_t cr0;
+    asm volatile(" mov %%cr0, %0": "=r"(cr0));
+    cr0 |= 1 << 2;
+    cr0 |= 1 << 9;
+    cr0 |= 1 << 10;
+    asm volatile(" mov %0, %%cr0":: "r"(cr0));
+
+    for (char c = 0; c < 32; c++) {
+        *((char *)0xb8000 + c * 2) = (cr0 % 2 == 1)? '1': '0';
+        *((char *)0xb8000 + c * 2 + 1) = 0x0f;
+        cr0 /=2;
+    }
+
+    for (;;);
+
+
+    //microtrace();
+    klog('t',"test");
+
     PhysicalTerminalManager::get()->init(5);
     klog_init();
     klog('i', "Kernel log started");
     klog('i', "Time is %u", CMOS::get()->readTime());
 
-
-    klog('i', "Setting IDT");
-    IDT::get()->init();
 
     klog('i', "Configuring timer");
     PIT::get()->setFrequency(2500);
