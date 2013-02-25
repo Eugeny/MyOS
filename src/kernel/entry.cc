@@ -20,9 +20,9 @@ int main() {}
 void pit_handler(isrq_registers_t* regs) {
     static int counter = 0;
     counter++;
-    if (counter > 100)return;
-    if (counter % 20 == 0)
-        klog('t', "Timer %i!", counter);
+    if (counter < 100)
+        if (counter % 20 == 0)
+            klog('t', "Timer %i!", counter);
     if (counter % 25 == 0)
         PhysicalTerminalManager::get()->render();
     microtrace();
@@ -31,49 +31,34 @@ void pit_handler(isrq_registers_t* regs) {
 extern "C" void kmain () {
     memory_initialize_default_paging();
  
-    char* ptr = 0;
-    for (char c = 0; c < 20; c++) {
-        volatile char data = *(ptr + c * 1024*1024);
-        *((char *)0xb8000) = ('0'+c);
-    }
+    klog_init();
 
     volatile char data = *((uint64_t*)0xffffffffffffffe0);
-for(;;);
 
     asm volatile("cli");
 
 
-    //klog('i', "Setting IDT");
-    IDT idt;
-    //idt.init();
-    sout("idt ok");
+    // ENABLE SSE/MMX
+    uint64_t cr4;
+    asm volatile(" mov %%cr4, %0": "=r"(cr4));
+    cr4 |= 1 << 9;
+    cr4 |= 1 << 10;
+    asm volatile(" mov %0, %%cr4":: "r"(cr4));
+    // --------------
 
-    
-    float a = 0.1;
+
     PhysicalTerminalManager::get()->init(5);
+    klog_init_terminal();
+    klog('i', "Kernel log started");
 
-    uint64_t cr0;
-    asm volatile(" mov %%cr0, %0": "=r"(cr0));
-    cr0 |= 1 << 2;
-    cr0 |= 1 << 9;
-    cr0 |= 1 << 10;
-    asm volatile(" mov %0, %%cr0":: "r"(cr0));
-
-    for (char c = 0; c < 32; c++) {
-        *((char *)0xb8000 + c * 2) = (cr0 % 2 == 1)? '1': '0';
-        *((char *)0xb8000 + c * 2 + 1) = 0x0f;
-        cr0 /=2;
-    }
-
-    //for (;;);
-
+    klog('i', "Setting IDT");
+    IDT idt;
+    idt.init();
 
     //microtrace();
     klog('t',"test");
 
-    PhysicalTerminalManager::get()->init(5);
-    klog_init();
-    klog('i', "Kernel log started");
+    PhysicalTerminalManager::get()->render();
     klog('i', "Time is %u", CMOS::get()->readTime());
 
 

@@ -28,13 +28,12 @@ void Interrupts::removeHandler(int n) {
 static uint64_t interrupt_counter = 0;
 
 static void default_interrupt_handler(isrq_registers_t* regs) {
-
     // Enable FPU
-    uint64_t cr0;
-    asm volatile(" mov %%cr0, %0": "=r"(cr0));
-    cr0 &= 0xFFFFFFF7;
-    regs->err_code = cr0;
-    asm volatile(" mov %0, %%cr0":: "r"(cr0));
+    //uint64_t cr0;
+    //asm volatile(" mov %%cr0, %0": "=r"(cr0));
+    //cr0 &= 0xFFFFFFF7;
+    //regs->err_code = cr0;
+    //asm volatile(" mov %0, %%cr0":: "r"(cr0));
 
     if (regs->int_no == 7) {
         // Mute INT7
@@ -51,26 +50,16 @@ static void default_irq_handler(isrq_registers_t* regs) {
 
 extern "C" void isr_handler(isrq_registers_t* regs) {
     interrupt_counter++;
-    //*((char *)0xb8000) = ('0'+regs.int_no);
 
-    __outputhex(regs->int_no, 16);
-    __outputhex(regs->err_code, 30);
-
-    for (int c = 0; c < 3200000; c++);
-    //for(;;);
-
-return;
-/*
-
-    regs.int_no %= 256;
-    bool irq = (regs.int_no >= 32 && regs.int_no <= 47);
-    int ino = regs.int_no;
+    regs->int_no %= 256;
+    bool irq = (regs->int_no >= 32 && regs->int_no <= 47);
+    int ino = regs->int_no;
     if (irq)
-        regs.int_no -= 32;
+        regs->int_no -= 32;
 
     if (irq) {
         // ACK IRQ
-        if (regs.int_no >= 8)
+        if (regs->int_no >= 8)
         {
             outb(0xA0, 0x20);
         }
@@ -78,12 +67,12 @@ return;
     }
 
     if (interrupt_handlers[ino] != 0) {
-        interrupt_handlers[ino](&regs);
+        interrupt_handlers[ino](regs);
     } else {
         if (!irq) {
-            default_interrupt_handler(&regs);
+            default_interrupt_handler(regs);
         } else {
-            default_irq_handler(&regs);
+            default_irq_handler(regs);
         }
-    }*/
+    }
 }

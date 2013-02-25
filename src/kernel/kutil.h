@@ -26,6 +26,7 @@ void microtrace();
 void sout(const char* str);
 
 void klog_init();
+void klog_init_terminal();
 void klog(char type, const char* format, ...);
 
 //void sout(const char* str);

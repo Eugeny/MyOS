@@ -2,13 +2,39 @@ CC = gcc
 
 LIBS = -L libs libs/librote.a
 INCLUDES = -I include -I src/kernel
-CFLAGS = -c -std=c++0x -DKERNEL -fno-builtin -fno-stack-protector -mno-red-zone -fno-rtti -fno-exceptions -Wall -Wno-write-strings -O0 $(INCLUDES)
+CFLAGS = -c 				\
+	-std=c++0x 				\
+	-DKERNEL 				\
+	-fno-builtin 			\
+	-fno-stack-protector 	\
+	-fno-rtti 				\
+	-ffreestanding 			\
+	-mno-red-zone 			\
+	-mcmodel=large 			\
+	-mno-mmx				\
+	-mno-sse				\
+	-mno-sse2				\
+	-mno-sse3				\
+	-mno-3dnow				\
+	-fno-exceptions 		\
+	-Wall 					\
+	-Wno-write-strings 		\
+	-O0 					\
+	$(INCLUDES)
 
 LDWRAP = \
 	-Xlinker --wrap=malloc \
 #	-Xlinker --wrap=free \
 
-LDFLAGS = -static -static-libstdc++ -z max-page-size=0x1000 -T src/kernel/kernel.ld -Xlinker -Map bin/kernel.map $(LDWRAP)
+LDFLAGS = \
+	-static \
+	-static-libstdc++ \
+	-z max-page-size=0x1000 \
+	-T src/kernel/kernel.ld \
+	-Xlinker -Map bin/kernel.map \
+	$(LDWRAP)
+
+
 ASFLAGS=-felf64
 
 
@@ -27,6 +53,7 @@ SOURCES= \
 	src/kernel/interrupts/Interrupts.o 			\
 	src/kernel/interrupts/InterruptsUtil.o 		\
 												\
+	src/kernel/memory/Memory.o 					\
 												\
 	src/kernel/tty/Escape.o 					\
 	src/kernel/tty/Terminal.o 					\
@@ -64,6 +91,7 @@ apps:
 
 mount: umount
 	@echo "VMDK mount"
+	@sudo losetup -d /dev/loop? || true > /dev/null
 	@vmware-vdiskmanager -R image.vmdk
 	@vmware-mount image.vmdk fs
 
@@ -86,4 +114,7 @@ deploy: all
 	@make umount
 
 run: deploy
-	@VirtualBox --startvm VM
+	VirtualBox --startvm VM
+
+bochs: deploy
+	bochs -f bochsrc	

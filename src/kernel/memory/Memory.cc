@@ -46,24 +46,24 @@ static page_tree_node_t* node_get_child(page_tree_node_t* node, uint64_t idx) {
 }
 
 static void map_page(page_tree_node_t* root, uint64_t virt, uint64_t phys) {
-    __outputhex((uint64_t)virt ,50);
 
     if (virt >= 0xffff800000000000) {
+    __outputhex((uint64_t)virt ,50);
         virt -= 0xffff000000000000;
     }
 
     virt = virt / 0x1000; // page index
-    uint64_t indexes[5] = {
-        virt / 512 / 512 / 512 / 512 % 512,
+    uint64_t indexes[4] = {
+//        virt / 512 / 512 / 512 / 512 % 512,
         virt / 512 / 512 / 512 % 512,
         virt / 512 / 512 % 512,
         virt / 512 % 512,
         virt % 512,
     };
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 3; i++) {
         root = node_get_child(root, indexes[i]);
     }
-    int index = indexes[4];
+    int index = indexes[3];
     root->entries[index].present = 1;
     root->entries[index].rw = 1;
     root->entries[index].user = 1;
@@ -86,15 +86,15 @@ void memory_initialize_default_paging() {
     for (uint64_t i = 0; i < 0x10000000; i += 0x1000) // 16 mb
         map_page(__initial_pml4, i, i);
 
-    //for (uint64_t i = 0; i < 0x10000000; i += 0x1000) // upper 16 mb
-      //  map_page(__initial_pml4, 0xffffffffffffffff - 0x10000000 + i, 0x10000000 + i);
+    for (uint64_t i = 0; i <= 0x10000000; i += 0x1000) // upper 16 mb
+        map_page(__initial_pml4, 0xffffffffffffffff - 0x10000000 + i, 0x10000000 + i);
 
     page_tree_node_t* r = __initial_pml4;
     r = node_get_child(r, 0);
     r = node_get_child(r, 0);
     r = node_get_child(r, 0);
     r = node_get_child(r, 2);
-    __outputhex(r->entries[265].present, 20);
+    //__outputhex(r->entries[265].present, 20);
     //for(;;);
     load_page_tree(__initial_pml4);
 }
