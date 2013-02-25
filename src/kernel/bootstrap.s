@@ -75,7 +75,7 @@ gdt_flushed:
 
     mov     edi, 3000h
     mov     edx, 4000h + 111b
-    mov     ecx, 20
+    mov     ecx, 25
 
 _loop_make_pd_entries:
     mov     dword [edi], edx
@@ -87,7 +87,7 @@ _loop_make_pd_entries:
 
     mov     edi,4000h              ; address of first page table 
     mov     eax,0 + 111b 
-    mov     ecx,512*20                ; number of pages to map (1 MB) 
+    mov     ecx,512*25                ; number of pages to map (1 MB) 
 _loop_make_page_entries: 
     stosd 
     add     edi,4 
@@ -125,8 +125,14 @@ bits 64
 
 loader64:
 
-        mov     rax,'L O N G ' 
-        mov     [0B8000h],rax 
+    mov     rax,'L O N G ' 
+    mov     [0B8000h],rax 
+
+    mov     rax, LONG_SELECTOR
+    mov     ds, ax
+    mov     es, ax
+    mov     fs, ax
+    mov     gs, ax
 
     call    kmain
     jmp     $

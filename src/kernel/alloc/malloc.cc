@@ -64,6 +64,12 @@ extern void* kmalloc(int size) {
     return dlmalloc(size);
 }
 
+extern void* kvalloc(int size) {
+    //KTRACE
+    return dlvalloc(size);
+}
+
+
 extern void  kfree(void* ptr) {
     //KTRACE
     dlfree(ptr);

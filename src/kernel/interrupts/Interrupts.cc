@@ -48,19 +48,15 @@ static void default_irq_handler(isrq_registers_t* regs) {
     klog('t', "IRQ #%i, counter %u", regs->int_no, interrupt_counter);
 }
 
+
 extern "C" void isr_handler(isrq_registers_t* regs) {
     interrupt_counter++;
     //*((char *)0xb8000) = ('0'+regs.int_no);
 
-    char chr[] = "0123456789abcdef";
+    __outputhex(regs->int_no, 16);
+    __outputhex(regs->err_code, 30);
 
-    uint64_t cr0 =(uint64_t) regs->int_no;
-    for (char c = 0; c < 32; c++) {
-        *((char *)0xb8000 + c * 2) = chr[cr0 % 16];
-        *((char *)0xb8000 + c * 2 + 1) = 0x0f;
-        cr0 /=16;
-    }
-    for (int c = 0; c < 32000000; c++);
+    for (int c = 0; c < 3200000; c++);
     //for(;;);
 
 return;

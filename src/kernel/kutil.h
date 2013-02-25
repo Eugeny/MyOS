@@ -1,7 +1,8 @@
 #ifndef KUTIL_H
 #define KUTIL_H
 
-#include "kconfig.h"
+#include <lang/lang.h>
+#include <kconfig.h>
 #include <stdio.h>
 
 
@@ -19,6 +20,8 @@ void ktrace(const char* file, int line);
 void ktrace(const char* file, int line, const char* msg);
 void ktracemem(const char* file, int line);
 
+
+void __outputhex(uint64_t h, int offset);
 void microtrace();
 void sout(const char* str);
 

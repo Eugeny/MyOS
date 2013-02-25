@@ -8,6 +8,7 @@
 #include <hardware/pit/PIT.h>
 #include <interrupts/IDT.h>
 #include <interrupts/Interrupts.h>
+#include <memory/Memory.h>
 #include <tty/Terminal.h>
 #include <tty/Escape.h>
 #include <tty/PhysicalTerminalManager.h>
@@ -28,18 +29,23 @@ void pit_handler(isrq_registers_t* regs) {
 }
 
 extern "C" void kmain () {
+    memory_initialize_default_paging();
+ 
     char* ptr = 0;
     for (char c = 0; c < 20; c++) {
         volatile char data = *(ptr + c * 1024*1024);
         *((char *)0xb8000) = ('0'+c);
     }
 
+    volatile char data = *((uint64_t*)0xffffffffffffffe0);
+for(;;);
+
     asm volatile("cli");
 
 
     //klog('i', "Setting IDT");
     IDT idt;
-    idt.init();
+    //idt.init();
     sout("idt ok");
 
     
@@ -59,7 +65,7 @@ extern "C" void kmain () {
         cr0 /=2;
     }
 
-    for (;;);
+    //for (;;);
 
 
     //microtrace();

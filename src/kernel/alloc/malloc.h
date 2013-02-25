@@ -10,6 +10,7 @@ struct kheap_info_t {
 
 
 extern void* kmalloc(int size);
+extern void* kvalloc(int size);
 extern void  kfree(void* ptr);
 
 extern kheap_info_t kmallinfo();

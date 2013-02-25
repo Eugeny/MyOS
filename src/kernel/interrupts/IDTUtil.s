@@ -3,4 +3,4 @@ _IDT_Flush:
     mov rax, rdi
     lidt [rax]
     sti
-    retq
+    ret

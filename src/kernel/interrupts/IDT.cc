@@ -158,7 +158,7 @@ void IDT::init() {
     setGate(255, (uint64_t)isr255, selector, 0x8E);
 
     flush();
-    sout("TRACE");for(;;);
+    //sout("TRACE");for(;;);
 }
 
 void IDT::setGate(uint8_t num, uint64_t base, uint16_t sel, uint8_t flags) {

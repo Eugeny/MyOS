@@ -9,7 +9,7 @@ typedef struct registers
 {
     uint64_t rbp, rdi, rsi, r15, r14, r13, r12, r11, r10, rdx, rcx, rbx, rax; // Pushed by pusha.
     uint8_t int_no, err_code;    // Interrupt number and error code (if applicable)
-    uint64_t rip, cs, rflags, userrsp, ss; // Pushed by the processor automatically.
+    uint64_t dunno, rip, rflags, userrsp, ss; // Pushed by the processor automatically.
 } isrq_registers_t;
 
 
