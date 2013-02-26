@@ -6,12 +6,13 @@
 
 #define BS_IDX(a) (a / 64)
 #define BS_OFF(a) (a % 64)
+#define BIT(a) ((uint64_t)1 << a)
 
 
 void FrameAlloc::init(uint64_t total) {
     totalFrames = total;
     framesBitmap = (uint64_t*)kmalloc(total / 64);
-    for (int i = 0; i < totalFrames / 64; i++)
+    for (uint64_t i = 0; i < totalFrames / 64; i++)
         framesBitmap[i] = 0;
     usedFrames = 0;
 }
@@ -19,18 +20,19 @@ void FrameAlloc::init(uint64_t total) {
 void FrameAlloc::markAllocated(uint64_t frame) {
     uint64_t idx = BS_IDX(frame);
     uint8_t  off = BS_OFF(frame);
-    if (!(framesBitmap[idx] & (0x1 << off)))
+    if (!(framesBitmap[idx] & BIT(off)))
         usedFrames++;
-    framesBitmap[idx] |= (0x1 << off);
+    framesBitmap[idx] |= BIT(off);
 }
 
 uint64_t FrameAlloc::allocate() {
     for (uint64_t i = 0; i < BS_IDX(totalFrames); i++)
         if (framesBitmap[i] != 0xFFFFFFFFFFFFFFFF)
             for (uint64_t j = 0; j < 64; j++)
-                if (!(framesBitmap[i] & (1 << j))) {
+                if (!(framesBitmap[i] & BIT(j))) {
                     uint64_t frame = i * 64 + j;
                     markAllocated(frame);
+                    klog('t', "Allocated frame %lx", frame);
                     return frame;
                 }
     return (uint64_t)(-1);
@@ -39,9 +41,9 @@ uint64_t FrameAlloc::allocate() {
 void FrameAlloc::release(uint64_t frame) {
     uint64_t idx = BS_IDX(frame);
     uint8_t  off = BS_OFF(frame);
-    if (framesBitmap[idx] & (0x1 << off))
+    if (framesBitmap[idx] & BIT(off))
         usedFrames--;
-    framesBitmap[idx] &= ~(0x1 << off);
+    framesBitmap[idx] &= ~(BIT(off));
 }
 
 uint64_t FrameAlloc::getTotal() {

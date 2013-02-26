@@ -26,6 +26,7 @@ static void initialize_node_entry(page_tree_node_entry_t* entry) {
     entry->present = 0;
     entry->rw = 1;
     entry->user = 1;
+    entry->unused = 0;
     entry->address = 0xcccccccc; // trap
 }
 
@@ -92,7 +93,18 @@ void memory_map_page(page_tree_node_t* root, uint64_t virt, uint64_t phys) {
 
 void memory_load_page_tree(page_tree_node_t* root) {
     CPU::setCR3((uint64_t)root);
-    CPU::setCR0(CPU::getCR0() | 0x8000000);
+    /*uint64_t v;
+    asm volatile("mov %%cr0, %0": "=r"(v));
+    v &= 0x7FFFFFFF;
+    asm volatile("mov %0, %%cr0":: "r"(v));
+    v |= 0x80000000;
+    asm volatile("mov %0, %%cr0":: "r"(v));
+    asm volatile("mov %%cr3, %0": "=r"(v));
+    asm volatile("mov %0, %%cr3":: "r"(v));*/
+    //CPU::setCR0(CPU::getCR0() & 0x7FFFFFFF);
+    //CPU::setCR3((uint64_t)0);
+    //CPU::setCR3((uint64_t)root);
+    //CPU::setCR0(CPU::getCR0() | 0x80000000);
 }
 
 void memory_initialize_default_paging() {
@@ -103,12 +115,12 @@ void memory_initialize_default_paging() {
     //__initial_heap = (uint64_t)__initial_pml4 + sizeof(page_tree_node_t);
     
     
-    for (uint64_t i = 0; i < KCFG_LOW_IDENTITY_PAGING_LENGTH; i += KCFG_PAGE_SIZE) { // 64 mb
+    for (uint64_t i = 0; i < KCFG_LOW_IDENTITY_PAGING_LENGTH; i += KCFG_PAGE_SIZE) {
         memory_map_page(__initial_pml4, i, i);
         FrameAlloc::get()->markAllocated(i / KCFG_PAGE_SIZE);
     }
 
-    for (uint64_t i = 0; i <= KCFG_HIGH_IDENTITY_PAGING_LENGTH; i += KCFG_PAGE_SIZE) { // upper 16 mb
+    for (uint64_t i = 0; i <= KCFG_HIGH_IDENTITY_PAGING_LENGTH; i += KCFG_PAGE_SIZE) { 
         memory_map_page(__initial_pml4, 0xffffffffffffffff - KCFG_HIGH_IDENTITY_PAGING_LENGTH + i, KCFG_LOW_IDENTITY_PAGING_LENGTH + i);
         FrameAlloc::get()->markAllocated((KCFG_LOW_IDENTITY_PAGING_LENGTH + i) / KCFG_PAGE_SIZE);
     }
@@ -130,7 +142,7 @@ void Memory::allocatePage(page_tree_node_entry_t* page) {
 }
 
 void Memory::mapPage(page_tree_node_entry_t* page, uint64_t phy) {
-    klog('t', "mapping frame %lx", phy);
+    klog('t', "Mapping page %lx -> %lx",page, phy);
     page->address = phy / KCFG_PAGE_SIZE;
     page->present = true;
 }
@@ -141,6 +153,8 @@ void Memory::releasePage(page_tree_node_entry_t* page) {
 }
 
 void Memory::handlePageFault(isrq_registers_t* reg) {
+    dump(AddressSpace::current->getRoot());
+
     const char* fPresent  = (reg->err_code & 1) ? "P" : "-";
     const char* fWrite    = (reg->err_code & 2) ? "W" : "-";
     const char* fUser     = (reg->err_code & 4) ? "U" : "-";
@@ -151,4 +165,64 @@ void Memory::handlePageFault(isrq_registers_t* reg) {
     klog('e', "Faulting code    : %lx", reg->rip);
     klog_flush();
     for(;;);
+}
+
+
+static void recursiveDump(page_tree_node_t* node, int level) {
+    static uint64_t skips[4] = {
+        512 * 512 * 512,
+        512 * 512,
+        512
+    };
+
+    static uint64_t addr, startPhy, startVirt, lastVirt, lastPhy, len;
+    static bool started = false;
+
+    if (level == 0) {
+        addr = 0;
+        startPhy = 0;
+        startVirt = 0;
+        len = 0;
+        started = false;
+        lastVirt = -1;
+    }
+
+    if (!node) {
+        for(;;);
+    }
+    for (int i = 0; i < ((level == 0) ? 512 : 512); i++) {
+        if (addr >= 0x0000800000000000 && addr < 0xffff800000000000)
+            addr += 0xffff000000000000;
+
+        if (level == 3) {
+            if (node->entries[i].present) {
+                startVirt = addr;
+                startPhy = node->entries[i].address * KCFG_PAGE_SIZE;
+                if ((startVirt != lastVirt + KCFG_PAGE_SIZE) || (startPhy != lastPhy + KCFG_PAGE_SIZE)) {
+                    if (started)
+                        klog('i', " == %lx", len * KCFG_PAGE_SIZE);
+                    started = true;
+                    klog('i', "%lx -> %lx", startVirt, startPhy);
+                    klog_flush();
+                    len = 1;
+                } else {
+                    len++;
+                }
+
+                lastVirt = startVirt;
+                lastPhy = startPhy;
+            }
+            addr += KCFG_PAGE_SIZE;
+        } else {
+            if (node->entries[i].present) {
+                recursiveDump(node_get_child(node, i, false), level + 1);
+            } else {
+                addr += skips[level] * KCFG_PAGE_SIZE;
+            }
+        }
+    }
+}
+
+void Memory::dump(page_tree_node_t* root) {
+    recursiveDump(root, 0);
 }

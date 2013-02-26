@@ -10,6 +10,7 @@
 #include <interrupts/IDT.h>
 #include <interrupts/Interrupts.h>
 #include <memory/AddressSpace.h>
+#include <memory/FrameAlloc.h>
 #include <memory/Memory.h>
 #include <tty/Terminal.h>
 #include <tty/Escape.h>
@@ -78,19 +79,6 @@ extern "C" void kmain () {
     Interrupts::get()->setHandler(13, handleGPF);
     Interrupts::get()->setHandler(14, handlePF);
 
-
-    KTRACEMEM
-
-    klog('d', "alloc: %lx", kmalloc(1024));
-
-    KTRACEMEM
-
-    klog('d', "alloc: %lx", kmalloc(10240));
-
-    KTRACEMEM
-
-    klog('d', "alloc: %lx", kmalloc(102400));
-
     KTRACEMEM
 
     klog('d', "alloc: %lx", kmalloc(1024000));
@@ -98,8 +86,20 @@ extern "C" void kmain () {
     KTRACEMEM
 
     AddressSpace* as = AddressSpace::kernelSpace;
-    //as->mapPage(0x910000000, 0x100000000);
-    //*((uint64_t*)0xdeadbeef22) = 5;
+    
+
+    //    as->mapPage(0x910000000, 0x1000000);
+    as->allocateSpace(0x910000, 0x20000);
+    as->activate();
+         *((uint64_t*)0x910010) = 5;
+
+    //*((uint64_t*)     0xc00000020) = 5;
+
+    //as->allocateSpace(0x30000000, 0x1000);
+    //as->allocateSpace(0x30010000, 0x1000);
+    //as->allocateSpace(0x30020000, 0x1000);
+    
+    KTRACEMEM
 
     Terminal* t = PhysicalTerminalManager::get()->getActiveTerminal();
 

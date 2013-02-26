@@ -11,9 +11,11 @@ public:
     ~AddressSpace();
 
     static AddressSpace* kernelSpace;
+    static AddressSpace* current;
 
     void _setRoot(page_tree_node_t* r);
 
+    page_tree_node_t*       getRoot();
     void                    activate();
     void                    reset();
     AddressSpace*           clone();

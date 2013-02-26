@@ -33,6 +33,7 @@ public:
     void allocatePage(page_tree_node_entry_t* page);
     void mapPage(page_tree_node_entry_t* page, uint64_t phy);
     void releasePage(page_tree_node_entry_t* page);
+    void dump(page_tree_node_t* root);
 
     void handlePageFault(isrq_registers_t* reg);
 

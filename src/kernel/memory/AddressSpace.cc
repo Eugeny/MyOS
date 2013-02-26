@@ -4,6 +4,8 @@
 
 
 AddressSpace* AddressSpace::kernelSpace = NULL;
+AddressSpace* AddressSpace::current = NULL;
+
 
 AddressSpace::AddressSpace() {
 }
@@ -14,6 +16,11 @@ AddressSpace::~AddressSpace() {
 
 void AddressSpace::activate() {
     memory_load_page_tree(root);
+    current = this;
+}
+
+page_tree_node_t* AddressSpace::getRoot() {
+    return root;
 }
 
 void AddressSpace::_setRoot(page_tree_node_t* r) {
@@ -26,14 +33,11 @@ page_tree_node_entry_t* AddressSpace::getPage(uint64_t virt, bool create) {
 
 page_tree_node_entry_t *AddressSpace::allocatePage(uint64_t virt) {
     page_tree_node_entry_t* page = getPage(virt, false);
-    KTRACEMEM
     klog('t', "Allocating vaddr %lx", virt);
     if (!page) {
-        klog('t', "Creating page for %lx", virt);
         page = getPage(virt, true);
     }
     if (!page->present) {
-        klog('t', "Allocating mem for %lx", virt);
         Memory::get()->allocatePage(page);
     }
     return page;
@@ -41,7 +45,7 @@ page_tree_node_entry_t *AddressSpace::allocatePage(uint64_t virt) {
 
 void AddressSpace::allocateSpace(uint64_t base, uint64_t size) {
     base = base / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
-    size += KCFG_PAGE_SIZE;
+    size = (size + 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
     for (uint64_t v = base; v < base + size; v += KCFG_PAGE_SIZE) {
         allocatePage(v);
     }
@@ -49,6 +53,7 @@ void AddressSpace::allocateSpace(uint64_t base, uint64_t size) {
 
 
 void AddressSpace::mapPage(uint64_t virt, uint64_t phy) {
+    klog('t', "Mapping page: %lx -> %lx", virt, phy);
     page_tree_node_entry_t* page = getPage(virt, true);
     Memory::get()->mapPage(page, phy);
 }

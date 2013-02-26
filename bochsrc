@@ -3,3 +3,4 @@ boot: disk
 display_library: sdl
 cpu: ips=100000000 reset_on_triple_fault=0
 magic_break: enabled=1
+megs: 512
