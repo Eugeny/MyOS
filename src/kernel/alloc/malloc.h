@@ -9,10 +9,12 @@ struct kheap_info_t {
 };
 
 
-extern void* kmalloc(int size);
-extern void* kvalloc(int size);
-extern void  kfree(void* ptr);
+void kalloc_switch_to_main_heap();
 
-extern kheap_info_t kmallinfo();
+void* kmalloc(int size);
+void* kvalloc(int size);
+void  kfree(void* ptr);
+
+kheap_info_t kmallinfo();
 
 #endif

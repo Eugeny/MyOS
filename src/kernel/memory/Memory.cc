@@ -1,4 +1,6 @@
 #include <alloc/malloc.h>
+#include <core/CPU.h>
+#include <memory/AddressSpace.h>
 #include <memory/FrameAlloc.h>
 #include <memory/Memory.h>
 #include <kutil.h>
@@ -7,6 +9,7 @@
 
 // -----------------------------
 // Page tree operations
+
 page_tree_node_t* __initial_pml4;
 
 static uint64_t __allocate_heap(uint64_t sz) {
@@ -53,8 +56,6 @@ static page_tree_node_t* node_get_child(page_tree_node_t* node, uint64_t idx, bo
 }
 
 // -----------------------------
-// Page tree operations
-
 
 page_tree_node_entry_t* memory_get_page(page_tree_node_t* root, uint64_t virt, bool create) {
     // Skip memory hole
@@ -90,11 +91,8 @@ void memory_map_page(page_tree_node_t* root, uint64_t virt, uint64_t phys) {
 }
 
 void memory_load_page_tree(page_tree_node_t* root) {
-    asm volatile("mov %0, %%cr3":: "r"(root));
-    uint64_t cr0;
-    asm volatile("mov %%cr0, %0": "=r"(cr0));
-    cr0 |= 0x80000000; // Enable paging!
-    asm volatile("mov %0, %%cr0":: "r"(cr0));
+    CPU::setCR3((uint64_t)root);
+    CPU::setCR0(CPU::getCR0() | 0x8000000);
 }
 
 void memory_initialize_default_paging() {
@@ -118,12 +116,39 @@ void memory_initialize_default_paging() {
     memory_load_page_tree(__initial_pml4);
 }
 
+
+
+void Memory::init() {
+    AddressSpace* kernelSpace = new AddressSpace();
+    kernelSpace->_setRoot(__initial_pml4);
+    AddressSpace::kernelSpace = kernelSpace;
+    kernelSpace->activate();
+}
+
 void Memory::allocatePage(page_tree_node_entry_t* page) {
-    page->address = FrameAlloc::get()->allocate() / KCFG_PAGE_SIZE;
+    mapPage(page, FrameAlloc::get()->allocate() * KCFG_PAGE_SIZE);
+}
+
+void Memory::mapPage(page_tree_node_entry_t* page, uint64_t phy) {
+    klog('t', "mapping frame %lx", phy);
+    page->address = phy / KCFG_PAGE_SIZE;
     page->present = true;
 }
 
 void Memory::releasePage(page_tree_node_entry_t* page) {
     initialize_node_entry(page);
     page->present = false;
+}
+
+void Memory::handlePageFault(isrq_registers_t* reg) {
+    const char* fPresent  = (reg->err_code & 1) ? "P" : "-";
+    const char* fWrite    = (reg->err_code & 2) ? "W" : "-";
+    const char* fUser     = (reg->err_code & 4) ? "U" : "-";
+    const char* fRW       = (reg->err_code & 8) ? "R" : "-";
+    const char* fIFetch   = (reg->err_code & 16) ? "I" : "-";
+    klog('e', "PAGE FAULT [%s%s%s%s%s]", fPresent, fWrite, fUser, fRW, fIFetch);
+    klog('e', "Faulting address : %lx", CPU::getCR2());
+    klog('e', "Faulting code    : %lx", reg->rip);
+    klog_flush();
+    for(;;);
 }

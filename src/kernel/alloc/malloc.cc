@@ -1,5 +1,6 @@
 #include "malloc.h"
 #include "lang/lang.h"
+#include "memory/AddressSpace.h"
 #include "kutil.h"
 
 // -----------------------------
@@ -30,8 +31,9 @@
 
     typedef int ptrdiff_t;
 
-    char theap[1024000];
-    void* hptr = (void*)theap;
+    static char theap[1024000];
+    static void* hptr = (void*)theap;
+    static bool large_heap_active = false;
 
     extern "C" void* __dlmalloc_sbrk(int size) {
         KTRACE
@@ -58,28 +60,30 @@
 // DMALLOC END
 // -----------------------------
 
-extern void* kalloc_switch_heap(void* new_heap) {
-    hptr = new_heap;
+void kalloc_switch_to_main_heap() {
+    AddressSpace::kernelSpace->allocateSpace(KCFG_KERNEL_HEAP_START, KCFG_KERNEL_HEAP_SIZE);
+    hptr = (void*)KCFG_KERNEL_HEAP_START;
+    large_heap_active = true;
 }
 
-extern void* kmalloc(int size) {
+void* kmalloc(int size) {
     //KTRACE
     return dlmalloc(size);
 }
 
-extern void* kvalloc(int size) {
+void* kvalloc(int size) {
     //KTRACE
     return dlvalloc(size);
 }
 
 
-extern void  kfree(void* ptr) {
+void  kfree(void* ptr) {
     //KTRACE
     dlfree(ptr);
 }
 
 
-extern kheap_info_t kmallinfo() {
+kheap_info_t kmallinfo() {
     kheap_info_t info;
     mallinfo mi = dlmallinfo();
     info.total_bytes = mi.arena;

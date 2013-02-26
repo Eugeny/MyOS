@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <memory/FrameAlloc.h>
 #include <tty/Escape.h>
 #include <tty/PhysicalTerminalManager.h>
 
@@ -67,6 +68,9 @@ void klog(char type, const char* format, ...) {
         } else if (type == 'w') {
             t->write(Escape::C_B_YELLOW);
             t->write("WARN ");
+        } else if (type == 'e') {
+            t->write(Escape::C_B_RED);
+            t->write("ERROR");
         } else if (type == 'i') {
             t->write(Escape::C_B_CYAN);
             t->write("INFO ");
@@ -108,5 +112,11 @@ void ktrace(const char* file, int line, const char* msg) {
 
 void ktracemem(const char* file, int line) {
     kheap_info_t mem = kmallinfo();
-    klog('t', "%s:%i : %i/%i bytes", file, line, mem.used_bytes, mem.total_bytes);   
+    klog('t', "Memory trace: %s:%i", file, line);   
+    klog('t', "Heap:   %i/%i bytes", mem.used_bytes, mem.total_bytes);   
+    klog('t', "Frames: %i/%i", FrameAlloc::get()->getAllocated(), FrameAlloc::get()->getTotal());   
+}
+
+void klog_flush() {
+    PhysicalTerminalManager::get()->render();
 }

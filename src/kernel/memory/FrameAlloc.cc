@@ -17,17 +17,16 @@ void FrameAlloc::init(uint64_t total) {
 }
 
 void FrameAlloc::markAllocated(uint64_t frame) {
-    frame /= KCFG_PAGE_SIZE;
     uint64_t idx = BS_IDX(frame);
     uint8_t  off = BS_OFF(frame);
-    if (!framesBitmap[idx] & (0x1 << off))
+    if (!(framesBitmap[idx] & (0x1 << off)))
         usedFrames++;
     framesBitmap[idx] |= (0x1 << off);
 }
 
 uint64_t FrameAlloc::allocate() {
     for (uint64_t i = 0; i < BS_IDX(totalFrames); i++)
-        if (framesBitmap[i] != 0xFFFFFFFF)
+        if (framesBitmap[i] != 0xFFFFFFFFFFFFFFFF)
             for (uint64_t j = 0; j < 64; j++)
                 if (!(framesBitmap[i] & (1 << j))) {
                     uint64_t frame = i * 64 + j;
@@ -38,7 +37,6 @@ uint64_t FrameAlloc::allocate() {
 }
 
 void FrameAlloc::release(uint64_t frame) {
-    frame /= KCFG_PAGE_SIZE;
     uint64_t idx = BS_IDX(frame);
     uint8_t  off = BS_OFF(frame);
     if (framesBitmap[idx] & (0x1 << off))

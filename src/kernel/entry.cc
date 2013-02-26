@@ -4,10 +4,12 @@
 #include <vector>
 #include <map>
 
+#include <core/CPU.h>
 #include <hardware/cmos/CMOS.h>
 #include <hardware/pit/PIT.h>
 #include <interrupts/IDT.h>
 #include <interrupts/Interrupts.h>
+#include <memory/AddressSpace.h>
 #include <memory/Memory.h>
 #include <tty/Terminal.h>
 #include <tty/Escape.h>
@@ -32,38 +34,40 @@ void irq7_mute(isrq_registers_t* regs) {
 
 }
 
-extern "C" void kmain () {
-    memory_initialize_default_paging();
- 
-    klog_init();
+void handlePF(isrq_registers_t* regs) {
+    Memory::get()->handlePageFault(regs);
+}
 
-    volatile char data = *((uint64_t*)0xffffffffffffffe0);
+void handleGPF(isrq_registers_t* regs) {
+    klog('e', "GENERAL PROTECTION FAULT");
+    klog('e', "Faulting code: %lx", regs->rip);
+    klog_flush();
+    for(;;);
+}
+
+
+extern "C" void kmain () {
+    CPU::enableSSE();
+    
+    memory_initialize_default_paging();
+    Memory::get()->init();
+
+    kalloc_switch_to_main_heap();
+
+    klog_init();
 
     asm volatile("cli");
     asm volatile("clts");
 
 
-    // ENABLE SSE/MMX
-    uint64_t cr4;
-    asm volatile(" mov %%cr4, %0": "=r"(cr4));
-    cr4 |= 1 << 8;
-    cr4 |= 1 << 9;
-    asm volatile(" mov %0, %%cr4":: "r"(cr4));
-    // --------------
-
-
     PhysicalTerminalManager::get()->init(5);
     klog_init_terminal();
     klog('i', "Kernel log started");
+    PhysicalTerminalManager::get()->render();
 
     klog('i', "Setting IDT");
-    IDT idt;
-    idt.init();
+    IDT::get()->init();
 
-    //microtrace();
-    klog('t',"test");
-
-    PhysicalTerminalManager::get()->render();
     klog('i', "Time is %u", CMOS::get()->readTime());
 
 
@@ -71,13 +75,31 @@ extern "C" void kmain () {
     PIT::get()->setFrequency(2500);
     Interrupts::get()->setHandler(IRQ(0), pit_handler);
     Interrupts::get()->setHandler(IRQ(7), irq7_mute);
+    Interrupts::get()->setHandler(13, handleGPF);
+    Interrupts::get()->setHandler(14, handlePF);
+
 
     KTRACEMEM
-    //auto i = new std::map<std::string,std::string> { { "a", "b" }, { "c", "d"} };
-    //auto i = new std::map<char*,char*> { { "a", "b" }, { "c", "d"} };
-    //KTRACEMEM
-    //delete i;
-    //KTRACEMEM
+
+    klog('d', "alloc: %lx", kmalloc(1024));
+
+    KTRACEMEM
+
+    klog('d', "alloc: %lx", kmalloc(10240));
+
+    KTRACEMEM
+
+    klog('d', "alloc: %lx", kmalloc(102400));
+
+    KTRACEMEM
+
+    klog('d', "alloc: %lx", kmalloc(1024000));
+
+    KTRACEMEM
+
+    AddressSpace* as = AddressSpace::kernelSpace;
+    //as->mapPage(0x910000000, 0x100000000);
+    //*((uint64_t*)0xdeadbeef22) = 5;
 
     Terminal* t = PhysicalTerminalManager::get()->getActiveTerminal();
 

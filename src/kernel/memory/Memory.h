@@ -3,6 +3,7 @@
 
 #include <lang/lang.h>
 #include <lang/Singleton.h>
+#include <interrupts/Interrupts.h>
 
 
 struct page_tree_node_entry_t {
@@ -27,8 +28,14 @@ void memory_load_page_tree(page_tree_node_t* root);
 
 class Memory : public Singleton<Memory> {
 public:
+    void init();
+
     void allocatePage(page_tree_node_entry_t* page);
+    void mapPage(page_tree_node_entry_t* page, uint64_t phy);
     void releasePage(page_tree_node_entry_t* page);
+
+    void handlePageFault(isrq_registers_t* reg);
+
 private:    
 };
 #endif

@@ -32,6 +32,7 @@ void sout(const char* str);
 void klog_init();
 void klog_init_terminal();
 void klog(char type, const char* format, ...);
+void klog_flush();
 
 //void sout(const char* str);
 

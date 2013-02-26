@@ -42,7 +42,10 @@ ASFLAGS=-felf64
 SOURCES= \
 	src/kernel/bootstrap.o 						\
 	src/kernel/entry.o 							\
+												\
 	src/kernel/alloc/malloc.o 					\
+												\
+	src/kernel/core/CPU.o 						\
 												\
 	src/kernel/hardware/io.o 					\
 	src/kernel/hardware/cmos/CMOS.o 			\
