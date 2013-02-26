@@ -50,10 +50,15 @@ static page_tree_node_t* node_get_child(page_tree_node_t* node, uint64_t idx, bo
         page_tree_node_t* child = allocate_node();
         initialize_node(child);
         node->entries[idx].present = 1;
-        node->entries[idx].address = (uint64_t)child / KCFG_PAGE_SIZE; 
+        node->entriesPhysical[idx] = child;
+        if (AddressSpace::current)
+            node->entries[idx].address = memory_get_physical_address(AddressSpace::current->getRoot(), (uint64_t)child) / KCFG_PAGE_SIZE; 
+        else
+            node->entries[idx].address = (uint64_t)child / KCFG_PAGE_SIZE; 
+
         return child;
     }
-    return (page_tree_node_t*)(node->entries[idx].address * KCFG_PAGE_SIZE);
+    return node->entriesPhysical[idx];
 }
 
 // -----------------------------
@@ -83,6 +88,12 @@ page_tree_node_entry_t* memory_get_page(page_tree_node_t* root, uint64_t virt, b
     return &(root->entries[index]);
 }
 
+uint64_t memory_get_physical_address(page_tree_node_t* root, uint64_t virt) {
+    uint64_t offset = virt % KCFG_PAGE_SIZE;
+    return memory_get_page(root, virt, false)->address * KCFG_PAGE_SIZE + offset;
+}
+
+
 void memory_map_page(page_tree_node_t* root, uint64_t virt, uint64_t phys) {
     page_tree_node_entry_t* page = memory_get_page(root, virt, true);
     page->present = 1;
@@ -99,8 +110,10 @@ void memory_load_page_tree(page_tree_node_t* root) {
     asm volatile("mov %0, %%cr0":: "r"(v));
     v |= 0x80000000;
     asm volatile("mov %0, %%cr0":: "r"(v));
-    asm volatile("mov %%cr3, %0": "=r"(v));
-    asm volatile("mov %0, %%cr3":: "r"(v));*/
+
+    asm volatile("mov %%cr3, %0": "=r"(v));*/
+    //asm volatile("mov %0, %%cr3":: "r"((uint64_t)KCFG_PML4_LOCATION));
+    //asm volatile("mov %0, %%cr3":: "r"(root));
     //CPU::setCR0(CPU::getCR0() & 0x7FFFFFFF);
     //CPU::setCR3((uint64_t)0);
     //CPU::setCR3((uint64_t)root);
@@ -113,7 +126,10 @@ void memory_initialize_default_paging() {
 
     FrameAlloc::get()->init((512*1024*1024) / KCFG_PAGE_SIZE);
     //__initial_heap = (uint64_t)__initial_pml4 + sizeof(page_tree_node_t);
-    
+
+    AddressSpace* kernelSpace = new AddressSpace();
+    AddressSpace::kernelSpace = kernelSpace;
+    kernelSpace->_setRoot(__initial_pml4);    
     
     for (uint64_t i = 0; i < KCFG_LOW_IDENTITY_PAGING_LENGTH; i += KCFG_PAGE_SIZE) {
         memory_map_page(__initial_pml4, i, i);
@@ -125,16 +141,13 @@ void memory_initialize_default_paging() {
         FrameAlloc::get()->markAllocated((KCFG_LOW_IDENTITY_PAGING_LENGTH + i) / KCFG_PAGE_SIZE);
     }
 
-    memory_load_page_tree(__initial_pml4);
+    kernelSpace->activate();
+//    memory_load_page_tree(__initial_pml4);
 }
 
 
 
 void Memory::init() {
-    AddressSpace* kernelSpace = new AddressSpace();
-    kernelSpace->_setRoot(__initial_pml4);
-    AddressSpace::kernelSpace = kernelSpace;
-    kernelSpace->activate();
 }
 
 void Memory::allocatePage(page_tree_node_entry_t* page) {
@@ -175,7 +188,7 @@ static void recursiveDump(page_tree_node_t* node, int level) {
         512
     };
 
-    static uint64_t addr, startPhy, startVirt, lastVirt, lastPhy, len;
+    static uint64_t addr, startPhy, startVirt, lastVirt, lastPhy, len, index[4];
     static bool started = false;
 
     if (level == 0) {
@@ -194,6 +207,8 @@ static void recursiveDump(page_tree_node_t* node, int level) {
         if (addr >= 0x0000800000000000 && addr < 0xffff800000000000)
             addr += 0xffff000000000000;
 
+        index[level] = i;
+
         if (level == 3) {
             if (node->entries[i].present) {
                 startVirt = addr;
@@ -202,7 +217,8 @@ static void recursiveDump(page_tree_node_t* node, int level) {
                     if (started)
                         klog('i', " == %lx", len * KCFG_PAGE_SIZE);
                     started = true;
-                    klog('i', "%lx -> %lx", startVirt, startPhy);
+                    klog('i', "%lx -> %lx [%i-%i-%i-%i]", startVirt, startPhy, 
+                        index[0], index[1], index[2], index[3]);
                     klog_flush();
                     len = 1;
                 } else {

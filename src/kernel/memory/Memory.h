@@ -17,14 +17,15 @@ struct page_tree_node_entry_t {
 
 struct page_tree_node_t {
     page_tree_node_entry_t entries[512];
+    page_tree_node_t* entriesPhysical[512];
 };
 
 
 void memory_initialize_default_paging();
 page_tree_node_entry_t* memory_get_page(page_tree_node_t* root, uint64_t virt, bool create);
 void memory_map_page(page_tree_node_t* root, uint64_t virt, uint64_t phys);
+uint64_t memory_get_physical_address(page_tree_node_t* root, uint64_t virt);
 void memory_load_page_tree(page_tree_node_t* root);
-
 
 class Memory : public Singleton<Memory> {
 public:

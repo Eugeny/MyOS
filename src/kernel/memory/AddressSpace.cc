@@ -31,6 +31,11 @@ page_tree_node_entry_t* AddressSpace::getPage(uint64_t virt, bool create) {
     return memory_get_page(root, virt, create);
 }
 
+uint64_t AddressSpace::getPhysicalAddress(uint64_t virt) {
+    return memory_get_physical_address(root, virt);
+}
+
+
 page_tree_node_entry_t *AddressSpace::allocatePage(uint64_t virt) {
     page_tree_node_entry_t* page = getPage(virt, false);
     klog('t', "Allocating vaddr %lx", virt);

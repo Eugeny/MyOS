@@ -89,9 +89,10 @@ extern "C" void kmain () {
     
 
     //    as->mapPage(0x910000000, 0x1000000);
-    as->allocateSpace(0x910000, 0x20000);
+    as->allocateSpace(0xffff800000000000, 0x20000);
     as->activate();
-         *((uint64_t*)0x910010) = 5;
+    CPU::invalidateTLB(0xffff800000000000);
+    *((uint64_t*)0xffff800000000010) = 5;
 
     //*((uint64_t*)     0xc00000020) = 5;
 
