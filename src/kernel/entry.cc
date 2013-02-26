@@ -28,6 +28,10 @@ void pit_handler(isrq_registers_t* regs) {
     microtrace();
 }
 
+void irq7_mute(isrq_registers_t* regs) {
+
+}
+
 extern "C" void kmain () {
     memory_initialize_default_paging();
  
@@ -36,13 +40,14 @@ extern "C" void kmain () {
     volatile char data = *((uint64_t*)0xffffffffffffffe0);
 
     asm volatile("cli");
+    asm volatile("clts");
 
 
     // ENABLE SSE/MMX
     uint64_t cr4;
     asm volatile(" mov %%cr4, %0": "=r"(cr4));
+    cr4 |= 1 << 8;
     cr4 |= 1 << 9;
-    cr4 |= 1 << 10;
     asm volatile(" mov %0, %%cr4":: "r"(cr4));
     // --------------
 
@@ -65,6 +70,7 @@ extern "C" void kmain () {
     klog('i', "Configuring timer");
     PIT::get()->setFrequency(2500);
     Interrupts::get()->setHandler(IRQ(0), pit_handler);
+    Interrupts::get()->setHandler(IRQ(7), irq7_mute);
 
     KTRACEMEM
     //auto i = new std::map<std::string,std::string> { { "a", "b" }, { "c", "d"} };

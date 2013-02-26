@@ -30,8 +30,8 @@
 
     typedef int ptrdiff_t;
 
-    char heap[10240000];
-    void* hptr = (void*)heap;
+    char theap[1024000];
+    void* hptr = (void*)theap;
 
     extern "C" void* __dlmalloc_sbrk(int size) {
         KTRACE
@@ -58,6 +58,9 @@
 // DMALLOC END
 // -----------------------------
 
+extern void* kalloc_switch_heap(void* new_heap) {
+    hptr = new_heap;
+}
 
 extern void* kmalloc(int size) {
     //KTRACE

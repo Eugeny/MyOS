@@ -38,8 +38,9 @@ LDFLAGS = \
 ASFLAGS=-felf64
 
 
+
 SOURCES= \
-	src/kernel/bootstrap.o 							\
+	src/kernel/bootstrap.o 						\
 	src/kernel/entry.o 							\
 	src/kernel/alloc/malloc.o 					\
 												\
@@ -53,6 +54,8 @@ SOURCES= \
 	src/kernel/interrupts/Interrupts.o 			\
 	src/kernel/interrupts/InterruptsUtil.o 		\
 												\
+	src/kernel/memory/AddressSpace.o 			\
+	src/kernel/memory/FrameAlloc.o 				\
 	src/kernel/memory/Memory.o 					\
 												\
 	src/kernel/tty/Escape.o 					\

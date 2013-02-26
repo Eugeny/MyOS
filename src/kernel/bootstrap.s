@@ -14,26 +14,26 @@ section .text
 ALIGN 16
 MbHdr:
     ; Magic
-    DD  0xE85250D6
+    dd  0xE85250D6
     ; Architecture
-    DD  0
+    dd  0
     ; Length
-    DD  HdrEnd - MbHdr
+    dd  HdrEnd - MbHdr
     ; Checksum
-    DD  -(0xE85250D6 + 0 + (HdrEnd - MbHdr))
+    dd  -(0xE85250D6 + 0 + (HdrEnd - MbHdr))
  
     ;
     ; Tags
     ;
     _mbir_start:
-    DW  1, 0
-    DD  16
-    DD  3,1
+    dw  1, 0
+    dd  16
+    dd  3,1
     _mbir_end:
 
     ; End Of Tags
-    DW  0, 0
-    DD  8
+    dw  0, 0
+    dd  8
  
     ; Hdr End Mark
 HdrEnd:
@@ -46,30 +46,34 @@ HdrEnd:
 
 loader:
     cli
-    mov  eax, stacktop
-    mov  esp, eax
+    mov     eax, stacktop
+    mov     esp, eax
 
     lgdt    [cs:GDTR]  
-         mov     eax,cr0                 ; switch to protected mode 
-        or      al,1 
-        mov     cr0,eax 
+
+    ; Ensure protected mode
+    mov     eax, cr0
+    or      al, 1 
+    mov     cr0, eax 
+
+    ; Flush GDT
     jmp     CODE_SELECTOR:gdt_flushed
 
 gdt_flushed:
-    mov     eax,DATA_SELECTOR       ; load 4 GB data descriptor 
-    mov     ds,ax                   ; to all data segment registers 
-    mov     es,ax 
-    mov     fs,ax 
-    mov     gs,ax 
-    mov     ss,ax 
+    mov     eax, DATA_SELECTOR       
+    mov     ds, ax                   
+    mov     es, ax 
+    mov     fs, ax 
+    mov     gs, ax 
+    mov     ss, ax 
 
-
-    ; Zero out pages
+    ; Zero out temporary pages
     mov     edi, 1000h 
     mov     ecx, 80000h 
     xor     eax, eax 
     rep     stosd                   
 
+    ; Identity map first megabytes
     mov     dword [1000h], 2000h + 111b ; first PDP table 
     mov     dword [2000h], 3000h + 111b ; first page directory 
 
@@ -77,6 +81,7 @@ gdt_flushed:
     mov     edx, 4000h + 111b
     mov     ecx, 25
 
+    ; Make PDs
 _loop_make_pd_entries:
     mov     dword [edi], edx
     add     edx, 1000h
@@ -85,9 +90,10 @@ _loop_make_pd_entries:
     cmp     ecx, 0
     jnz     _loop_make_pd_entries
 
-    mov     edi,4000h              ; address of first page table 
-    mov     eax,0 + 111b 
-    mov     ecx,512*25                ; number of pages to map (1 MB) 
+    ; Make page entries
+    mov     edi, 4000h             
+    mov     eax, 0 + 111b 
+    mov     ecx, 512*25 ; 50 mb just in case
 _loop_make_page_entries: 
     stosd 
     add     edi,4 
@@ -95,16 +101,14 @@ _loop_make_page_entries:
     loop    _loop_make_page_entries 
 
 
-
     ; Load PML4
     mov     eax, 1000h 
     mov     cr3, eax
 
     ; Enable Long mode
-    mov     ecx,0C0000080h          ; EFER MSR 
+    mov     ecx, 0C0000080h          ; EFER MSR 
     rdmsr 
-    ;or      eax, 1 >> 8             ; enable long mode 
-    bts eax,8
+    bts     eax, 8
     wrmsr 
 
     ; Enable PAE
@@ -113,20 +117,19 @@ _loop_make_page_entries:
     mov     cr4, eax
 
     ; Enable paging
-    mov     eax,cr0 
-    ;or      eax, 1 << 31
+    mov     eax, cr0 
     bts     eax, 31
-    mov     cr0,eax                 ; enable paging 
+    mov     cr0, eax
 
+    ; Go 64
     jmp     LONG_SELECTOR:loader64 
 
 
 bits 64
 
 loader64:
-
-    mov     rax,'L O N G ' 
-    mov     [0B8000h],rax 
+    mov     rax, '.p.p.p.p' 
+    mov     [0B8000h], rax 
 
     mov     rax, LONG_SELECTOR
     mov     ds, ax
@@ -151,8 +154,6 @@ GDT:
     dw 0FFFFh,0,9200h,08Fh              ; flat data desciptor 
     dw 0FFFFh,0,9A00h,0CFh              ; 32-bit code desciptor 
     dw 0FFFFh,0,9A00h,0AFh              ; 64-bit code desciptor 
-
-
 
 
 section .bss

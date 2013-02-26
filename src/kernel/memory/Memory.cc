@@ -1,17 +1,17 @@
 #include <alloc/malloc.h>
+#include <memory/FrameAlloc.h>
 #include <memory/Memory.h>
 #include <kutil.h>
 
 
+
+// -----------------------------
+// Page tree operations
 page_tree_node_t* __initial_pml4;
-uint64_t __initial_heap;
 
 static uint64_t __allocate_heap(uint64_t sz) {
-    sz = ((sz + 0x0fff) / 0x1000) * 0x1000;
+    sz = ((sz + (KCFG_PAGE_SIZE - 1)) / KCFG_PAGE_SIZE) * KCFG_PAGE_SIZE;
     return (uint64_t)kvalloc(sz);
-    uint64_t res = __initial_heap;
-    __initial_heap += sz;
-    return res;
 }
 
 
@@ -19,58 +19,77 @@ static page_tree_node_t* allocate_node() {
     return (page_tree_node_t*)__allocate_heap(sizeof(page_tree_node_t));
 }
 
-static void initialize_node(page_tree_node_t* node) {
-    for (int idx = 0; idx < 512; idx++) {
-        node->entries[idx].present = 0;
-        node->entries[idx].rw = 1;
-        node->entries[idx].user = 1;
-        node->entries[idx].address = 0xcccccccc; // trap
-    }    
+static void initialize_node_entry(page_tree_node_entry_t* entry) {
+    entry->present = 0;
+    entry->rw = 1;
+    entry->user = 1;
+    entry->address = 0xcccccccc; // trap
 }
 
-static page_tree_node_t* node_get_child(page_tree_node_t* node, uint64_t idx) {
+static void initialize_node(page_tree_node_t* node) {
+    for (int idx = 0; idx < 512; idx++)
+        initialize_node_entry(&(node->entries[idx]));
+}
+
+static page_tree_node_t* node_get_child(page_tree_node_t* node, uint64_t idx, bool create) {
     //__outputhex((uint64_t)__initial_heap,60);
     //for (int c = 0; c < 32000; c++);
     //__outputhex((uint64_t)node,70);
     if ((uint64_t)node > 0x30000){
     //for (int c = 0; c < 3200000; c++);
-}
+    }
+
     if (!node->entries[idx].present) {
+        if (!create) {
+            return NULL;
+        }
         page_tree_node_t* child = allocate_node();
         initialize_node(child);
         node->entries[idx].present = 1;
-        node->entries[idx].address = (uint64_t)child / 0x1000; 
+        node->entries[idx].address = (uint64_t)child / KCFG_PAGE_SIZE; 
         return child;
     }
-    return (page_tree_node_t*)(node->entries[idx].address * 0x1000);
+    return (page_tree_node_t*)(node->entries[idx].address * KCFG_PAGE_SIZE);
 }
 
-static void map_page(page_tree_node_t* root, uint64_t virt, uint64_t phys) {
+// -----------------------------
+// Page tree operations
 
+
+page_tree_node_entry_t* memory_get_page(page_tree_node_t* root, uint64_t virt, bool create) {
+    // Skip memory hole
     if (virt >= 0xffff800000000000) {
-    __outputhex((uint64_t)virt ,50);
+        //__outputhex((uint64_t)virt ,50);
         virt -= 0xffff000000000000;
     }
 
-    virt = virt / 0x1000; // page index
+    virt = virt / KCFG_PAGE_SIZE; // page index
     uint64_t indexes[4] = {
-//        virt / 512 / 512 / 512 / 512 % 512,
         virt / 512 / 512 / 512 % 512,
         virt / 512 / 512 % 512,
         virt / 512 % 512,
         virt % 512,
     };
+
     for (int i = 0; i < 3; i++) {
-        root = node_get_child(root, indexes[i]);
+        root = node_get_child(root, indexes[i], create);
+        if (root == NULL && !create)
+            return 0;
     }
+    
     int index = indexes[3];
-    root->entries[index].present = 1;
-    root->entries[index].rw = 1;
-    root->entries[index].user = 1;
-    root->entries[index].address = phys / 0x1000;
+    return &(root->entries[index]);
 }
 
-void load_page_tree(page_tree_node_t* root) {
+void memory_map_page(page_tree_node_t* root, uint64_t virt, uint64_t phys) {
+    page_tree_node_entry_t* page = memory_get_page(root, virt, true);
+    page->present = 1;
+    page->rw = 1;
+    page->user = 1;
+    page->address = phys / KCFG_PAGE_SIZE;
+}
+
+void memory_load_page_tree(page_tree_node_t* root) {
     asm volatile("mov %0, %%cr3":: "r"(root));
     uint64_t cr0;
     asm volatile("mov %%cr0, %0": "=r"(cr0));
@@ -81,22 +100,30 @@ void load_page_tree(page_tree_node_t* root) {
 void memory_initialize_default_paging() {
     __initial_pml4 = (page_tree_node_t*) 0x20000;
     initialize_node(__initial_pml4);
-    __initial_heap = (uint64_t)__initial_pml4 + sizeof(page_tree_node_t);
+
+    FrameAlloc::get()->init((512*1024*1024) / KCFG_PAGE_SIZE);
+    //__initial_heap = (uint64_t)__initial_pml4 + sizeof(page_tree_node_t);
     
-    for (uint64_t i = 0; i < 0x10000000; i += 0x1000) // 16 mb
-        map_page(__initial_pml4, i, i);
+    
+    for (uint64_t i = 0; i < KCFG_LOW_IDENTITY_PAGING_LENGTH; i += KCFG_PAGE_SIZE) { // 64 mb
+        memory_map_page(__initial_pml4, i, i);
+        FrameAlloc::get()->markAllocated(i / KCFG_PAGE_SIZE);
+    }
 
-    for (uint64_t i = 0; i <= 0x10000000; i += 0x1000) // upper 16 mb
-        map_page(__initial_pml4, 0xffffffffffffffff - 0x10000000 + i, 0x10000000 + i);
+    for (uint64_t i = 0; i <= KCFG_HIGH_IDENTITY_PAGING_LENGTH; i += KCFG_PAGE_SIZE) { // upper 16 mb
+        memory_map_page(__initial_pml4, 0xffffffffffffffff - KCFG_HIGH_IDENTITY_PAGING_LENGTH + i, KCFG_LOW_IDENTITY_PAGING_LENGTH + i);
+        FrameAlloc::get()->markAllocated((KCFG_LOW_IDENTITY_PAGING_LENGTH + i) / KCFG_PAGE_SIZE);
+    }
 
-    page_tree_node_t* r = __initial_pml4;
-    r = node_get_child(r, 0);
-    r = node_get_child(r, 0);
-    r = node_get_child(r, 0);
-    r = node_get_child(r, 2);
-    //__outputhex(r->entries[265].present, 20);
-    //for(;;);
-    load_page_tree(__initial_pml4);
+    memory_load_page_tree(__initial_pml4);
 }
 
-// 0 0 0 2 265
+void Memory::allocatePage(page_tree_node_entry_t* page) {
+    page->address = FrameAlloc::get()->allocate() / KCFG_PAGE_SIZE;
+    page->present = true;
+}
+
+void Memory::releasePage(page_tree_node_entry_t* page) {
+    initialize_node_entry(page);
+    page->present = false;
+}

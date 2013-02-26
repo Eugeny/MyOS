@@ -9,10 +9,14 @@
 #ifdef KCFG_ENABLE_TRACING
     #define KTRACE { ktrace(__FILE__, __LINE__); }
     #define KTRACEMSG(x) { ktrace(__FILE__, __LINE__, x); }
-    #define KTRACEMEM { ktracemem(__FILE__, __LINE__); }
 #else
     #define KTRACE ;
     #define KTRACEMSG(x) ;
+#endif
+
+#ifdef KCFG_ENABLE_MEMTRACING
+    #define KTRACEMEM { ktracemem(__FILE__, __LINE__); }
+#else 
     #define KTRACEMEM ;
 #endif
 
