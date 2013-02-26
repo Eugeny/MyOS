@@ -14,7 +14,7 @@ public:
     Terminal* getTerminal(int idx);
     Terminal* getActiveTerminal();
     int  getTerminalCount();
-    void dispatchKey(uint32_t mod, uint32_t code);
+    void dispatchKey(uint64_t mod, uint64_t code);
 private:
     int count, activeIdx;
     Terminal** terminals;

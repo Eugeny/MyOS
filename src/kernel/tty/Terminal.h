@@ -13,6 +13,7 @@ public:
     void write(const char* buf, int offset, int len);
     void render();
     void makeDirty();
+    void processKey(uint64_t mods, uint64_t scancode);
 private:
     int         width, height;
     bool        dirty;

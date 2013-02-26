@@ -36,3 +36,7 @@ Terminal* PhysicalTerminalManager::getTerminal(int idx) {
 int PhysicalTerminalManager::getTerminalCount() {
     return count;
 }
+
+void PhysicalTerminalManager::dispatchKey(uint64_t mods, uint64_t scancode) {
+    getActiveTerminal()->processKey(mods, scancode);
+}

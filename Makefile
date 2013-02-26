@@ -48,6 +48,7 @@ SOURCES= \
 	src/kernel/core/CPU.o 						\
 												\
 	src/kernel/hardware/io.o 					\
+	src/kernel/hardware/keyboard/Keyboard.o 	\
 	src/kernel/hardware/cmos/CMOS.o 			\
 	src/kernel/hardware/pit/PIT.o 				\
 	src/kernel/hardware/vga/vga.o 				\

@@ -5,6 +5,7 @@
 #include <map>
 
 #include <core/CPU.h>
+#include <hardware/keyboard/Keyboard.h>
 #include <hardware/cmos/CMOS.h>
 #include <hardware/pit/PIT.h>
 #include <interrupts/IDT.h>
@@ -26,7 +27,7 @@ void pit_handler(isrq_registers_t* regs) {
     if (counter < 100)
         if (counter % 20 == 0)
             klog('t', "Timer %i!", counter);
-    if (counter % 25 == 0)
+    if (counter % 5 == 0)
         PhysicalTerminalManager::get()->render();
     microtrace();
 }
@@ -45,6 +46,12 @@ void handleGPF(isrq_registers_t* regs) {
     klog_flush();
     for(;;);
 }
+
+void handleKbd(uint64_t mod, uint64_t scan) {
+    //klog('i', "Keyboard %x %x", mod, scan);
+    PhysicalTerminalManager::get()->dispatchKey(mod, scan);
+}
+
 
 
 extern "C" void kmain () {
@@ -79,6 +86,9 @@ extern "C" void kmain () {
     Interrupts::get()->setHandler(13, handleGPF);
     Interrupts::get()->setHandler(14, handlePF);
 
+    Keyboard::get()->init();
+    Keyboard::get()->setHandler(handleKbd);
+
     KTRACEMEM
 
     klog('d', "alloc: %lx", kmalloc(1024000));
@@ -90,8 +100,6 @@ extern "C" void kmain () {
 
     //    as->mapPage(0x910000000, 0x1000000);
     as->allocateSpace(0xffff800000000000, 0x20000);
-    as->activate();
-    CPU::invalidateTLB(0xffff800000000000);
     *((uint64_t*)0xffff800000000010) = 5;
 
     //*((uint64_t*)     0xc00000020) = 5;
@@ -117,7 +125,7 @@ extern "C" void kmain () {
     t->render();
 
     for(;;) {
-        for (int i = 0; i < 10000000; i++);
-            t->write(".");
+        //for (int i = 0; i < 10000000; i++);
+          //  t->write(".");
     }
 }
