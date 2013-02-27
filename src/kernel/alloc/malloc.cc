@@ -62,6 +62,12 @@
 
 void kalloc_switch_to_main_heap() {
     AddressSpace::kernelSpace->allocateSpace(KCFG_KERNEL_HEAP_START, KCFG_KERNEL_HEAP_SIZE, PAGEATTR_SHARED);
+
+    AddressSpace::kernelSpace->namePage(
+        AddressSpace::kernelSpace->getPage(KCFG_KERNEL_HEAP_START, false),
+        "Kernel heap"
+    );
+
     hptr = (void*)KCFG_KERNEL_HEAP_START;
     large_heap_active = true;
 }

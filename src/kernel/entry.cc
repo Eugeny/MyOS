@@ -43,6 +43,7 @@ void handlePF(isrq_registers_t* regs) {
 void handleGPF(isrq_registers_t* regs) {
     klog('e', "GENERAL PROTECTION FAULT");
     klog('e', "Faulting code: %lx", regs->rip);
+    klog('e', "Errcode      : %lx", regs->err_code);
     klog_flush();
     for(;;);
 }
@@ -92,13 +93,29 @@ extern "C" void kmain () {
 
 
     AddressSpace* as = AddressSpace::kernelSpace;
+    as->mapPage(as->getPage(0x910000000, true), 0x3000000, 0);
+    as->mapPage(as->getPage(0x910001000, true), 0x4000000, 0);
 
-    as->allocateSpace(0x910000000, 0x10000, 0);
-    *((uint64_t*)     0x910000000) = 5;
+    uint64_t* p1 = (uint64_t*)0x910000000;
+    uint64_t* p2 = (uint64_t*)0x910001000;
 
-    as->dump();
+    *p1 = 1;
+    *p2 = 2;
+
+    klog('i', "%i %i", *p1, *p2);
+
+    as->releasePage(as->getPage((uint64_t)p1, true));
+    as->releasePage(as->getPage((uint64_t)p2, true));
 
     AddressSpace* ns = as->clone();
+    as->dump();
+    ns->dump();
+    ns->activate();
+
+    ns->mapPage(ns->getPage(0x910000000, true), 0x4000000, 0);
+    ns->mapPage(ns->getPage(0x910001000, true), 0x3000000, 0);
+    //klog('d', "%i %i", *p1, *p2);
+
     ns->dump();
     for(;;);
 

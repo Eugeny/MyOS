@@ -18,6 +18,7 @@ struct page_tree_node_entry_t {
 struct page_tree_node_t {
     page_tree_node_entry_t entries[512];
     page_tree_node_t* entriesVirtual[512];
+    char*   entriesNames[512];
     uint8_t entriesAttrs[512];
 };
 
@@ -25,6 +26,7 @@ struct page_descriptor_t {
     page_tree_node_entry_t* entry;
     page_tree_node_t** vAddr;
     uint8_t* attrs;
+    char**   name;
     uint64_t pageVAddr;
 };
 
@@ -56,10 +58,11 @@ public:
 
     page_descriptor_t       getPage(uint64_t virt, bool create);
     uint64_t                getPhysicalAddress(uint64_t virt);
-    page_descriptor_t       mapPage(page_descriptor_t virt, uint64_t phy, uint8_t attrs);
-    page_descriptor_t       allocatePage(page_descriptor_t virt, uint8_t attrs);
+    page_descriptor_t       mapPage(page_descriptor_t page, uint64_t phy, uint8_t attrs);
+    void                    namePage(page_descriptor_t page, char* name);
+    page_descriptor_t       allocatePage(page_descriptor_t page, uint8_t attrs);
     void                    allocateSpace(uint64_t base, uint64_t size, uint8_t attrs);
-    void                    releasePage(page_descriptor_t virt);
+    void                    releasePage(page_descriptor_t page);
     
     void                    dump();
 private:    

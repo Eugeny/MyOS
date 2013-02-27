@@ -14,7 +14,6 @@ AddressSpace* AddressSpace::current = NULL;
 
 
 static page_tree_node_t* allocate_node() {
-    uint64_t sz = ((sizeof(page_tree_node_t) + (KCFG_PAGE_SIZE - 1)) / KCFG_PAGE_SIZE) * KCFG_PAGE_SIZE;
     return (page_tree_node_t*)kvalloc(sizeof(page_tree_node_t));
 }
 
@@ -31,6 +30,7 @@ static void initialize_node(page_tree_node_t* node) {
         initialize_node_entry(&(node->entries[idx]));
         node->entriesVirtual[idx] = 0;
         node->entriesAttrs[idx] = 0;
+        node->entriesNames[idx] = 0;
     }
 }
 
@@ -58,15 +58,12 @@ static page_tree_node_t* node_get_child(page_tree_node_t* node, uint64_t idx, bo
 static void copy_page_physical(uint64_t src, uint64_t dst) {
     AddressSpace::current->mapPage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_1, true), src, 0);
     AddressSpace::current->mapPage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_2, true), dst, 0);
-    memcpy((void*)KCFG_TEMP_PAGE_2, (void*)KCFG_TEMP_PAGE_1, KCFG_PAGE_SIZE);
+    return;
+    //memcpy((void*)KCFG_TEMP_PAGE_2, (void*)KCFG_TEMP_PAGE_1, KCFG_PAGE_SIZE);
     AddressSpace::current->releasePage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_1, false));
     AddressSpace::current->releasePage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_2, false));
 }
 
-
-void memory_load_page_tree(page_tree_node_t* root) {
-    CPU::setCR3((uint64_t)root);
-}
 
 
 // -------------------------------
@@ -86,7 +83,12 @@ void AddressSpace::initEmpty() {
 }
 
 void AddressSpace::activate() {
-    memory_load_page_tree(root);
+    if (AddressSpace::current) {
+        klog('t',"Switching address space: %016lx",AddressSpace::current->getPhysicalAddress((uint64_t)root));
+        CPU::setCR3(AddressSpace::current->getPhysicalAddress((uint64_t)root));
+    }
+    else
+        CPU::setCR3((uint64_t)root);
     current = this;
 }
 
@@ -132,6 +134,7 @@ page_descriptor_t AddressSpace::getPage(uint64_t virt, bool create) {
     d.entry = &(root->entries[page % 512]);
     d.attrs = &(root->entriesAttrs[page % 512]);
     d.vAddr = &(root->entriesVirtual[page % 512]);
+    d.name  = &(root->entriesNames[page % 512]);
 
     return d;
 }
@@ -150,6 +153,10 @@ page_descriptor_t AddressSpace::mapPage(page_descriptor_t page, uint64_t phy, ui
     *(page.attrs) = attrs;
     *(page.vAddr) = (page_tree_node_t*)page.pageVAddr;
     return page;
+}
+
+void AddressSpace::namePage(page_descriptor_t page, char* name) {
+    *(page.name) = name;
 }
 
 page_descriptor_t AddressSpace::allocatePage(page_descriptor_t page, uint8_t attrs) {
@@ -213,16 +220,18 @@ AddressSpace* AddressSpace::clone() {
                                     }
                                     page_descriptor_t page = result->getPage(addr, true);
 
-                                    if (PAGEATTR_IS_SHARED(*oldPage.attrs) || 0) {
-                                        *(page.entry) = *oldPage.entry;
-                                        *(page.attrs) = *oldPage.attrs;
-                                        *(page.vAddr) = *oldPage.vAddr;
-                                    } else {
+                                    *(page.entry) = *oldPage.entry;
+                                    *(page.attrs) = *oldPage.attrs;
+                                    *(page.vAddr) = *oldPage.vAddr;
+                                    *(page.name) = *oldPage.name;
+
+                                    if (!PAGEATTR_IS_SHARED(*oldPage.attrs)) {
+                                        page.entry->present = false;
                                         result->allocatePage(page, *oldPage.attrs);
-                                        //copy_page_physical(
-                                            //oldPage.entry->address * KCFG_PAGE_SIZE,
-                                            //page.entry->address * KCFG_PAGE_SIZE
-                                        //);
+                                        copy_page_physical(
+                                            oldPage.entry->address * KCFG_PAGE_SIZE,
+                                            page.entry->address * KCFG_PAGE_SIZE
+                                        );
                                     }
                                 }
                             }
@@ -272,8 +281,14 @@ void AddressSpace::recursiveDump(page_tree_node_t* node, int level) {
                 startPhy = node->entries[i].address * KCFG_PAGE_SIZE;
                 if ((startVirt != lastVirt + KCFG_PAGE_SIZE) || (startPhy != lastPhy + KCFG_PAGE_SIZE)) {
                     if (started)
-                        klog('i', " == %016lx", len * KCFG_PAGE_SIZE);
+                        klog('i', "            length: %016lx", len * KCFG_PAGE_SIZE);
                     started = true;
+
+                    uint8_t attrs = node->entriesAttrs[i];
+                    klog('i', "[%s] %s",
+                        PAGEATTR_IS_SHARED(attrs) ? "SHARED ": "PRIVATE",
+                        node->entriesNames[i] ? node->entriesNames[i] : "---"
+                    );
                     klog('i', "%016lx -> %016lx [%i-%i-%i-%i]", startVirt, startPhy, 
                         index[0], index[1], index[2], index[3]);
                     klog_flush();

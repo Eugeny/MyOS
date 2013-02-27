@@ -23,12 +23,22 @@ void Memory::init() {
         );
     }
 
+    AddressSpace::kernelSpace->namePage(
+        AddressSpace::kernelSpace->getPage(0, false),
+        "Kernel mapping"
+    );
+
     for (uint64_t i = 0; i <= KCFG_HIGH_IDENTITY_PAGING_LENGTH; i += KCFG_PAGE_SIZE) { 
         AddressSpace::kernelSpace->mapPage(
             AddressSpace::kernelSpace->getPage(0xffffffffffffffff - KCFG_HIGH_IDENTITY_PAGING_LENGTH + i, true),
             KCFG_LOW_IDENTITY_PAGING_LENGTH + i, 0
         );
     }
+
+    AddressSpace::kernelSpace->namePage(
+        AddressSpace::kernelSpace->getPage(0xffffffffffffffff - KCFG_HIGH_IDENTITY_PAGING_LENGTH, false),
+        "Aux mapping"
+    );
 
     AddressSpace::kernelSpace->activate();
 }
