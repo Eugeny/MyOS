@@ -1,8 +1,10 @@
 #include <lang/lang.h>
 #include <tty/Terminal.h>
 #include <string.h>
+#include <kutil.h>
 
 #include <hardware/vga/vga.h>
+#include <ncurses.h>
 
 
 static char keymap[] = { 
@@ -79,6 +81,44 @@ void Terminal::render() {
 
 void Terminal::processKey(uint64_t mods, uint64_t scancode) {
     char* map = keymap;
-    if (map[scancode])
-        write(&map[scancode], 0, 1);
+    //rote_vt_keypress(terminal, scancode);
+
+    int special = 0;
+    if (scancode == 0xcb) special = KEY_LEFT;
+    if (scancode == 0xcd) special = KEY_RIGHT;
+    if (scancode == 0xc8) special = KEY_UP;
+    if (scancode == 0xd0) special = KEY_DOWN;
+    
+    //if (scancode == 0x9c) special = '\n';
+    if (scancode == 0x8e) special = KEY_BACKSPACE;
+    if (scancode == 0xc7) special = KEY_HOME;
+    if (scancode == 0xcf) special = KEY_END;
+    if (scancode == 0xc9) special = KEY_PPAGE;
+    if (scancode == 0xd1) special = KEY_NPAGE;
+    if (scancode == 0xac && mods == 1) special = KEY_SUSPEND; // ctrl-z
+
+    if (scancode == 0xbb) special = KEY_F(1);
+    if (scancode == 0xbc) special = KEY_F(2);
+    if (scancode == 0xbd) special = KEY_F(3);
+    if (scancode == 0xbe) special = KEY_F(4);
+    if (scancode == 0xbf) special = KEY_F(5);
+    if (scancode == 0xc0) special = KEY_F(6);
+    if (scancode == 0xc1) special = KEY_F(7);
+    if (scancode == 0xc2) special = KEY_F(8);
+    if (scancode == 0xc3) special = KEY_F(9);
+    if (scancode == 0xc4) special = KEY_F(10);
+    if (scancode == 0xd7) special = KEY_F(11);
+    if (scancode == 0xd8) special = KEY_F(12);
+
+    uint8_t mapped = map[scancode];
+
+    if (special) 
+        rote_vt_keypress(terminal, special);
+    else if (mapped) {
+        if (mods == 1 && mapped >= 'a' && mapped <= 'z') // ctrl keys
+            rote_vt_keypress(terminal, mapped - 'a');
+        else
+            write(&map[scancode], 0, 1);
+    } else
+        klog('d', "Unknown key %lx/%lx", scancode, mods);
 }

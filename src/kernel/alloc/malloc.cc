@@ -31,7 +31,7 @@
 
     typedef int ptrdiff_t;
 
-    static char theap[1024000];
+    static char theap[409600];
     static void* hptr = (void*)theap;
     static bool large_heap_active = false;
 
@@ -61,7 +61,7 @@
 // -----------------------------
 
 void kalloc_switch_to_main_heap() {
-    AddressSpace::kernelSpace->allocateSpace(KCFG_KERNEL_HEAP_START, KCFG_KERNEL_HEAP_SIZE);
+    AddressSpace::kernelSpace->allocateSpace(KCFG_KERNEL_HEAP_START, KCFG_KERNEL_HEAP_SIZE, PAGEATTR_SHARED);
     hptr = (void*)KCFG_KERNEL_HEAP_START;
     large_heap_active = true;
 }

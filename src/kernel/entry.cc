@@ -37,7 +37,7 @@ void irq7_mute(isrq_registers_t* regs) {
 }
 
 void handlePF(isrq_registers_t* regs) {
-    Memory::get()->handlePageFault(regs);
+    Memory::handlePageFault(regs);
 }
 
 void handleGPF(isrq_registers_t* regs) {
@@ -57,8 +57,7 @@ void handleKbd(uint64_t mod, uint64_t scan) {
 extern "C" void kmain () {
     CPU::enableSSE();
     
-    memory_initialize_default_paging();
-    Memory::get()->init();
+    Memory::init();
 
     kalloc_switch_to_main_heap();
 
@@ -89,26 +88,24 @@ extern "C" void kmain () {
     Keyboard::get()->init();
     Keyboard::get()->setHandler(handleKbd);
 
-    KTRACEMEM
 
-    klog('d', "alloc: %lx", kmalloc(1024000));
 
-    KTRACEMEM
 
     AddressSpace* as = AddressSpace::kernelSpace;
-    
 
-    //    as->mapPage(0x910000000, 0x1000000);
-    as->allocateSpace(0xffff800000000000, 0x20000);
-    *((uint64_t*)0xffff800000000010) = 5;
+    as->allocateSpace(0x910000000, 0x10000, 0);
+    *((uint64_t*)     0x910000000) = 5;
 
-    //*((uint64_t*)     0xc00000020) = 5;
+    as->dump();
 
-    //as->allocateSpace(0x30000000, 0x1000);
-    //as->allocateSpace(0x30010000, 0x1000);
-    //as->allocateSpace(0x30020000, 0x1000);
-    
+    AddressSpace* ns = as->clone();
+    ns->dump();
+    for(;;);
+
     KTRACEMEM
+
+
+
 
     Terminal* t = PhysicalTerminalManager::get()->getActiveTerminal();
 

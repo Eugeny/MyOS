@@ -31,8 +31,8 @@ uint64_t FrameAlloc::allocate() {
             for (uint64_t j = 0; j < 64; j++)
                 if (!(framesBitmap[i] & BIT(j))) {
                     uint64_t frame = i * 64 + j;
-                    markAllocated(frame);
-                    klog('t', "Allocated frame %lx", frame);
+                    //markAllocated(frame);
+                    //klog('t', "Allocated frame %lx", frame);
                     return frame;
                 }
     return (uint64_t)(-1);

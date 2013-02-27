@@ -10,9 +10,6 @@ extern "C" void* __wrap_malloc(int c) {
     __heap_ready = true;
 
     #ifdef KCFG_ENABLE_TRACING
-    char buf[1024];
-    sprintf(buf, "malloc(%i) = %i", c, r);
-    KTRACEMSG(buf);
     #endif
     
     return r;
@@ -21,16 +18,10 @@ extern "C" void* __wrap_malloc(int c) {
 #include <string.h>
 // DEFUNCT
 extern "C" void __wrap_free(void* ptr) {
-    char buffer[102];
     microtrace();
 
     if (__heap_ready) {
     #ifdef KCFG_ENABLE_TRACING
-    sprintf(buffer, "free(%i)\0", 5);
-    //strcpy(buffer,"qwe");
-    
-    for(;;);
-    KTRACEMSG(buffer);
     #endif
 
     //kfree(ptr);

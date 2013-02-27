@@ -3,7 +3,7 @@ extern _start, _end, kmain
 
 
 section .data
-    stack resb 102400
+    stack resb 409600
     stacktop dd 0
 
 section .text

@@ -1,10 +1,75 @@
 #include <memory/AddressSpace.h>
-#include <memory/Memory.h>
+
+#include <memory/FrameAlloc.h>
+#include <alloc/malloc.h>
+#include <core/CPU.h>
 #include <kutil.h>
+#include <string.h>
 
+static AddressSpace __kernelSpace;
 
-AddressSpace* AddressSpace::kernelSpace = NULL;
+AddressSpace* AddressSpace::kernelSpace = &__kernelSpace;
 AddressSpace* AddressSpace::current = NULL;
+
+
+
+static page_tree_node_t* allocate_node() {
+    uint64_t sz = ((sizeof(page_tree_node_t) + (KCFG_PAGE_SIZE - 1)) / KCFG_PAGE_SIZE) * KCFG_PAGE_SIZE;
+    return (page_tree_node_t*)kvalloc(sizeof(page_tree_node_t));
+}
+
+static void initialize_node_entry(page_tree_node_entry_t* entry) {
+    entry->present = 0;
+    entry->rw = 1;
+    entry->user = 1;
+    entry->unused = 0;
+    entry->address = 0xcccccccc; // trap
+}
+
+static void initialize_node(page_tree_node_t* node) {
+    for (int idx = 0; idx < 512; idx++) {
+        initialize_node_entry(&(node->entries[idx]));
+        node->entriesVirtual[idx] = 0;
+        node->entriesAttrs[idx] = 0;
+    }
+}
+
+
+static page_tree_node_t* node_get_child(page_tree_node_t* node, uint64_t idx, bool create) {
+    if (!node->entries[idx].present) {
+        if (!create) {
+            return NULL;
+        }
+        page_tree_node_t* child = allocate_node();
+        initialize_node(child);
+        node->entries[idx].present = 1;
+        node->entriesVirtual[idx] = child;
+        if (AddressSpace::current)
+            node->entries[idx].address = AddressSpace::current->getPhysicalAddress((uint64_t)child) / KCFG_PAGE_SIZE; 
+        else
+            node->entries[idx].address = (uint64_t)child / KCFG_PAGE_SIZE; 
+
+        return child;
+    }
+    return node->entriesVirtual[idx];
+}
+
+
+static void copy_page_physical(uint64_t src, uint64_t dst) {
+    AddressSpace::current->mapPage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_1, true), src, 0);
+    AddressSpace::current->mapPage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_2, true), dst, 0);
+    memcpy((void*)KCFG_TEMP_PAGE_2, (void*)KCFG_TEMP_PAGE_1, KCFG_PAGE_SIZE);
+    AddressSpace::current->releasePage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_1, false));
+    AddressSpace::current->releasePage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_2, false));
+}
+
+
+void memory_load_page_tree(page_tree_node_t* root) {
+    CPU::setCR3((uint64_t)root);
+}
+
+
+// -------------------------------
 
 
 AddressSpace::AddressSpace() {
@@ -12,6 +77,12 @@ AddressSpace::AddressSpace() {
 
 AddressSpace::~AddressSpace() {
     delete root;
+}
+
+void AddressSpace::initEmpty() {
+    if (!getRoot())
+        setRoot(allocate_node());
+    initialize_node(getRoot());
 }
 
 void AddressSpace::activate() {
@@ -23,51 +94,209 @@ page_tree_node_t* AddressSpace::getRoot() {
     return root;
 }
 
-void AddressSpace::_setRoot(page_tree_node_t* r) {
+void AddressSpace::setRoot(page_tree_node_t* r) {
     root = r;
 }
 
-page_tree_node_entry_t* AddressSpace::getPage(uint64_t virt, bool create) {
-    return memory_get_page(root, virt, create);
+page_descriptor_t AddressSpace::getPage(uint64_t virt, bool create) {
+    page_descriptor_t d;
+    page_tree_node_t* root = getRoot();
+    d.pageVAddr = virt;
+
+    // Skip memory hole
+    uint64_t fixedVirt = virt;
+
+    if (fixedVirt >= 0xffff800000000000) {
+        fixedVirt -= 0xffff000000000000;
+    }
+
+    uint64_t page = fixedVirt / KCFG_PAGE_SIZE; // page index
+    uint64_t indexes[4] = {
+        page / 512 / 512 / 512 % 512,
+        page / 512 / 512 % 512,
+        page / 512 % 512,
+        page % 512,
+    };
+
+    for (int i = 0; i < 3; i++) {
+        root = node_get_child(root, indexes[i], create);
+
+        if (root == NULL && !create) {
+            d.entry = 0;
+            return d;
+        }
+    }
+
+    root->entriesVirtual[page % 512] = (page_tree_node_t*)virt;
+
+    d.entry = &(root->entries[page % 512]);
+    d.attrs = &(root->entriesAttrs[page % 512]);
+    d.vAddr = &(root->entriesVirtual[page % 512]);
+
+    return d;
 }
 
 uint64_t AddressSpace::getPhysicalAddress(uint64_t virt) {
-    return memory_get_physical_address(root, virt);
+    return getPage(virt, false).entry->address * KCFG_PAGE_SIZE + (virt % KCFG_PAGE_SIZE);
 }
 
+page_descriptor_t AddressSpace::mapPage(page_descriptor_t page, uint64_t phy, uint8_t attrs) {
+    //klog('t', "Mapping page: %lx -> %lx", page.pageVAddr, phy);
+    FrameAlloc::get()->markAllocated(phy / KCFG_PAGE_SIZE);
+    page.entry->present = true;
+    page.entry->user = true;
+    page.entry->rw = true;
+    page.entry->address = phy / KCFG_PAGE_SIZE;
+    *(page.attrs) = attrs;
+    *(page.vAddr) = (page_tree_node_t*)page.pageVAddr;
+    return page;
+}
 
-page_tree_node_entry_t *AddressSpace::allocatePage(uint64_t virt) {
-    page_tree_node_entry_t* page = getPage(virt, false);
-    klog('t', "Allocating vaddr %lx", virt);
-    if (!page) {
-        page = getPage(virt, true);
-    }
-    if (!page->present) {
-        Memory::get()->allocatePage(page);
+page_descriptor_t AddressSpace::allocatePage(page_descriptor_t page, uint8_t attrs) {
+    if (!page.entry->present) {
+        uint64_t frame = FrameAlloc::get()->allocate();
+        mapPage(page, frame * KCFG_PAGE_SIZE, attrs);
     }
     return page;
 }
 
-void AddressSpace::allocateSpace(uint64_t base, uint64_t size) {
+void AddressSpace::allocateSpace(uint64_t base, uint64_t size, uint8_t attrs) {
     base = base / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
     size = (size + 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
     for (uint64_t v = base; v < base + size; v += KCFG_PAGE_SIZE) {
-        allocatePage(v);
+        allocatePage(getPage(v, true), attrs);
     }
 }
 
-
-void AddressSpace::mapPage(uint64_t virt, uint64_t phy) {
-    klog('t', "Mapping page: %lx -> %lx", virt, phy);
-    page_tree_node_entry_t* page = getPage(virt, true);
-    Memory::get()->mapPage(page, phy);
+void AddressSpace::releasePage(page_descriptor_t page) {
+    if (page.entry->present) {
+        FrameAlloc::get()->release(page.entry->address);
+        initialize_node_entry(page.entry);
+    }
 }
 
-void AddressSpace::releasePage(uint64_t virt) {
-    page_tree_node_entry_t* page = getPage(virt, false);
-    if (page)
-        Memory::get()->releasePage(page);
+AddressSpace* AddressSpace::clone() {
+    AddressSpace* result = new AddressSpace();
+    result->initEmpty();
+
+    page_tree_node_t* node = getRoot();
+
+    
+    for (int i = 0; i < 512; i++) { // PML4s
+        if (node->entries[i].present) {
+            page_tree_node_t* pml4 = node->entriesVirtual[i];
+            
+            for (int j = 0; j < 512; j++) { // PDPTs
+                if (pml4->entries[j].present) {
+                    page_tree_node_t* pd = pml4->entriesVirtual[j];
+
+                    for (int l = 0; l < 512; l++) { // PTs
+                        if (pd->entries[l].present) {
+                            page_tree_node_t* pt = pd->entriesVirtual[l];
+
+                            for (int m = 0; m < 512; m++) { // Pages
+                                if (pt->entries[m].present) {
+                                    uint64_t addr = i;
+                                    addr = addr * 512 + j;
+                                    addr = addr * 512 + l;
+                                    addr = addr * 512 + m;
+                                    addr *= KCFG_PAGE_SIZE;
+
+                                    if (addr >= 800000000000) {
+                                        addr += 0xffff000000000000;
+                                    }
+
+                                    page_descriptor_t oldPage = getPage(addr, false);
+                                    if (!oldPage.entry) {
+                                        klog('e', "NULL PAGE");
+                                        for(;;);
+                                    }
+                                    page_descriptor_t page = result->getPage(addr, true);
+
+                                    if (PAGEATTR_IS_SHARED(*oldPage.attrs) || 0) {
+                                        *(page.entry) = *oldPage.entry;
+                                        *(page.attrs) = *oldPage.attrs;
+                                        *(page.vAddr) = *oldPage.vAddr;
+                                    } else {
+                                        result->allocatePage(page, *oldPage.attrs);
+                                        //copy_page_physical(
+                                            //oldPage.entry->address * KCFG_PAGE_SIZE,
+                                            //page.entry->address * KCFG_PAGE_SIZE
+                                        //);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return result;
 }
 
 void AddressSpace::release() {
+}
+
+
+
+void AddressSpace::recursiveDump(page_tree_node_t* node, int level) {
+    static uint64_t skips[4] = {
+        512 * 512 * 512,
+        512 * 512,
+        512
+    };
+
+    static uint64_t addr, startPhy, startVirt, lastVirt, lastPhy, len, index[4];
+    static bool started = false;
+
+    if (level == 0) {
+        addr = 0;
+        startPhy = 0;
+        startVirt = 0;
+        len = 0;
+        started = false;
+        lastVirt = -1;
+    }
+
+    for (int i = 0; i < 512; i++) {
+        if (addr >= 0x0000800000000000 && addr < 0xffff800000000000)
+            addr += 0xffff000000000000;
+
+        index[level] = i;
+
+        if (level == 3) {
+            if (node->entries[i].present) {
+                startVirt = addr;
+                startPhy = node->entries[i].address * KCFG_PAGE_SIZE;
+                if ((startVirt != lastVirt + KCFG_PAGE_SIZE) || (startPhy != lastPhy + KCFG_PAGE_SIZE)) {
+                    if (started)
+                        klog('i', " == %016lx", len * KCFG_PAGE_SIZE);
+                    started = true;
+                    klog('i', "%016lx -> %016lx [%i-%i-%i-%i]", startVirt, startPhy, 
+                        index[0], index[1], index[2], index[3]);
+                    klog_flush();
+                    len = 1;
+                } else {
+                    len++;
+                }
+
+                lastVirt = startVirt;
+                lastPhy = startPhy;
+            }
+            addr += KCFG_PAGE_SIZE;
+        } else {
+            if (node->entries[i].present) {
+                recursiveDump(node_get_child(node, i, false), level + 1);
+            } else {
+                addr += skips[level] * KCFG_PAGE_SIZE;
+            }
+        }
+    }
+}
+
+void AddressSpace::dump() {
+    klog('w', "Dumping address space at %016lx", root);
+    recursiveDump(root, 0);
 }
