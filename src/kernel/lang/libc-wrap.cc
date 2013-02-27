@@ -17,7 +17,7 @@ extern "C" void* __wrap_malloc(int c) {
 
 #include <string.h>
 // DEFUNCT
-extern "C" void __wrap_free(void* ptr) {
+extern "C" void __wrap____printf_fp(void* ptr) {
     microtrace();
 
     if (__heap_ready) {

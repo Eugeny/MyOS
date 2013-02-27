@@ -19,6 +19,8 @@
 #include <tty/Escape.h>
 #include <tty/PhysicalTerminalManager.h>
 
+#include <libfat/ff.h>
+
 
 int main() {}
 
@@ -32,11 +34,24 @@ void handlePF(isrq_registers_t* regs) {
     Memory::handlePageFault(regs);
 }
 
+
+void handleDebug(isrq_registers_t* regs) {
+    klog('w', "Register dump");
+    klog('w', "RIP: %016lx   RSP: %016lx", regs->rip, regs->rsp);
+    klog('w', "RDI: %016lx   RSI: %016lx", regs->rdi, regs->rsi);
+    klog('w', "RAX: %016lx   RBX: %016lx", regs->rax, regs->rbx);
+    klog('w', "RCX: %016lx   RDX: %016lx", regs->rcx, regs->rdx);
+    klog_flush();
+}
+
+
 void handleGPF(isrq_registers_t* regs) {
     klog('e', "GENERAL PROTECTION FAULT");
     klog('e', "Faulting code: %lx", regs->rip);
     klog('e', "Errcode      : %lx", regs->err_code);
     klog_flush();
+    handleDebug(regs);
+    for(;;);
 }
 
 void handleKbd(uint64_t mod, uint64_t scan) {
@@ -65,15 +80,6 @@ void pit_handler(isrq_registers_t* regs) {
     }
 }
 
-void handleDebug(isrq_registers_t* regs) {
-    klog('w', "Register dump");
-    klog('w', "RIP: %016lx   RSP: %016lx", regs->rip, regs->rsp);
-    klog('w', "RDI: %016lx   RSI: %016lx", regs->rdi, regs->rsi);
-    klog('w', "RAX: %016lx   RBX: %016lx", regs->rax, regs->rbx);
-    klog('w', "RCX: %016lx   RDX: %016lx", regs->rcx, regs->rdx);
-    klog_flush();
-}
-
 void handleSaveKernelState(isrq_registers_t* regs) {
     klog('d', "Saving kernel thread state");
     threads[0]->storeState(regs);
@@ -88,9 +94,11 @@ void threadA() {
 
 void threadB() {
     volatile int b = 2;
+    float v = 0;
     for (;;) {
-        for (int i = 0; i < 1000000; i++);
-        klog('w', "Thread B");
+        for (int i = 0; i < 1500000; i++);
+        v += 0.0001;
+        klog('w', "Thread B: %e", v);
     }
 }
 
@@ -131,8 +139,38 @@ extern "C" void kmain () {
     Keyboard::get()->setHandler(handleKbd);
 
 
+    FATFS* fat = new FATFS();
+    if (f_mount(0, fat)!=0) {
+        klog('e', "mount");for(;;);
+    }
+    DIR* dir = new DIR();
+    if (f_opendir(dir, "/")!=0) {
+        klog('e', "opendir");for(;;);
+    }
+    FILINFO* fi = new FILINFO();
+    char b[256];
+    fi->lfname = b;
+    fi->lfsize = 256;
+    int c=0;
+    while (1) {
+        if(c++>10)break;
+    if (f_readdir(dir, fi)!=0){
+            klog('e', "readdir");for(;;);
+    }
+    
+        if (!fi->fname[0])
+            break;
+        klog('i', fi->lfname);
+    }
+
+    for (;;);
+
+AddressSpace* as = AddressSpace::kernelSpace;
+as=as->clone();
+as->activate();
+
     Process* p = new Process();
-    p->addressSpace = AddressSpace::kernelSpace;
+    p->addressSpace = as;
     p->addressSpace->dump();
 
     threads[0] = new Thread(p);

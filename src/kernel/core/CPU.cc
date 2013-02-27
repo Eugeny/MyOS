@@ -42,10 +42,21 @@ void CPU::setCR4(uint64_t v) {
 
 
 void CPU::enableSSE() {
-    CPU::setCR4(CPU::getCR4() | (1 << 8) | (1 << 9));
+    asm volatile("fninit");
+    CPU::setCR0(CPU::getCR0() | (1 << 5));
+    CPU::setCR4(CPU::getCR4() | (1 << 10) | (1 << 9));
 }
 
 void CPU::invalidateTLB(uint64_t v) {
     asm volatile("invlpg %0" :: "m"(v) : "memory");
+}
+
+
+void CPU::CLI() {
+    asm volatile("cli");
+}
+
+void CPU::STI() {
+    asm volatile("sti");
 }
 

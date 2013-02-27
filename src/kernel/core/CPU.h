@@ -16,6 +16,8 @@ public:
     static void     setCR3(uint64_t);
     static void     setCR4(uint64_t);
 
+    static void     CLI();
+    static void     STI();
     static void     enableSSE();
     static void     invalidateTLB(uint64_t);
 private:    

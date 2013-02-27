@@ -1,6 +1,7 @@
 CC = gcc
 
-LIBS = -L libs libs/librote.a
+LIBS = -L libs libs/librote.a libs/libfat.a
+
 INCLUDES = -I include -I src/kernel
 CFLAGS = -c 				\
 	-std=c++0x 				\
@@ -24,7 +25,7 @@ CFLAGS = -c 				\
 
 LDWRAP = \
 	-Xlinker --wrap=malloc \
-#	-Xlinker --wrap=free \
+#	-Xlinker --wrap=___printf_fp \
 
 LDFLAGS = \
 	-static \
@@ -49,9 +50,12 @@ SOURCES= \
 	src/kernel/core/Process.o 					\
 	src/kernel/core/Thread.o 					\
 												\
+	src/kernel/fs/libfat-glue.o 				\
+												\
 	src/kernel/hardware/io.o 					\
-	src/kernel/hardware/keyboard/Keyboard.o 	\
+	src/kernel/hardware/ata/ATA.o 				\
 	src/kernel/hardware/cmos/CMOS.o 			\
+	src/kernel/hardware/keyboard/Keyboard.o 	\
 	src/kernel/hardware/pit/PIT.o 				\
 	src/kernel/hardware/vga/vga.o 				\
 												\
@@ -75,7 +79,7 @@ SOURCES= \
 
 all: $(SOURCES) kernel  apps
 
-clean:
+clean: umount
 	@find . -name '*.o' -delete 
 	@rm bin/kernel || true
 
@@ -107,8 +111,7 @@ mount: umount
 umount:
 	@echo "VMDK umount"
 	@sudo umount fs || true
-	@vmware-mount -d fs || true
-	@sleep 1
+	@sleep 0.5
 	@vmware-mount -d fs || true
 
 deploy: all
