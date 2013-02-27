@@ -78,6 +78,7 @@ extern "C" void isr45 ();
 extern "C" void isr46 ();
 extern "C" void isr47 ();
 
+extern "C" void isr127 ();
 extern "C" void isr128 ();
 extern "C" void isr255 ();
 
@@ -154,6 +155,7 @@ void IDT::init() {
     setGate(45, (uint64_t)isr45, selector, 0x8E);
     setGate(46, (uint64_t)isr46, selector, 0x8E);
     setGate(47, (uint64_t)isr47, selector, 0x8E);
+    setGate(127, (uint64_t)isr127, selector, 0x8E);
     setGate(128, (uint64_t)isr128, selector, 0x8E);
     setGate(255, (uint64_t)isr255, selector, 0x8E);
 

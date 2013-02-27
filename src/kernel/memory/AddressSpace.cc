@@ -58,8 +58,7 @@ static page_tree_node_t* node_get_child(page_tree_node_t* node, uint64_t idx, bo
 static void copy_page_physical(uint64_t src, uint64_t dst) {
     AddressSpace::current->mapPage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_1, true), src, 0);
     AddressSpace::current->mapPage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_2, true), dst, 0);
-    return;
-    //memcpy((void*)KCFG_TEMP_PAGE_2, (void*)KCFG_TEMP_PAGE_1, KCFG_PAGE_SIZE);
+    memcpy((void*)KCFG_TEMP_PAGE_2, (void*)KCFG_TEMP_PAGE_1, KCFG_PAGE_SIZE);
     AddressSpace::current->releasePage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_1, false));
     AddressSpace::current->releasePage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_2, false));
 }
@@ -144,7 +143,7 @@ uint64_t AddressSpace::getPhysicalAddress(uint64_t virt) {
 }
 
 page_descriptor_t AddressSpace::mapPage(page_descriptor_t page, uint64_t phy, uint8_t attrs) {
-    //klog('t', "Mapping page: %lx -> %lx", page.pageVAddr, phy);
+    klog('t', "Mapping page: %lx -> %lx", page.pageVAddr, phy);
     FrameAlloc::get()->markAllocated(phy / KCFG_PAGE_SIZE);
     page.entry->present = true;
     page.entry->user = true;

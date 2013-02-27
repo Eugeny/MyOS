@@ -5,6 +5,8 @@
 #include <map>
 
 #include <core/CPU.h>
+#include <core/Process.h>
+#include <core/Thread.h>
 #include <hardware/keyboard/Keyboard.h>
 #include <hardware/cmos/CMOS.h>
 #include <hardware/pit/PIT.h>
@@ -21,16 +23,6 @@
 int main() {}
 
 
-void pit_handler(isrq_registers_t* regs) {
-    static int counter = 0;
-    counter++;
-    if (counter < 100)
-        if (counter % 20 == 0)
-            klog('t', "Timer %i!", counter);
-    if (counter % 5 == 0)
-        PhysicalTerminalManager::get()->render();
-    microtrace();
-}
 
 void irq7_mute(isrq_registers_t* regs) {
 
@@ -45,7 +37,6 @@ void handleGPF(isrq_registers_t* regs) {
     klog('e', "Faulting code: %lx", regs->rip);
     klog('e', "Errcode      : %lx", regs->err_code);
     klog_flush();
-    for(;;);
 }
 
 void handleKbd(uint64_t mod, uint64_t scan) {
@@ -54,6 +45,54 @@ void handleKbd(uint64_t mod, uint64_t scan) {
 }
 
 
+
+bool taskingActive = false;
+Thread* threads[3];
+int activeThread = 0;
+
+void pit_handler(isrq_registers_t* regs) {
+    static int counter = 0;
+    counter++;
+    if (counter % 5 == 0)
+        PhysicalTerminalManager::get()->render();
+
+    microtrace();
+
+    if (taskingActive) {
+        threads[activeThread]->storeState(regs);
+        activeThread = counter % 2 + 1;
+        threads[activeThread]->recoverState(regs);
+    }
+}
+
+void handleDebug(isrq_registers_t* regs) {
+    klog('w', "Register dump");
+    klog('w', "RIP: %016lx   RSP: %016lx", regs->rip, regs->rsp);
+    klog('w', "RDI: %016lx   RSI: %016lx", regs->rdi, regs->rsi);
+    klog('w', "RAX: %016lx   RBX: %016lx", regs->rax, regs->rbx);
+    klog('w', "RCX: %016lx   RDX: %016lx", regs->rcx, regs->rdx);
+    klog_flush();
+}
+
+void handleSaveKernelState(isrq_registers_t* regs) {
+    klog('d', "Saving kernel thread state");
+    threads[0]->storeState(regs);
+}
+
+void threadA() {
+    for (;;) {
+        for (int i = 0; i < 1000000; i++);
+        klog('i', "Thread A");
+    }
+}
+
+void threadB() {
+    volatile int b = 2;
+    for (;;) {
+        for (int i = 0; i < 1000000; i++);
+        klog('w', "Thread B");
+    }
+}
 
 extern "C" void kmain () {
     CPU::enableSSE();
@@ -81,65 +120,39 @@ extern "C" void kmain () {
 
     klog('i', "Configuring timer");
     PIT::get()->setFrequency(2500);
-    Interrupts::get()->setHandler(IRQ(0), pit_handler);
     Interrupts::get()->setHandler(IRQ(7), irq7_mute);
     Interrupts::get()->setHandler(13, handleGPF);
     Interrupts::get()->setHandler(14, handlePF);
+    Interrupts::get()->setHandler(0x7f, handleSaveKernelState);
+    Interrupts::get()->setHandler(0xff, handleDebug);
+    Interrupts::get()->setHandler(IRQ(0), pit_handler);
 
     Keyboard::get()->init();
     Keyboard::get()->setHandler(handleKbd);
 
 
+    Process* p = new Process();
+    p->addressSpace = AddressSpace::kernelSpace;
+    p->addressSpace->dump();
 
+    threads[0] = new Thread(p);
 
-    AddressSpace* as = AddressSpace::kernelSpace;
-    as->mapPage(as->getPage(0x910000000, true), 0x3000000, 0);
-    as->mapPage(as->getPage(0x910001000, true), 0x4000000, 0);
+    asm volatile("int $0x7f");
+//    asm volatile("int $0xff");
 
-    uint64_t* p1 = (uint64_t*)0x910000000;
-    uint64_t* p2 = (uint64_t*)0x910001000;
+    threads[1] = new Thread(p);
+    threads[2] = new Thread(p);
+    threads[1]->state.regs = threads[0]->state.regs;
+    threads[2]->state.regs = threads[0]->state.regs;
+    threads[1]->createStack(0x2000);
+    threads[2]->createStack(0x2000);
+    threads[1]->state.regs.rip = (uint64_t)&threadA;
+    threads[2]->state.regs.rip = (uint64_t)&threadB;
 
-    *p1 = 1;
-    *p2 = 2;
+    taskingActive = true;
 
-    klog('i', "%i %i", *p1, *p2);
-
-    as->releasePage(as->getPage((uint64_t)p1, true));
-    as->releasePage(as->getPage((uint64_t)p2, true));
-
-    AddressSpace* ns = as->clone();
-    as->dump();
-    ns->dump();
-    ns->activate();
-
-    ns->mapPage(ns->getPage(0x910000000, true), 0x4000000, 0);
-    ns->mapPage(ns->getPage(0x910001000, true), 0x3000000, 0);
-    //klog('d', "%i %i", *p1, *p2);
-
-    ns->dump();
     for(;;);
 
-    KTRACEMEM
 
 
-
-
-    Terminal* t = PhysicalTerminalManager::get()->getActiveTerminal();
-
-    t->write(Escape::C_B_RED);
-    t->write(":K: ");
-    t->write(Escape::C_B_GREEN);
-    t->write(":G: ");
-    t->write(Escape::C_B_BLUE);
-    t->write(":B: ");
-    t->write(Escape::C_B_YELLOW);
-    t->write(":Y: ");
-    t->write(Escape::C_OFF);
-    t->write("test\n");
-    t->render();
-
-    for(;;) {
-        //for (int i = 0; i < 10000000; i++);
-          //  t->write(".");
-    }
 }

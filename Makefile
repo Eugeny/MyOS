@@ -46,6 +46,8 @@ SOURCES= \
 	src/kernel/alloc/malloc.o 					\
 												\
 	src/kernel/core/CPU.o 						\
+	src/kernel/core/Process.o 					\
+	src/kernel/core/Thread.o 					\
 												\
 	src/kernel/hardware/io.o 					\
 	src/kernel/hardware/keyboard/Keyboard.o 	\
