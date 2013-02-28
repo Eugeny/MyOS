@@ -3,7 +3,7 @@ extern _start, _end, kmain
 
 
 section .data
-    stack resb 409600
+    stack times 409600 db 0
     stacktop dd 0
 
 section .text
@@ -20,7 +20,7 @@ MbHdr:
     ; Length
     dd  HdrEnd - MbHdr
     ; Checksum
-    dd  -(0xE85250D6 + 0 + (HdrEnd - MbHdr))
+    dd  0xFFFFFFFF - (0xE85250D6 + 0 + (HdrEnd - MbHdr)) + 1
  
     ;
     ; Tags

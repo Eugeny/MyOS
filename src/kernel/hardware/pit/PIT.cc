@@ -1,22 +1,36 @@
 #include <hardware/pit/PIT.h>
-#include <core/MQ.h>
 #include <hardware/io.h>
 #include <kutil.h>
 
 
-const char* PIT::MSG_TIMER = "timer";
+Message PIT::MSG_TIMER("timer");
 
+
+static uint64_t ticks = 0;
 
 static void handler(isrq_registers_t* regs) {
-    MQ::post(PIT::MSG_TIMER, (void*)regs);
+    ticks++;
+    PIT::MSG_TIMER.post((void*)regs);
 }
 
 void PIT::init() {
-    MQ::registerMessage(MSG_TIMER);
     Interrupts::get()->setHandler(IRQ(0), handler);
 }
 
+uint64_t PIT::getTicks() {
+    return ticks;
+}
+
+uint64_t PIT::getTime() {
+    return ticks * 1000 / frequency;
+}
+
+uint32_t PIT::getFrequency() {
+    return frequency;
+}
+
 void PIT::setFrequency(uint32_t freq) {
+    frequency = freq;
     uint32_t divisor = 1193180 / freq;
 
     outb(0x43, 0x36);

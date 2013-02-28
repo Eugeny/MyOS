@@ -60,3 +60,10 @@ void CPU::STI() {
     asm volatile("sti");
 }
 
+void CPU::CLTS() {
+    asm volatile("clts");
+}
+
+void CPU::halt() {
+    asm volatile("hlt");
+}

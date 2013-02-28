@@ -4,6 +4,7 @@
 #include <lang/lang.h>
 #include <lang/Singleton.h>
 #include <interrupts/Interrupts.h>
+#include <core/MQ.h>
 
 #define KBD_MOD_CTRL 1
 #define KBD_MOD_SHIFT 2
@@ -21,7 +22,7 @@ class Keyboard : public Singleton<Keyboard> {
 public:
     void init();
     void handle(isrq_registers_t*);
-    static const char* MSG_KEYBOARD_EVENT;
+    static Message MSG_KEYBOARD_EVENT;
 private:
     bool _escaping;
     uint64_t _modifiers;

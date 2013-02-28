@@ -28,6 +28,13 @@ extern "C" void __wrap____printf_fp(void* ptr) {
     }
 }
 
+extern "C" void __wrap_memset(void *s, int c, size_t n) {
+    for (int i = 0; i < n; i++) {
+        *((uint8_t*)((uint64_t)s + i)) = c;
+    }
+}
+
+
 
 
 void* operator new(size_t s) { 

@@ -25,7 +25,7 @@ CFLAGS = -c 				\
 
 LDWRAP = \
 	-Xlinker --wrap=malloc \
-#	-Xlinker --wrap=___printf_fp \
+	-Xlinker --wrap=memset \
 
 LDFLAGS = \
 	-static \
@@ -50,7 +50,9 @@ SOURCES= \
 	src/kernel/core/Debug.o 					\
 	src/kernel/core/MQ.o 						\
 	src/kernel/core/Process.o 					\
+	src/kernel/core/Scheduler.o 				\
 	src/kernel/core/Thread.o 					\
+	src/kernel/core/Wait.o 						\
 												\
 	src/kernel/fs/libfat-glue.o 				\
 	src/kernel/fs/fat32/FAT32FS.o 				\

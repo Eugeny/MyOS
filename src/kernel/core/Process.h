@@ -2,10 +2,9 @@
 #define CORE_PROCESS_H
 
 #include <lang/lang.h>
+#include <lang/Pool.h>
 #include <memory/AddressSpace.h>
 #include <interrupts/Interrupts.h>
-
-#include <vector>
 
 
 class Thread;
@@ -23,7 +22,7 @@ public:
 
     AddressSpace* addressSpace;
     
-    std::vector<Thread*> threads;
+    Pool<Thread*, 1024> threads;
 
 private:
 };

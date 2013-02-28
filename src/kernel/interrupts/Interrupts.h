@@ -3,6 +3,7 @@
 
 #include <lang/lang.h>
 #include <lang/Singleton.h>
+#include <core/MQ.h>
 
 
 typedef struct registers
@@ -17,6 +18,7 @@ typedef struct registers
 
 typedef void (*interrupt_handler)(isrq_registers_t*);
 
+void INTERRUPT_MUTE(isrq_registers_t* regs);
 
 class Interrupts : public Singleton<Interrupts> {
 public:

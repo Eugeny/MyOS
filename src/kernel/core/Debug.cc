@@ -1,12 +1,10 @@
 #include <core/Debug.h>
-#include <core/MQ.h>
 #include <kutil.h>
 
-const char* Debug::MSG_DUMP_REGISTERS = "dump-registers";
+Message Debug::MSG_DUMP_REGISTERS("dump-registers");
 
 void Debug::init() {
-    MQ::registerMessage(MSG_DUMP_REGISTERS);
-    MQ::registerConsumer(MSG_DUMP_REGISTERS, (MessageConsumer)&Debug::onDumpRegisters);
+    MSG_DUMP_REGISTERS.registerConsumer((MessageConsumer)&Debug::onDumpRegisters);
 }
 
 void Debug::onDumpRegisters(isrq_registers_t* regs) {

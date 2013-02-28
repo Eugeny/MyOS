@@ -2,6 +2,7 @@
 
 #include <memory/FrameAlloc.h>
 #include <alloc/malloc.h>
+#include <tty/Escape.h>
 #include <core/CPU.h>
 #include <kutil.h>
 #include <string.h>
@@ -281,16 +282,17 @@ void AddressSpace::recursiveDump(page_tree_node_t* node, int level) {
                 startPhy = node->entries[i].address * KCFG_PAGE_SIZE;
                 if ((startVirt != lastVirt + KCFG_PAGE_SIZE) || (startPhy != lastPhy + KCFG_PAGE_SIZE)) {
                     if (started)
-                        klog('i', "            length: %016lx", len * KCFG_PAGE_SIZE);
+                        klog('i', "            %slength: %016lx", Escape::C_GRAY, len * KCFG_PAGE_SIZE);
                     started = true;
 
                     uint8_t attrs = node->entriesAttrs[i];
-                    klog('i', "[%s] %s",
+                    klog('i', "%s[%s] %s",
+                        Escape::C_B_GRAY,
                         PAGEATTR_IS_SHARED(attrs) ? "SHARED ": "PRIVATE",
                         node->entriesNames[i] ? node->entriesNames[i] : "---"
                     );
-                    klog('i', "%016lx -> %016lx [%i-%i-%i-%i]", startVirt, startPhy, 
-                        index[0], index[1], index[2], index[3]);
+                    klog('i', "%s%016lx -> %016lx %s[%i-%i-%i-%i]", Escape::C_B_GRAY, startVirt, startPhy, 
+                        Escape::C_GRAY, index[0], index[1], index[2], index[3]);
                     klog_flush();
                     len = 1;
                 } else {
@@ -312,6 +314,8 @@ void AddressSpace::recursiveDump(page_tree_node_t* node, int level) {
 }
 
 void AddressSpace::dump() {
+    klog('w', "--------------------");
     klog('w', "Dumping address space at %016lx", root);
     recursiveDump(root, 0);
+    klog('w', "--------------------");
 }

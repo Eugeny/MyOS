@@ -4,13 +4,16 @@
 #include <lang/lang.h>
 #include <lang/Singleton.h>
 #include <interrupts/Interrupts.h>
+#include <core/MQ.h>
 
 
 class Memory {
 public:
     static void init();
-
     static void handlePageFault(isrq_registers_t* reg);
+    static void handleGPF(isrq_registers_t* reg);
+    static Message MSG_PAGEFAULT;
+    static Message MSG_GPF;
 private:    
 };
 #endif

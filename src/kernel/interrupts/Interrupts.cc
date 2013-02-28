@@ -48,6 +48,9 @@ static void default_irq_handler(isrq_registers_t* regs) {
 }
 
 
+
+void INTERRUPT_MUTE(isrq_registers_t* regs) {}
+
 extern "C" void isr_handler(isrq_registers_t* regs) {
     interrupt_counter++;
 

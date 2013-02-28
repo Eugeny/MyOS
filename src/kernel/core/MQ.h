@@ -2,30 +2,21 @@
 #define CORE_MQ_H
 
 #include <lang/lang.h>
-
-#include <map>
-#include <vector>
-
-
-class Message {
-public:
-    Message(char*, void*);
-    char* id;
-    void* arg;
-};
+#include <lang/Pool.h>
 
 
 typedef void(*MessageConsumer)(void*);
 
 
-class MQ {
+class Message {
 public:
-    static void post(const char*, void*);
-    static void registerMessage(const char*);
-    static void registerConsumer(const char*, MessageConsumer);
-    static bool hasMessage(const char* id);
+    Message(char*);
+    void post(void*);
+    void registerConsumer(MessageConsumer);
 private:
-    static std::map<const char*, std::vector<MessageConsumer>*>* consumers;
+    char* id;
+    Pool<MessageConsumer, 16> consumers; 
 };
+
 
 #endif

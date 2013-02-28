@@ -1,5 +1,4 @@
 #include <lang/lang.h>
-#include <core/MQ.h>
 #include <tty/PhysicalTerminalManager.h>
 
 
@@ -20,7 +19,7 @@ void PhysicalTerminalManager::init(int terminalCount) {
     }
 
     switchTo(0);
-    MQ::registerConsumer(Keyboard::MSG_KEYBOARD_EVENT, (MessageConsumer)&onKeyboardEvent);
+    Keyboard::MSG_KEYBOARD_EVENT.registerConsumer((MessageConsumer)&onKeyboardEvent);
 }
 
 void PhysicalTerminalManager::switchTo(int a) {

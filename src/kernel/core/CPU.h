@@ -18,6 +18,8 @@ public:
 
     static void     CLI();
     static void     STI();
+    static void     CLTS();
+    static void     halt();
     static void     enableSSE();
     static void     invalidateTLB(uint64_t);
 private:    

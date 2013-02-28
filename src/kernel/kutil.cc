@@ -72,7 +72,7 @@ void klog(char type, const char* format, ...) {
             t->write(Escape::C_B_RED);
             t->write("ERROR");
         } else if (type == 'i') {
-            t->write(Escape::C_B_CYAN);
+            t->write(Escape::C_B_WHITE);
             t->write("INFO ");
         } else {
             t->write(Escape::C_CYAN);
@@ -97,7 +97,7 @@ void microtrace() {
     static char icons[] = "/-\\|";
     static int index = 0;
     index = (index + 1) % 4;
-    char *vram = (char *)0xb8000;
+    char *vram = (char *)0xb809e;
     *vram = icons[index];
 }
 

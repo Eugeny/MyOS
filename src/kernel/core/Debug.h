@@ -3,11 +3,12 @@
 
 #include <lang/lang.h>
 #include <interrupts/Interrupts.h>
+#include <core/MQ.h>
 
 
 class Debug {
 public:
-    static const char* MSG_DUMP_REGISTERS;
+    static Message MSG_DUMP_REGISTERS;
     static void init();
 private:
     static void onDumpRegisters(isrq_registers_t*);
