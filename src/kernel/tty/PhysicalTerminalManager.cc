@@ -1,8 +1,15 @@
 #include <lang/lang.h>
+#include <core/MQ.h>
 #include <tty/PhysicalTerminalManager.h>
+
 
 #define WIDTH 80
 #define HEIGHT 25
+
+
+static void onKeyboardEvent(keyboard_event_t* e) {
+    PhysicalTerminalManager::get()->dispatchKey(e);
+}
 
 void PhysicalTerminalManager::init(int terminalCount) {
     count = terminalCount;
@@ -13,7 +20,7 @@ void PhysicalTerminalManager::init(int terminalCount) {
     }
 
     switchTo(0);
-    //klog_init(terminals[0]);
+    MQ::registerConsumer(Keyboard::MSG_KEYBOARD_EVENT, (MessageConsumer)&onKeyboardEvent);
 }
 
 void PhysicalTerminalManager::switchTo(int a) {
@@ -37,6 +44,6 @@ int PhysicalTerminalManager::getTerminalCount() {
     return count;
 }
 
-void PhysicalTerminalManager::dispatchKey(uint64_t mods, uint64_t scancode) {
-    getActiveTerminal()->processKey(mods, scancode);
+void PhysicalTerminalManager::dispatchKey(keyboard_event_t* event) {
+    getActiveTerminal()->processKey(event->mods, event->scancode);
 }

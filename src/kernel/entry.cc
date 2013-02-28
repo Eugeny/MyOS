@@ -5,6 +5,8 @@
 #include <map>
 
 #include <core/CPU.h>
+#include <core/Debug.h>
+#include <core/MQ.h>
 #include <core/Process.h>
 #include <core/Thread.h>
 #include <hardware/keyboard/Keyboard.h>
@@ -19,7 +21,10 @@
 #include <tty/Escape.h>
 #include <tty/PhysicalTerminalManager.h>
 
-#include <libfat/ff.h>
+#include <fs/fat32/FAT32FS.h>
+#include <fs/File.h>
+#include <fs/Directory.h>
+#include <fcntl.h>
 
 
 int main() {}
@@ -35,28 +40,13 @@ void handlePF(isrq_registers_t* regs) {
 }
 
 
-void handleDebug(isrq_registers_t* regs) {
-    klog('w', "Register dump");
-    klog('w', "RIP: %016lx   RSP: %016lx", regs->rip, regs->rsp);
-    klog('w', "RDI: %016lx   RSI: %016lx", regs->rdi, regs->rsi);
-    klog('w', "RAX: %016lx   RBX: %016lx", regs->rax, regs->rbx);
-    klog('w', "RCX: %016lx   RDX: %016lx", regs->rcx, regs->rdx);
-    klog_flush();
-}
-
-
 void handleGPF(isrq_registers_t* regs) {
     klog('e', "GENERAL PROTECTION FAULT");
     klog('e', "Faulting code: %lx", regs->rip);
     klog('e', "Errcode      : %lx", regs->err_code);
     klog_flush();
-    handleDebug(regs);
+    MQ::post(Debug::MSG_DUMP_REGISTERS, NULL);
     for(;;);
-}
-
-void handleKbd(uint64_t mod, uint64_t scan) {
-    //klog('i', "Keyboard %x %x", mod, scan);
-    PhysicalTerminalManager::get()->dispatchKey(mod, scan);
 }
 
 
@@ -98,7 +88,7 @@ void threadB() {
     for (;;) {
         for (int i = 0; i < 1500000; i++);
         v += 0.0001;
-        klog('w', "Thread B: %e", v);
+        klog('w', "Thread B: %i", v);
     }
 }
 
@@ -114,12 +104,15 @@ extern "C" void kmain () {
     asm volatile("cli");
     asm volatile("clts");
 
+    Keyboard::get()->init();
 
     PhysicalTerminalManager::get()->init(5);
     klog_init_terminal();
     klog('i', "Kernel log started");
     PhysicalTerminalManager::get()->render();
 
+    Debug::init();
+    
     klog('i', "Setting IDT");
     IDT::get()->init();
 
@@ -127,51 +120,42 @@ extern "C" void kmain () {
 
 
     klog('i', "Configuring timer");
+    PIT::get()->init();
     PIT::get()->setFrequency(2500);
+
     Interrupts::get()->setHandler(IRQ(7), irq7_mute);
     Interrupts::get()->setHandler(13, handleGPF);
     Interrupts::get()->setHandler(14, handlePF);
     Interrupts::get()->setHandler(0x7f, handleSaveKernelState);
-    Interrupts::get()->setHandler(0xff, handleDebug);
-    Interrupts::get()->setHandler(IRQ(0), pit_handler);
-
-    Keyboard::get()->init();
-    Keyboard::get()->setHandler(handleKbd);
 
 
-    FATFS* fat = new FATFS();
-    if (f_mount(0, fat)!=0) {
-        klog('e', "mount");for(;;);
+    MQ::registerConsumer(PIT::MSG_TIMER, (MessageConsumer)&pit_handler);
+
+    //MQ::post(Debug::MSG_DUMP_REGISTERS, NULL);
+
+    const char* s = "123";
+    MQ::registerMessage(s);
+    klog('w', "%i", MQ::hasMessage(s));
+    /*
+    FAT32FS* fs = new FAT32FS();
+    File* f = fs->open("test", O_RDONLY);
+    char buf[1024];
+    f->read(buf, 1024);
+    klog('i', buf);
+    f->close();
+
+    Directory* dir = fs->opendir("/");
+    struct dirent* de;
+    while (de = dir->read()) {
+        klog('i', "%s%s", de->d_name, (de->d_type == DT_DIR) ? "/" : "");
     }
-    DIR* dir = new DIR();
-    if (f_opendir(dir, "/")!=0) {
-        klog('e', "opendir");for(;;);
-    }
-    FILINFO* fi = new FILINFO();
-    char b[256];
-    fi->lfname = b;
-    fi->lfsize = 256;
-    int c=0;
-    while (1) {
-        if(c++>10)break;
-    if (f_readdir(dir, fi)!=0){
-            klog('e', "readdir");for(;;);
-    }
-    
-        if (!fi->fname[0])
-            break;
-        klog('i', fi->lfname);
-    }
+    dir->close();
 
-    for (;;);
+    for(;;);*/
 
-AddressSpace* as = AddressSpace::kernelSpace;
-as=as->clone();
-as->activate();
 
     Process* p = new Process();
-    p->addressSpace = as;
-    p->addressSpace->dump();
+    p->addressSpace = AddressSpace::kernelSpace;
 
     threads[0] = new Thread(p);
 
@@ -187,7 +171,7 @@ as->activate();
     threads[1]->state.regs.rip = (uint64_t)&threadA;
     threads[2]->state.regs.rip = (uint64_t)&threadB;
 
-    taskingActive = true;
+    //taskingActive = true;;
 
     for(;;);
 

@@ -47,10 +47,13 @@ SOURCES= \
 	src/kernel/alloc/malloc.o 					\
 												\
 	src/kernel/core/CPU.o 						\
+	src/kernel/core/Debug.o 					\
+	src/kernel/core/MQ.o 						\
 	src/kernel/core/Process.o 					\
 	src/kernel/core/Thread.o 					\
 												\
 	src/kernel/fs/libfat-glue.o 				\
+	src/kernel/fs/fat32/FAT32FS.o 				\
 												\
 	src/kernel/hardware/io.o 					\
 	src/kernel/hardware/ata/ATA.o 				\

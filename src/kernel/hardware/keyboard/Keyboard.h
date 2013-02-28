@@ -11,19 +11,21 @@
 #define KBD_MOD_META 8
 
 
-typedef void(*keyboard_handler)(uint64_t, uint64_t);
+
+struct keyboard_event_t {
+    uint64_t mods, scancode;
+};
 
 
 class Keyboard : public Singleton<Keyboard> {
 public:
     void init();
     void handle(isrq_registers_t*);
-    void setHandler(keyboard_handler h);
+    static const char* MSG_KEYBOARD_EVENT;
 private:
     bool _escaping;
     uint64_t _modifiers;
     uint64_t _buffer;
-    keyboard_handler _handler;
 };
 
 #endif

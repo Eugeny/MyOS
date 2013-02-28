@@ -1,7 +1,11 @@
 #include <hardware/keyboard/Keyboard.h>
+#include <core/MQ.h>
 #include <hardware/io.h>
 #include <interrupts/Interrupts.h>
 #include <kutil.h>
+
+
+const char* Keyboard::MSG_KEYBOARD_EVENT = "keyboard-event";
 
 
 void Keyboard::handle(isrq_registers_t *r) {
@@ -25,7 +29,12 @@ void Keyboard::handle(isrq_registers_t *r) {
     else if (_buffer == 0xE05B) _modifiers |=  KBD_MOD_META;
     else if (_buffer == 0xE0DB) _modifiers &= !KBD_MOD_META;
 
-    else if ((_handler != NULL) && scancode >= 0x80) _handler(_modifiers, scancode);
+    else if (scancode >= 0x80) {
+        static keyboard_event_t event;
+        event.mods = _modifiers;
+        event.scancode = scancode;
+        MQ::post(MSG_KEYBOARD_EVENT, (void*)&event);
+    }
 }
 
 static void kbdh(isrq_registers_t *r) {
@@ -33,13 +42,9 @@ static void kbdh(isrq_registers_t *r) {
 }
 
 void Keyboard::init() {
+    MQ::registerMessage(MSG_KEYBOARD_EVENT);
     Interrupts::get()->setHandler(IRQ(1), kbdh);
     _buffer = 0;
     _modifiers = 0;
     _escaping = false;
-    _handler = NULL;
-}
-
-void Keyboard::setHandler(keyboard_handler h) {
-    _handler = h;
 }

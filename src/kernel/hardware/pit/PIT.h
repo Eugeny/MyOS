@@ -8,8 +8,9 @@
 
 class PIT : public Singleton<PIT> {
 public:
+    void init();
     void setFrequency(uint32_t freq);
-    void setHandler(interrupt_handler h);
+    static const char* MSG_TIMER;
 };
 
 #endif

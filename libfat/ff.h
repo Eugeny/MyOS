@@ -139,7 +139,7 @@ typedef struct {
 
 
 
-/* Directory object structure (DIR) */
+/* Directory object structure (FDIR) */
 
 typedef struct {
 	FATFS*	fs;				/* Pointer to the owner file system object (**do not change order**) */
@@ -154,7 +154,7 @@ typedef struct {
 	WCHAR*	lfn;			/* Pointer to the LFN working buffer */
 	WORD	lfn_idx;		/* Last matched LFN index number (0xFFFF:No LFN) */
 #endif
-} DIR;
+} FDIR;
 
 
 
@@ -209,8 +209,8 @@ FRESULT f_open (FIL* fp, const TCHAR* path, BYTE mode);				/* Open or create a f
 FRESULT f_read (FIL* fp, void* buff, UINT btr, UINT* br);			/* Read data from a file */
 FRESULT f_lseek (FIL* fp, DWORD ofs);								/* Move file pointer of a file object */
 FRESULT f_close (FIL* fp);											/* Close an open file object */
-FRESULT f_opendir (DIR* dj, const TCHAR* path);						/* Open an existing directory */
-FRESULT f_readdir (DIR* dj, FILINFO* fno);							/* Read a directory item */
+FRESULT f_opendir (FDIR* dj, const TCHAR* path);						/* Open an existing directory */
+FRESULT f_readdir (FDIR* dj, FILINFO* fno);							/* Read a directory item */
 FRESULT f_stat (const TCHAR* path, FILINFO* fno);					/* Get file status */
 FRESULT f_write (FIL* fp, const void* buff, UINT btw, UINT* bw);	/* Write data to a file */
 FRESULT f_getfree (const TCHAR* path, DWORD* nclst, FATFS** fatfs);	/* Get number of free clusters on the drive */
@@ -291,7 +291,7 @@ int ff_del_syncobj (_SYNC_t sobj);				/* Delete a sync object */
 #define	FA_CREATE_ALWAYS	0x08
 #define	FA_OPEN_ALWAYS		0x10
 #define FA__WRITTEN			0x20
-#define FA__DIRTY			0x40
+#define FA__FDIRTY			0x40
 #endif
 
 
@@ -309,7 +309,7 @@ int ff_del_syncobj (_SYNC_t sobj);				/* Delete a sync object */
 #define	AM_SYS	0x04	/* System */
 #define	AM_VOL	0x08	/* Volume label */
 #define AM_LFN	0x0F	/* LFN entry */
-#define AM_DIR	0x10	/* Directory */
+#define AM_FDIR	0x10	/* Directory */
 #define AM_ARC	0x20	/* Archive */
 #define AM_MASK	0x3F	/* Mask of defined bits */
 
