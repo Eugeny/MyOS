@@ -31,6 +31,7 @@ void Memory::init() {
         AddressSpace::kernelSpace->mapPage(
             AddressSpace::kernelSpace->getPage(i, true), 
             i, PAGEATTR_SHARED
+            
         );
     }
 
@@ -42,7 +43,7 @@ void Memory::init() {
     for (uint64_t i = 0; i < KCFG_HIGH_IDENTITY_PAGING_LENGTH; i += KCFG_PAGE_SIZE) { 
         AddressSpace::kernelSpace->mapPage(
             AddressSpace::kernelSpace->getPage(0xffffffffffffffff - KCFG_HIGH_IDENTITY_PAGING_LENGTH + i + 1, true),
-            KCFG_LOW_IDENTITY_PAGING_LENGTH + i, 0
+            KCFG_LOW_IDENTITY_PAGING_LENGTH + i, PAGEATTR_SHARED | PAGEATTR_COPY
         );
     }
 
@@ -76,6 +77,8 @@ void Memory::handlePageFault(isrq_registers_t* regs) {
 }
 
 void Memory::handleGPF(isrq_registers_t* regs) {
+    AddressSpace::current->dump();
+  
     klog('e', "GENERAL PROTECTION FAULT");
     klog('e', "Faulting code: %lx", regs->rip);
     klog('e', "Errcode      : %lx", regs->err_code);

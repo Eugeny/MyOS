@@ -57,8 +57,8 @@ static page_tree_node_t* node_get_child(page_tree_node_t* node, uint64_t idx, bo
 
 
 static void copy_page_physical(uint64_t src, uint64_t dst) {
-    AddressSpace::current->mapPage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_1, true), src, 0);
-    AddressSpace::current->mapPage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_2, true), dst, 0);
+    AddressSpace::current->mapPage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_1, true), src, PAGEATTR_SHARED);
+    AddressSpace::current->mapPage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_2, true), dst, PAGEATTR_SHARED);
     memcpy((void*)KCFG_TEMP_PAGE_2, (void*)KCFG_TEMP_PAGE_1, KCFG_PAGE_SIZE);
     //AddressSpace::current->releasePage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_1, false));
     //AddressSpace::current->releasePage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_2, false));
@@ -84,7 +84,7 @@ void AddressSpace::initEmpty() {
 
 void AddressSpace::activate() {
     if (AddressSpace::current) {
-        klog('t',"Switching address space: %016lx",AddressSpace::current->getPhysicalAddress((uint64_t)root));
+        //klog('t',"Switching address space: %016lx",AddressSpace::current->getPhysicalAddress((uint64_t)root));
         CPU::setCR3(AddressSpace::current->getPhysicalAddress((uint64_t)root));
     }
     else
@@ -220,12 +220,15 @@ AddressSpace* AddressSpace::clone() {
                                     }
                                     page_descriptor_t page = result->getPage(addr, true);
 
-                                    *(page.entry) = *oldPage.entry;
-                                    *(page.attrs) = *oldPage.attrs;
                                     *(page.vAddr) = *oldPage.vAddr;
-                                    *(page.name) = *oldPage.name;
 
-                                    if (!PAGEATTR_IS_SHARED(*oldPage.attrs)) {
+                                    if (PAGEATTR_IS_SHARED(*oldPage.attrs)) {
+                                        *(page.entry) = *oldPage.entry;
+                                        *(page.attrs) = *oldPage.attrs;
+                                        *(page.name) = *oldPage.name;
+                                    }
+
+                                    if (PAGEATTR_IS_COPY(*oldPage.attrs)) {
                                         page.entry->present = false;
                                         result->allocatePage(page, *oldPage.attrs);
 
@@ -286,9 +289,11 @@ void AddressSpace::recursiveDump(page_tree_node_t* node, int level) {
                     started = true;
 
                     uint8_t attrs = node->entriesAttrs[i];
-                    klog('i', "%s[%s] %s",
+                    klog('i', "%s[%s %s %s] %s",
                         Escape::C_B_GRAY,
                         PAGEATTR_IS_SHARED(attrs) ? "SHARED ": "PRIVATE",
+                        PAGEATTR_IS_USER(attrs)   ? "USER  ": "KERNEL",
+                        PAGEATTR_IS_COPY(attrs)   ? "COPY  ": "NOCOPY",
                         node->entriesNames[i] ? node->entriesNames[i] : "---"
                     );
                     klog('i', "%s%016lx -> %016lx %s[%i-%i-%i-%i]", Escape::C_B_GRAY, startVirt, startPhy, 

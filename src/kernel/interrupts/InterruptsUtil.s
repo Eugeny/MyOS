@@ -1,3 +1,9 @@
+%define COPY_STACK_SIZE qword 150
+
+isrq_stack times 409600 db 0
+isrq_stack_top dd 0
+
+
 %macro ISR_NOERRCODE 1
   global isr%1
   isr%1:
@@ -49,22 +55,27 @@
 
 extern isr_handler
 
-FAKEIDT:
-    dd 0,0,0,0
-
 isr_common_stub:
     PUSHAQ
 
-    mov rdi, rsp
-    call isr_handler
+    ; Copy stack onto kernel stack
+    mov rax, isrq_stack_top
+    sub rax, COPY_STACK_SIZE
+    
+    mov rsi, rsp
+    mov rdi, rax
+    mov rcx, COPY_STACK_SIZE
+    rep movsb
 
-    ;mov rax, FAKEIDT
-    ;lidt [rax]
-    ;int 5 ; crash
+    mov rdi, isrq_stack_top
+    sub rdi, COPY_STACK_SIZE
+    mov rsp, rdi
+
+    call isr_handler
 
     POPAQ
 
-    add rsp, 16     ; 2*uint64 params
+    add rsp, 16     ; drop 2*uint64 params
     sti
     iretq
 

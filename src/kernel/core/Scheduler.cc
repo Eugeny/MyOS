@@ -29,6 +29,7 @@ void Scheduler::init() {
 
     kernelProcess = new Process();
     kernelProcess->addressSpace = AddressSpace::kernelSpace;
+    kernelProcess->isKernel = true;
     kernelThread = new Thread(kernelProcess, "Kernel idle thread");
     registerThread(kernelThread);
     activeThread = kernelThread;
@@ -39,7 +40,25 @@ void Scheduler::init() {
 
 void Scheduler::registerThread(Thread* t) {
     threads.add(t);
-    //t->process->threads.push_back(kernelThread);
+    t->process->threads.add(t);
+}
+
+Process* Scheduler::spawnProcess(uint64_t entry) {
+    Process* p = new Process();
+    p->addressSpace = AddressSpace::kernelSpace->clone();
+
+    Thread* t = new Thread(p, "root");
+    t->state.regs = kernelThread->state.regs;
+    t->createStack(0x2000);
+    t->pushOnStack(0);
+
+    p->addressSpace->dump();
+    klog('w', "%lx", entry);
+    klog('w', "%lx", t->stackBottom);
+
+    t->state.regs.rip = entry;
+    registerThread(t);
+    return p;
 }
 
 void Scheduler::spawnKernelThread(threadEntryPoint entry, void* arg, const char* name) {

@@ -31,8 +31,12 @@ struct page_descriptor_t {
 };
 
 #define PAGEATTR_SHARED 1
-#define PAGEATTR_IS_SHARED(a) ((a & PAGEATTR_SHARED) != 0)
-
+#define PAGEATTR_USER 2
+#define PAGEATTR_COPY 4
+#define PAGEATTR_IS_SHARED(a)   ((a & PAGEATTR_SHARED) != 0)
+#define PAGEATTR_IS_USER(a)     ((a & PAGEATTR_USER) != 0)
+#define PAGEATTR_IS_COPY(a)     ((a & PAGEATTR_COPY) != 0)
+ 
 #define PAGE_INDEX(virt) (virt / KCFG_PAGE_SIZE % 512)
 
 

@@ -40,18 +40,22 @@ void isrq80(isrq_registers_t* regs)  {
 
 void repainterThread(void*) {
     for (;;) {
-        for (int i = 0; i < 100000; i++);
+        Scheduler::get()->getActiveThread()->wait(new WaitForDelay(50));
         PhysicalTerminalManager::get()->render();
     }
 }
 
 void testThread(void*) {
+    PTYSlave* p = PhysicalTerminalManager::get()->openPTY(0);
     for(;;) {
         Scheduler::get()->getActiveThread()->wait(new WaitForDelay(500));
         Scheduler::get()->forceThreadSwitchUserspace(NULL);
-        klog('i', "%i", PIT::get()->getTime());
-        KTRACEMEM
-    }
+        //klog('i', "%i", PIT::get()->getTime());
+        //KTRACEMEM
+        char buf [1024];
+        int c = p->read(buf, 1024);
+        p->write(buf, c);
+    }   
 }
 
 
@@ -90,12 +94,6 @@ extern "C" void kmain () {
     //MQ::post(Debug::MSG_DUMP_REGISTERS, NULL);
 
 /*
-    FAT32FS* fs = new FAT32FS();
-    File* f = fs->open("test", O_RDONLY);
-    char buf[1024];
-    f->read(buf, 1024);
-    klog('i', buf);
-    f->close();
 
     Directory* dir = fs->opendir("/");
     struct dirent* de;
@@ -105,15 +103,23 @@ extern "C" void kmain () {
     dir->close();
 */
 
+
+    FAT32FS* fs = new FAT32FS();
+    File* f = fs->open("a.out", O_RDONLY);
+    char* buf = (char*)kmalloc(1024*1024);
+    int c =f->read(buf, 1024*1024);
+    klog('i',"%i",c);
+    f->close();
+
     KTRACEMEM
 
     klog('w', "Starting task scheduler");
     Scheduler::get()->init();
     Scheduler::get()->spawnKernelThread(&repainterThread, NULL, "Screen repainter thread");
-    Scheduler::get()->spawnKernelThread(&testThread, NULL, "test thread");
 
-    PTYSlave* p = PhysicalTerminalManager::get()->openPTY(0);
-    p->write("TEST", 4);
+    Scheduler::get()->spawnProcess((uint64_t)&testThread);
+//    Scheduler::get()->spawnKernelThread(&testThread, NULL, "test thread");
+
 
     for (;;)
         CPU::halt();

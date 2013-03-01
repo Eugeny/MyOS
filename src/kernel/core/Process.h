@@ -21,6 +21,7 @@ public:
     char* name;
 
     AddressSpace* addressSpace;
+    bool isKernel;
     
     Pool<Thread*, 1024> threads;
 
