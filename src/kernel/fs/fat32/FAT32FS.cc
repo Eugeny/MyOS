@@ -38,7 +38,7 @@ FAT32File::FAT32File(FAT32FS* fs, FIL* f) {
 
 
 
-void FAT32File::write(void* buffer, uint64_t count) {
+void FAT32File::write(const void* buffer, uint64_t count) {
 
 }
 
@@ -53,6 +53,9 @@ void FAT32File::close() {
     delete fil;
 }
 
+bool FAT32File::canRead() {
+    return true;
+}
 
 
 FAT32Directory::FAT32Directory(FAT32FS* f, FDIR* d) {

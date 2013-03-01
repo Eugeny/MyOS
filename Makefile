@@ -54,8 +54,11 @@ SOURCES= \
 	src/kernel/core/Thread.o 					\
 	src/kernel/core/Wait.o 						\
 												\
-	src/kernel/fs/libfat-glue.o 				\
+	src/kernel/fs/fat32/libfat-glue.o 			\
 	src/kernel/fs/fat32/FAT32FS.o 				\
+	src/kernel/fs/devfs/PTY.o 					\
+	src/kernel/fs/File.o 						\
+	src/kernel/fs/Pipe.o 						\
 												\
 	src/kernel/hardware/io.o 					\
 	src/kernel/hardware/ata/ATA.o 				\

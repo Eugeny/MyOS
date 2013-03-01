@@ -16,6 +16,7 @@
 #include <memory/Memory.h>
 #include <tty/PhysicalTerminalManager.h>
 
+#include <fs/devfs/PTY.h>
 #include <fs/fat32/FAT32FS.h>
 #include <fs/File.h>
 #include <fs/Directory.h>
@@ -31,6 +32,10 @@ void pit_handler(isrq_registers_t* regs) {
     microtrace();
 }
 
+void isrq80(isrq_registers_t* regs)  {
+    klog('w', "SYSCALL #%x", regs->rax);
+    klog_flush();
+}
 
 
 void repainterThread(void*) {
@@ -45,6 +50,7 @@ void testThread(void*) {
         Scheduler::get()->getActiveThread()->wait(new WaitForDelay(500));
         Scheduler::get()->forceThreadSwitchUserspace(NULL);
         klog('i', "%i", PIT::get()->getTime());
+        KTRACEMEM
     }
 }
 
@@ -77,6 +83,7 @@ extern "C" void kmain () {
     Keyboard::get()->init();
     Interrupts::get()->setHandler(IRQ(7),  INTERRUPT_MUTE);
     Interrupts::get()->setHandler(IRQ(15), INTERRUPT_MUTE);
+    Interrupts::get()->setHandler(0x80, isrq80);
 
     AddressSpace::kernelSpace->dump();
 
@@ -104,6 +111,9 @@ extern "C" void kmain () {
     Scheduler::get()->init();
     Scheduler::get()->spawnKernelThread(&repainterThread, NULL, "Screen repainter thread");
     Scheduler::get()->spawnKernelThread(&testThread, NULL, "test thread");
+
+    PTYSlave* p = PhysicalTerminalManager::get()->openPTY(0);
+    p->write("TEST", 4);
 
     for (;;)
         CPU::halt();

@@ -13,9 +13,12 @@ static void onKeyboardEvent(keyboard_event_t* e) {
 void PhysicalTerminalManager::init(int terminalCount) {
     count = terminalCount;
     terminals = new Terminal*[terminalCount];
+    ptys = new PTY*[terminalCount];
 
     for (int i = 0; i < terminalCount; i++) {
         terminals[i] = new Terminal(WIDTH, HEIGHT);
+        ptys[i] = new PTY();
+        terminals[i]->pty = ptys[i]->openMaster();
     }
 
     switchTo(0);
@@ -41,6 +44,10 @@ Terminal* PhysicalTerminalManager::getTerminal(int idx) {
 
 int PhysicalTerminalManager::getTerminalCount() {
     return count;
+}
+
+PTYSlave* PhysicalTerminalManager::openPTY(int idx) {
+    return ptys[idx]->openSlave();
 }
 
 void PhysicalTerminalManager::dispatchKey(keyboard_event_t* event) {

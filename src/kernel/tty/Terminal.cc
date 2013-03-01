@@ -34,6 +34,7 @@ Terminal::Terminal(int w, int h) {
     dirty = true;
     terminal = rote_vt_create(h, w);
     terminal->curattr = 0x70;
+    pty = NULL;
 }
 
 
@@ -43,7 +44,6 @@ void Terminal::write(const char* s) {
 
 void Terminal::write(const char* buf, int offset, int len) {
     rote_vt_inject(terminal, (buf + offset), len);
-    //render(); // TODO!
 }
 
 void Terminal::makeDirty() {
@@ -56,6 +56,13 @@ uint8_t COLORMAP[16] = {
 };
 
 void Terminal::render() {
+    if (pty) {
+        char buffer[1024];
+        while (int c = pty->read(buffer, 1024)) {
+            write(buffer, 0, c);
+        }
+    }
+
     unsigned char *vram = (unsigned char *)0xb8000;
     uint8_t* cell = vram;
     for (int y = 0; y < height; y++) {
@@ -117,8 +124,11 @@ void Terminal::processKey(uint64_t mods, uint64_t scancode) {
     else if (mapped) {
         if (mods == 1 && mapped >= 'a' && mapped <= 'z') // ctrl keys
             rote_vt_keypress(terminal, mapped - 'a');
-        else
+        else {
             write(&map[scancode], 0, 1);
+            if (pty)
+                pty->write(&map[scancode], 1);
+        }
     } else
         klog('d', "Unknown key %lx/%lx", scancode, mods);
 }

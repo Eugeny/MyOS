@@ -5,6 +5,8 @@
 #define HEIGHT 25
 
 #include <rote.h>
+#include <fs/devfs/PTY.h>
+
 
 class Terminal {
 public:
@@ -14,6 +16,7 @@ public:
     void render();
     void makeDirty();
     void processKey(uint64_t mods, uint64_t scancode);
+    PTYMaster* pty;
 private:
     int         width, height;
     bool        dirty;

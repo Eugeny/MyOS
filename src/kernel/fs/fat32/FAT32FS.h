@@ -20,10 +20,12 @@ private:
 class FAT32File : public File {
 public:
     FAT32File(FAT32FS* fs, FIL* f);
-    virtual void write(void* buffer, uint64_t count);
+    virtual void write(const void* buffer, uint64_t count);
     virtual uint64_t read(void* buffer, uint64_t count);
     virtual void close();
+    virtual bool canRead();
 private:
+    FAT32FS* filesystem;
     FIL* fil;
 };
 
@@ -34,6 +36,7 @@ public:
     virtual struct dirent* read();
     virtual void close();
 private:
+    FAT32FS* filesystem;
     FDIR* dir;
 };
 

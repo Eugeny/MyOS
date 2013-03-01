@@ -12,8 +12,7 @@ class Pool
 public:
     Pool() {
         capacity = size;
-//for(;;);
-  //      memset(items, 0, sizeof(T*) * size);
+        memset(items, 0, sizeof(T*) * size);
     }
 
     ~Pool () {

@@ -4,6 +4,7 @@
 #include <lang/lang.h>
 #include <lang/Singleton.h>
 #include <tty/Terminal.h>
+#include <fs/devfs/PTY.h>
 #include <hardware/keyboard/Keyboard.h>
 
 
@@ -14,11 +15,13 @@ public:
     void switchTo(int idx);
     Terminal* getTerminal(int idx);
     Terminal* getActiveTerminal();
+    PTYSlave* openPTY(int idx);
     int  getTerminalCount();
     void dispatchKey(keyboard_event_t*);
 private:
     int count, activeIdx;
     Terminal** terminals;
+    PTY** ptys;
 };
 
 #endif

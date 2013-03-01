@@ -4,15 +4,13 @@
 #include <lang/lang.h>
 
 
-class FS;
-
 class File {
 public:
-    virtual void write(void* buffer, uint64_t count) = 0;
+    virtual void write(const void* buffer, uint64_t count) = 0;
     virtual uint64_t read(void* buffer, uint64_t count) = 0;
-    virtual void close() = 0;
+    virtual void close();
+    virtual bool canRead() = 0;
 
-    FS* filesystem;
     char* path;
 };
 
