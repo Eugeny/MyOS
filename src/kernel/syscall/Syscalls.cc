@@ -21,6 +21,16 @@ static syscall syscalls[255];
 #include <sys/utsname.h>
 #include <string.h>
 
+SYSCALL(read) {
+    auto fd = regs->rdi;    
+    auto buffer = (void*)regs->rsi;
+    auto count = regs->rdx;
+
+    STRACE("read(%i, 0x%x, %i)", fd, buffer, count);
+
+    return Scheduler::get()->getActiveThread()->process->files[fd]->read(buffer, count);
+}
+
 SYSCALL(open) {
     auto path = (char*)regs->rdi;    
     auto flags = regs->rsi;
@@ -42,6 +52,8 @@ SYSCALL(uname) {
     strcpy(buf->release, "1.0");
     strcpy(buf->version, "1");
     strcpy(buf->machine, "x86-64");
+
+    return 0;
 }
 
 
@@ -53,6 +65,7 @@ void Syscalls::init() {
     for (int i = 0; i < 255; i++)
         syscalls[i] = NULL;
 
+    syscalls[0x00] = sys_read;
     syscalls[0x02] = sys_open;
     syscalls[0x3f] = sys_uname;
 }
