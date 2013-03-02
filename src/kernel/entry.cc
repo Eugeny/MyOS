@@ -19,6 +19,8 @@
 
 #include <fs/devfs/PTY.h>
 #include <fs/fat32/FAT32FS.h>
+#include <fs/procfs/ProcFS.h>
+#include <fs/vfs/VFS.h>
 #include <fs/File.h>
 #include <fs/Directory.h>
 #include <fcntl.h>
@@ -130,6 +132,14 @@ extern "C" void kmain () {
     Process* p = Scheduler::get()->spawnProcess();
     //p->spawnThread(&testThread, NULL, "test");
 
+
+    auto vfs = new VFS();
+    auto root = new FAT32FS();
+    auto procfs = new ProcFS();
+    vfs->mount("/", root);
+    vfs->mount("/proc", procfs);
+
+    klog('i', "%i", vfs->open("/proc/sys/kernel/osrelease", 0));
 
     auto elf = new ELF();
 

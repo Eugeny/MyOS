@@ -88,5 +88,9 @@ SECTIONS
 		PROVIDE_HIDDEN (__fini_array_end = .);
 	}
 
-		end = .; _end = .; __end = .;
+	end = .; _end = .; __end = .;
+
+	/DISCARD/ : {
+		*(.note.gnu.build-id);
+	}
 }

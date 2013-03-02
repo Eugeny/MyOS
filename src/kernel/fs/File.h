@@ -15,4 +15,17 @@ public:
 };
 
 
+
+class StaticFile : public File {
+public:
+    StaticFile(void*, uint64_t);
+    virtual void write(const void* buffer, uint64_t count);
+    virtual uint64_t read(void* buffer, uint64_t count) ;
+    virtual void close();
+    virtual bool canRead();
+private:
+    void* content;
+    uint64_t offset, size;
+};
+
 #endif
