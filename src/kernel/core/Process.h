@@ -3,6 +3,7 @@
 
 #include <lang/lang.h>
 #include <lang/Pool.h>
+#include <core/Scheduler.h>
 #include <memory/AddressSpace.h>
 #include <interrupts/Interrupts.h>
 
@@ -13,6 +14,8 @@ class Process {
 public:
     Process();
     ~Process();
+
+    Thread* spawnThread(threadEntryPoint entry, void* arg, const char* name);
 
     void* sbrk(uint64_t size);
 

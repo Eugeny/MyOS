@@ -1,4 +1,5 @@
 #include <core/Process.h>
+#include <core/Thread.h>
 #include <kutil.h>
 
 
@@ -12,6 +13,17 @@ void* Process::sbrk(uint64_t size) {
     void* result = (void*)brk;
     brk += size;
     return result;
+}
+
+Thread* Process::spawnThread(threadEntryPoint entry, void* argument, const char* name) {
+    Thread* t = new Thread(this, name);
+    t->state = Scheduler::get()->kernelThread->state;
+    t->createStack(0x2000);
+    t->pushOnStack((uint64_t)argument);
+    t->state.regs.rip = (uint64_t)entry;
+    threads.add(t);
+    Scheduler::get()->registerThread(t);
+    return t;
 }
 
 Process::~Process() {

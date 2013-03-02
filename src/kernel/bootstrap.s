@@ -10,34 +10,26 @@ section .text
 
 [BITS 32]
 
-
-ALIGN 16
-MbHdr:
-    ; Magic
-    dd  0xE85250D6
-    ; Architecture
-    dd  0
-    ; Length
-    dd  HdrEnd - MbHdr
-    ; Checksum
-    dd  0xFFFFFFFF - (0xE85250D6 + 0 + (HdrEnd - MbHdr)) + 1
+MODULEALIGN equ  1<<0                   ; align loaded modules on page boundaries
+MEMINFO     equ  1<<1                   ; provide memory map
+VIDEO       equ  1<<2
+FLAGS       equ  MODULEALIGN | MEMINFO | VIDEO
+MAGIC       equ  0x1BADB002             ; 'magic number' lets bootloader find the header
+CHECKSUM    equ -(MAGIC + FLAGS)        ; checksum required
  
-    ;
-    ; Tags
-    ;
-    _mbir_start:
-    dw  1, 0
-    dd  16
-    dd  3,1
-    _mbir_end:
-
-    ; End Of Tags
-    dw  0, 0
-    dd  8
+section .text
  
-    ; Hdr End Mark
-HdrEnd:
+align 4
+    dd MAGIC
+    dd FLAGS
+    dd CHECKSUM
 
+    dd 0,0,0,0,0
+
+    dd 1
+    dd 132
+    dd 50
+    dd 0
 
 
 
@@ -108,7 +100,8 @@ _loop_make_page_entries:
     ; Enable Long mode
     mov     ecx, 0C0000080h          ; EFER MSR 
     rdmsr 
-    bts     eax, 8
+    bts     eax, 8 ; 64 bit 
+    bts     eax, 0 ; SYSCALL
     wrmsr 
 
     ; Enable PAE
@@ -122,7 +115,7 @@ _loop_make_page_entries:
     mov     cr0, eax
 
     ; Go 64
-    jmp     LONG_SELECTOR:loader64 
+    jmp     KCODE_SELECTOR:loader64 
 
 
 bits 64
@@ -131,7 +124,7 @@ loader64:
     mov     rax, '.p.p.p.p' 
     mov     [0B8000h], rax 
 
-    mov     rax, LONG_SELECTOR
+    mov     rax, KDATA_SELECTOR
     mov     ds, ax
     mov     es, ax
     mov     fs, ax
@@ -144,16 +137,24 @@ loader64:
 NULL_SELECTOR equ 0 
 DATA_SELECTOR equ 1 << 3                 ; flat data selector (ring 0) 
 CODE_SELECTOR equ 2 << 3                 ; 32-bit code selector (ring 0) 
-LONG_SELECTOR equ 3 << 3  
+KCODE_SELECTOR equ 3 << 3  
+KDATA_SELECTOR equ 4 << 3  
+UCODE_SELECTOR equ 5 << 3  
+UDATA_SELECTOR equ 6 << 3  
+
+
 GDTR:                                   ; Global Descriptors Table Register 
-    dw 4*8-1                              ; limit of GDT (size minus one) 
+    dw 7*8-1                              ; limit of GDT (size minus one) 
     dq GDT                                ; linear address of GDT 
 
 GDT:
     dw 0,0,0,0                                ; null desciptor 
-    dw 0FFFFh,0,9200h,08Fh              ; flat data desciptor 
-    dw 0FFFFh,0,9A00h,0CFh              ; 32-bit code desciptor 
-    dw 0FFFFh,0,9A00h,0AFh              ; 64-bit code desciptor 
+    db 0xff, 0xff, 0, 0, 0, 0x92, 0x8f, 0  ; flat data 32
+    db 0xff, 0xff, 0, 0, 0, 0x9a, 0xcf, 0  ; flat code 32
+    db 0xff, 0xff, 0, 0, 0, 0x9a, 0xaf, 0  ; flat k code 64
+    db 0xff, 0xff, 0, 0, 0, 0x92, 0xaf, 0  ; flat k data 64
+    db 0xff, 0xff, 0, 0, 0, 0xfa, 0xaf, 0  ; flat u code 64
+    db 0xff, 0xff, 0, 0, 0, 0xf2, 0xaf, 0  ; flat u data 64
 
 
 section .bss

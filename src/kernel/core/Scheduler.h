@@ -14,7 +14,7 @@ typedef void (*threadEntryPoint)(void*);
 class Scheduler : public Singleton<Scheduler> {
 public:
     void init();
-    Process* spawnProcess(uint64_t entry);
+    Process* spawnProcess();
     void spawnKernelThread(threadEntryPoint entry, void* argument, const char* name);
     void registerThread(Thread* t);
     void scheduleNextThread();
@@ -27,11 +27,12 @@ public:
     void saveKernelState(isrq_registers_t*);
 
     Thread* getActiveThread();
+    
+    Thread* kernelThread;
 private:
     Thread* nextThread;
     Pool<Thread*, 1024> threads;
     Process* kernelProcess;
-    Thread* kernelThread;
     Thread* activeThread;
 };
 

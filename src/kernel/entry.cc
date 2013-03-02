@@ -14,6 +14,7 @@
 #include <interrupts/Interrupts.h>
 #include <memory/AddressSpace.h>
 #include <memory/Memory.h>
+#include <syscall/Syscalls.h>
 #include <tty/PhysicalTerminalManager.h>
 
 #include <fs/devfs/PTY.h>
@@ -21,6 +22,8 @@
 #include <fs/File.h>
 #include <fs/Directory.h>
 #include <fcntl.h>
+
+#include <elf/ELF.h>
 
 
 int main() {}
@@ -37,6 +40,12 @@ void isrq80(isrq_registers_t* regs)  {
     klog_flush();
 }
 
+void isrq6(isrq_registers_t* regs)  {
+    klog('w', "Invalid opcode, rip=%lx", regs->rip);
+    klog_flush();
+    for(;;);
+}
+
 
 void repainterThread(void*) {
     for (;;) {
@@ -47,6 +56,11 @@ void repainterThread(void*) {
 
 void testThread(void*) {
     PTYSlave* p = PhysicalTerminalManager::get()->openPTY(0);
+    for (;;) {
+        p->write(".", 1);
+        for (int i =0; i < 1000000;i++);
+        Scheduler::get()->getActiveThread()->wait(new WaitForDelay(1000));
+    }
     for(;;) {
         Scheduler::get()->getActiveThread()->wait(new WaitForDelay(500));
         Scheduler::get()->forceThreadSwitchUserspace(NULL);
@@ -88,6 +102,7 @@ extern "C" void kmain () {
     Interrupts::get()->setHandler(IRQ(7),  INTERRUPT_MUTE);
     Interrupts::get()->setHandler(IRQ(15), INTERRUPT_MUTE);
     Interrupts::get()->setHandler(0x80, isrq80);
+    Interrupts::get()->setHandler(0x06, isrq6);
 
     AddressSpace::kernelSpace->dump();
 
@@ -103,23 +118,27 @@ extern "C" void kmain () {
     dir->close();
 */
 
-
-    FAT32FS* fs = new FAT32FS();
-    File* f = fs->open("a.out", O_RDONLY);
-    char* buf = (char*)kmalloc(1024*1024);
-    int c =f->read(buf, 1024*1024);
-    klog('i',"%i",c);
-    f->close();
-
+   
+    Syscalls::init();
+    
     KTRACEMEM
 
     klog('w', "Starting task scheduler");
     Scheduler::get()->init();
     Scheduler::get()->spawnKernelThread(&repainterThread, NULL, "Screen repainter thread");
 
-    Scheduler::get()->spawnProcess((uint64_t)&testThread);
-//    Scheduler::get()->spawnKernelThread(&testThread, NULL, "test thread");
+    Process* p = Scheduler::get()->spawnProcess();
+    //p->spawnThread(&testThread, NULL, "test");
 
+
+    auto elf = new ELF();
+
+    auto fs = new FAT32FS();
+    auto f = fs->open("a.out", O_RDONLY);
+
+    elf->loadFromFile(f);
+    elf->loadIntoProcess(p);
+    p->spawnThread((threadEntryPoint)elf->getEntryPoint(), NULL, "test");
 
     for (;;)
         CPU::halt();

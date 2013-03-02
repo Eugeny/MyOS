@@ -169,7 +169,8 @@ page_descriptor_t AddressSpace::allocatePage(page_descriptor_t page, uint8_t att
 
 void AddressSpace::allocateSpace(uint64_t base, uint64_t size, uint8_t attrs) {
     base = base / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
-    size = (size + 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
+    size = (size + KCFG_PAGE_SIZE - 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
+    klog('t', "Allocating %lx bytes at %lx", size, base);
     for (uint64_t v = base; v < base + size; v += KCFG_PAGE_SIZE) {
         allocatePage(getPage(v, true), attrs);
     }

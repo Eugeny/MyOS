@@ -1,5 +1,5 @@
 #include <memory/Memory.h>
-
+#include <alloc/malloc.h>
 #include <core/CPU.h>
 #include <core/Debug.h>
 #include <memory/AddressSpace.h>
@@ -60,6 +60,14 @@ void Memory::init() {
     Interrupts::get()->setHandler(14, pfISRQ);
 }
 
+void Memory::log() {
+    kheap_info_t mem = kmallinfo();
+    klog('i', "Kernel heap: %i/%i KB", mem.used_bytes / 1024, mem.total_bytes / 1024);   
+    klog('i', "Phy frames:  %i/%i (%i/%i KB)", 
+        FrameAlloc::get()->getAllocated(), FrameAlloc::get()->getTotal(),
+        FrameAlloc::get()->getAllocated() * 4, FrameAlloc::get()->getTotal() * 4);   
+}
+
 void Memory::handlePageFault(isrq_registers_t* regs) {
     AddressSpace::current->dump();
 
@@ -68,6 +76,9 @@ void Memory::handlePageFault(isrq_registers_t* regs) {
     const char* fUser     = (regs->err_code & 4) ? "U" : "-";
     const char* fRW       = (regs->err_code & 8) ? "R" : "-";
     const char* fIFetch   = (regs->err_code & 16) ? "I" : "-";
+
+    log();
+
     klog('e', "PAGE FAULT [%s%s%s%s%s]", fPresent, fWrite, fUser, fRW, fIFetch);
     klog('e', "Faulting address : %lx", CPU::getCR2());
     klog('e', "Faulting code    : %lx", regs->rip);
@@ -78,6 +89,8 @@ void Memory::handlePageFault(isrq_registers_t* regs) {
 
 void Memory::handleGPF(isrq_registers_t* regs) {
     AddressSpace::current->dump();
+ 
+    log();
   
     klog('e', "GENERAL PROTECTION FAULT");
     klog('e', "Faulting code: %lx", regs->rip);

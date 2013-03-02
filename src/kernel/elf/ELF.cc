@@ -1,46 +1,45 @@
 #include <elf/ELF.h>
-#include <core/TaskManager.h>
+#include <core/CPU.h>
+#include <alloc/malloc.h>
+#include <core/Scheduler.h>
 #include <memory/AddressSpace.h>
-#include <memory/Memory.h>
-#include <kutils.h>
+#include <kutil.h>
 
 
-typedef int(*mainf)(int,char**);
+ELF::ELF() {
 
-void ELF_exec(u8int* data, char* pname, int argc, char** argv, FileObject* stdin, FileObject* stdout, FileObject* stderr) {
-    int pid = TaskManager::get()->fork();
-
-    if (pid == 0) {
-        AddressSpace* as = Memory::get()->getCurrentSpace();
-        elfHeader* hdr = (elfHeader*)data;
-        for (int i = 0; i < hdr->phnum; i++) {
-            programHeader* ph = (programHeader*)(data + hdr->phoff + i * hdr->phentsize);
-            if (ph->type == PT_LOAD) {
-                for (int j = ph->vaddr; j < ph->vaddr + ph->memSize; j += 0x1000)
-                    as->allocatePage(j, true, false, false);
-                //DEBUG("COPY");
-                //DEBUG(to_hex(ph->vaddr));
-                //DEBUG(to_hex((u32int)(data+ph->offset)));
-                //DEBUG(to_hex(ph->fileSize));
-                memcpy((void*)ph->vaddr, (void*)(data + ph->offset), ph->fileSize);
-                //memcpy((void*)(data + ph->offset), (void*)ph->vaddr, ph->fileSize);
-                //memdump((void*)(data + ph->offset));
-                //memdump((void*)ph->vaddr);
-                memset((void*)ph->vaddr + ph->fileSize, 0, ph->memSize - ph->fileSize);
-            }
-        }
-        //memdump((void*)(data));
-        //memdump((void*)hdr->entry);
-        Process* p = TaskManager::get()->getCurrentThread()->process;
-        p->name = strdup(pname);
-        p->reopenFile(0, stdin);
-        p->reopenFile(1, stdout);
-        p->reopenFile(2, stderr);
-        //TRACE
-        mainf main = (mainf)hdr->entry;
-        //TRACE
-        //DEBUG(to_hex((u32int)main));
-        main(argc, argv);
-        for(;;);
-    }
 }
+
+void ELF::loadFromFile(File* f) {
+    data = (uint8_t*)kmalloc(1024*1024);
+    f->read(data, 1024*1024);
+    f->close();
+}
+
+void ELF::loadIntoProcess(Process* p) {
+    auto oldAS = AddressSpace::current;
+    auto as = p->addressSpace;
+    CPU::CLI();
+    as->activate();
+
+    auto hdr = (elf_header_t*)data;
+    for (int i = 0; i < hdr->e_phnum; i++) {
+        auto ph = (elf_program_header_t*)(data + hdr->e_phoff + i * hdr->e_phentsize);
+        if (ph->p_type == PT_LOAD) {
+            klog('t', "ELF PT_LOAD %lx+%lx(%lx) -> %lx", ph->p_offset, ph->p_filesz, ph->p_memsz, ph->p_vaddr);
+            as->allocateSpace(ph->p_vaddr, ph->p_memsz+0x2000, PAGEATTR_SHARED|PAGEATTR_USER);
+            memcpy((void*)ph->p_vaddr, (void*)(data + ph->p_offset), ph->p_filesz);
+            memset((void*)ph->p_vaddr + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
+        }
+    }
+
+    oldAS->activate();
+    CPU::STI();
+
+}
+
+uint64_t ELF::getEntryPoint() {
+    auto hdr = (elf_header_t*)data;
+    return hdr->e_entry;
+}
+

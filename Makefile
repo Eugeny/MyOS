@@ -26,6 +26,7 @@ CFLAGS = -c 				\
 LDWRAP = \
 	-Xlinker --wrap=malloc \
 	-Xlinker --wrap=memset \
+	-Xlinker --wrap=memcpy \
 
 LDFLAGS = \
 	-static \
@@ -54,6 +55,8 @@ SOURCES= \
 	src/kernel/core/Thread.o 					\
 	src/kernel/core/Wait.o 						\
 												\
+	src/kernel/elf/ELF.o 						\
+												\
 	src/kernel/fs/fat32/libfat-glue.o 			\
 	src/kernel/fs/fat32/FAT32FS.o 				\
 	src/kernel/fs/devfs/PTY.o 					\
@@ -75,6 +78,9 @@ SOURCES= \
 	src/kernel/memory/AddressSpace.o 			\
 	src/kernel/memory/FrameAlloc.o 				\
 	src/kernel/memory/Memory.o 					\
+												\
+	src/kernel/syscall/Syscalls.o 				\
+	src/kernel/syscall/SyscallEntry.o 			\
 												\
 	src/kernel/tty/Escape.o 					\
 	src/kernel/tty/Terminal.o 					\

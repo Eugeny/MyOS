@@ -41,6 +41,8 @@ void Thread::pushOnStack(uint64_t v) {
 }
 
 void Thread::wait(Wait* w) {
+    if (activeWait)
+        stopWaiting();
     activeWait = w;
 }
 

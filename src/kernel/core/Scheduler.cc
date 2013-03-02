@@ -30,9 +30,14 @@ void Scheduler::init() {
     kernelProcess = new Process();
     kernelProcess->addressSpace = AddressSpace::kernelSpace;
     kernelProcess->isKernel = true;
+
     kernelThread = new Thread(kernelProcess, "Kernel idle thread");
+    kernelProcess->threads.add(kernelThread);
+
     registerThread(kernelThread);
+
     activeThread = kernelThread;
+    
     asm volatile("int $0x7f"); // handleSaveKernelState
 
     PIT::MSG_TIMER.registerConsumer((MessageConsumer)&handleTimer);
@@ -40,33 +45,16 @@ void Scheduler::init() {
 
 void Scheduler::registerThread(Thread* t) {
     threads.add(t);
-    t->process->threads.add(t);
 }
 
-Process* Scheduler::spawnProcess(uint64_t entry) {
+Process* Scheduler::spawnProcess() {
     Process* p = new Process();
     p->addressSpace = AddressSpace::kernelSpace->clone();
-
-    Thread* t = new Thread(p, "root");
-    t->state.regs = kernelThread->state.regs;
-    t->createStack(0x2000);
-    t->pushOnStack(0);
-
-    p->addressSpace->dump();
-    klog('w', "%lx", entry);
-    klog('w', "%lx", t->stackBottom);
-
-    t->state.regs.rip = entry;
-    registerThread(t);
     return p;
 }
 
 void Scheduler::spawnKernelThread(threadEntryPoint entry, void* arg, const char* name) {
-    Thread* t = new Thread(kernelProcess, name);
-    t->state.regs = kernelThread->state.regs;
-    t->createStack(0x2000);
-    t->pushOnStack((uint64_t)arg);
-    t->state.regs.rip = (uint64_t)entry;
+    Thread* t = kernelProcess->spawnThread(entry, arg, name);
     klog('d', "Spawning kernel thread '%s' (entrypoint %lx)", name, entry);
     registerThread(t);
 }
@@ -101,8 +89,10 @@ void Scheduler::contextSwitch(isrq_registers_t* regs) {
 
     activeThread->storeState(regs);
 
-    if (nextThread->process->addressSpace != activeThread->process->addressSpace)
+    if (nextThread->process->addressSpace != AddressSpace::current) {
+        activeThread->process->addressSpace = AddressSpace::current;
         nextThread->process->addressSpace->activate();
+    }
 
     nextThread->recoverState(regs);
 
