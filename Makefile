@@ -1,23 +1,19 @@
 CC = gcc
 
-LIBS = -L libs libs/librote.a libs/libfat.a
+LIBS = -L libs libs/librote.a libs/libfat.a libs/uclibc.a
 
 INCLUDES = -I include -I src/kernel
 CFLAGS = -c 				\
 	-std=c++0x 				\
 	-DKERNEL 				\
 	-fno-builtin 			\
+	-fno-exceptions 		\
 	-fno-stack-protector 	\
 	-fno-rtti 				\
 	-ffreestanding 			\
 	-mno-red-zone 			\
 	-mcmodel=large 			\
-	-mno-mmx				\
-	-mno-sse				\
-	-mno-sse2				\
-	-mno-sse3				\
 	-mno-3dnow				\
-	-fno-exceptions 		\
 	-Wall 					\
 	-Wno-write-strings 		\
 	-O0 					\
@@ -25,12 +21,13 @@ CFLAGS = -c 				\
 
 LDWRAP = \
 	-Xlinker --wrap=malloc \
-	-Xlinker --wrap=memset \
-	-Xlinker --wrap=memcpy \
+	#-Xlinker --wrap=memset \
+#	-Xlinker --wrap=memcpy \
 
 LDFLAGS = \
 	-static \
-	-static-libstdc++ \
+	-nostdlib \
+	-nodefaultlibs \
 	-z max-page-size=0x1000 \
 	-T src/kernel/kernel.ld \
 	-Xlinker -Map bin/kernel.map \
@@ -57,9 +54,11 @@ SOURCES= \
 												\
 	src/kernel/elf/ELF.o 						\
 												\
+	src/kernel/fs/devfs/PTY.o 					\
 	src/kernel/fs/fat32/libfat-glue.o 			\
 	src/kernel/fs/fat32/FAT32FS.o 				\
-	src/kernel/fs/devfs/PTY.o 					\
+	src/kernel/fs/procfs/ProcFS.o 				\
+	src/kernel/fs/vfs/VFS.o 					\
 	src/kernel/fs/File.o 						\
 	src/kernel/fs/Pipe.o 						\
 												\

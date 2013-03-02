@@ -78,7 +78,6 @@ void* kmalloc(int size) {
 }
 
 void* kvalloc(int size) {
-    //KTRACE
     return dlvalloc(size);
 }
 

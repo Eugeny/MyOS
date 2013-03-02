@@ -26,5 +26,16 @@ Thread* Process::spawnThread(threadEntryPoint entry, void* argument, const char*
     return t;
 }
 
+int Process::attachFile(File* f) {
+    return files.add(f);
+}
+
+void Process::closeFile(int fd) {
+    File* f = files[fd];
+    files.remove(f);
+    f->close();
+    delete f;
+}
+
 Process::~Process() {
 }

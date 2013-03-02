@@ -3,9 +3,6 @@
 #include <kutil.h>
 
 
-VFS::VFS() {
-}
-
 void VFS::mount(char* point, FS* fs) {
     auto m = new mount_t();
     strcpy(m->path, point);

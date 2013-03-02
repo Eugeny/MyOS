@@ -1,6 +1,7 @@
 #include <memory/AddressSpace.h>
 
 #include <memory/FrameAlloc.h>
+#include <memory/Memory.h>
 #include <alloc/malloc.h>
 #include <tty/Escape.h>
 #include <core/CPU.h>
@@ -15,6 +16,9 @@ AddressSpace* AddressSpace::current = NULL;
 
 
 static page_tree_node_t* allocate_node() {
+//    KTRACEMEM;klog_flush();
+    //Memory::log();klog_flush();
+    //sout("123");
     return (page_tree_node_t*)kvalloc(sizeof(page_tree_node_t));
 }
 
@@ -184,13 +188,18 @@ void AddressSpace::releasePage(page_descriptor_t page) {
 }
 
 AddressSpace* AddressSpace::clone() {
+    CPU::CLI();
+
+
     AddressSpace* result = new AddressSpace();
     result->initEmpty();
+        //klog('w', "!");klog_flush();
 
     page_tree_node_t* node = getRoot();
 
     
     for (int i = 0; i < 512; i++) { // PML4s
+        //klog('w', "%i", i);klog_flush();
         if (node->entries[i].present) {
             page_tree_node_t* pml4 = node->entriesVirtual[i];
             
@@ -246,6 +255,8 @@ AddressSpace* AddressSpace::clone() {
             }
         }
     }
+
+    CPU::STI();
 
     return result;
 }

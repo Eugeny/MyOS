@@ -19,18 +19,22 @@ public:
         delete items;
     }
 
-    void add(T item) {
+    int add(T item) {
         for (int i = 0; i < size; i++)
             if (!items[i]) {
                 items[i] = item;
-                return;
+                return i;
             }
+        return -1;
     }
 
-    void remove(T item) {
+    int remove(T item) {
         for (int i = 0; i < size; i++)
-            if (items[i] == item)
+            if (items[i] == item) {
                 items[i] = NULL;
+                return i;
+            }
+        return -1;
     }
     
     T operator[] (int index) {

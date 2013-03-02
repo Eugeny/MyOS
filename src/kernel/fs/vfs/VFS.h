@@ -3,6 +3,7 @@
 
 #include <fs/FS.h>
 #include <lang/Pool.h>
+#include <lang/Singleton.h>
 #include <fs/File.h>
 #include <fs/Directory.h>
 
@@ -19,9 +20,8 @@ struct vfs_lookup_t {
 };
 
 
-class VFS : public FS {
+class VFS : public FS, public Singleton<VFS> {
 public:
-    VFS();
     void mount(char* point, FS* fs);
     vfs_lookup_t lookup(char* path);
     virtual File* open(char* path, int flags);

@@ -15,6 +15,9 @@ static syscall syscalls[255];
 //-----------------------------------
 //-----------------------------------
 
+#include <fs/vfs/VFS.h>
+#include <core/Scheduler.h>
+#include <core/Process.h>
 #include <sys/utsname.h>
 #include <string.h>
 
@@ -24,8 +27,9 @@ SYSCALL(open) {
     auto mode = regs->rdx;
 
     STRACE("open('%s', 0x%x, 0x%x)", path, flags, mode);
-    
-    return 0;
+
+    auto file = VFS::get()->open(path, flags);
+    return Scheduler::get()->getActiveThread()->process->attachFile(file);
 }
 
 SYSCALL(uname) {

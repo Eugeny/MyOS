@@ -79,6 +79,7 @@ void Memory::handlePageFault(isrq_registers_t* regs) {
 
     log();
 
+    sout("PAGE FAULT");
     klog('e', "PAGE FAULT [%s%s%s%s%s]", fPresent, fWrite, fUser, fRW, fIFetch);
     klog('e', "Faulting address : %lx", CPU::getCR2());
     klog('e', "Faulting code    : %lx", regs->rip);
@@ -92,6 +93,7 @@ void Memory::handleGPF(isrq_registers_t* regs) {
  
     log();
   
+    sout("GENERAL PROTECTION FAULT");
     klog('e', "GENERAL PROTECTION FAULT");
     klog('e', "Faulting code: %lx", regs->rip);
     klog('e', "Errcode      : %lx", regs->err_code);

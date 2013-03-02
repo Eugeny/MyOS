@@ -120,6 +120,7 @@ extern "C" void kmain () {
     dir->close();
 */
 
+    Process* p = Scheduler::get()->spawnProcess();
    
     Syscalls::init();
     
@@ -129,11 +130,10 @@ extern "C" void kmain () {
     Scheduler::get()->init();
     Scheduler::get()->spawnKernelThread(&repainterThread, NULL, "Screen repainter thread");
 
-    Process* p = Scheduler::get()->spawnProcess();
     //p->spawnThread(&testThread, NULL, "test");
 
 
-    auto vfs = new VFS();
+    auto vfs = VFS::get();
     auto root = new FAT32FS();
     auto procfs = new ProcFS();
     vfs->mount("/", root);
@@ -148,6 +148,13 @@ extern "C" void kmain () {
 
     elf->loadFromFile(f);
     elf->loadIntoProcess(p);
+    
+    PTYSlave* pty = PhysicalTerminalManager::get()->openPTY(0);
+
+    p->attachFile(pty);
+    p->attachFile(pty);
+    p->attachFile(pty);
+
     p->spawnThread((threadEntryPoint)elf->getEntryPoint(), NULL, "test");
 
     for (;;)

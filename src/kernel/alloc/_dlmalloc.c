@@ -1,3 +1,4 @@
+#include <kutil.h>
 /*
   This is a version (aka dlmalloc) of malloc/free/realloc written by
   Doug Lea and released to the public domain, as explained at
@@ -3545,9 +3546,9 @@ static void internal_malloc_stats(mstate m) {
       }
     }
     POSTACTION(m); /* drop lock */
-    fprintf(stderr, "max system bytes = %10lu\n", (unsigned long)(maxfp));
-    fprintf(stderr, "system bytes     = %10lu\n", (unsigned long)(fp));
-    fprintf(stderr, "in use bytes     = %10lu\n", (unsigned long)(used));
+    klog('e', "max system bytes = %10lu\n", (unsigned long)(maxfp));
+    klog('e', "system bytes     = %10lu\n", (unsigned long)(fp));
+    klog('e', "in use bytes     = %10lu\n", (unsigned long)(used));
   }
 }
 #endif /* NO_MALLOC_STATS */
