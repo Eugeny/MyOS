@@ -27,13 +27,14 @@ void Scheduler::init() {
     Interrupts::get()->setHandler(0x7f, handleSaveKernelState);
     Interrupts::get()->setHandler(0xff, handleForcedTaskSwitch);
 
-    kernelProcess = new Process();
+    kernelProcess = new Process("Kernel");
     kernelProcess->addressSpace = AddressSpace::kernelSpace;
     kernelProcess->isKernel = true;
 
-    kernelThread = new Thread(kernelProcess, "Kernel idle thread");
+    kernelThread = new Thread(kernelProcess, "idle thread");
+    kernelThread->state.addressSpace = AddressSpace::kernelSpace;
     kernelProcess->threads.add(kernelThread);
-
+    
     registerThread(kernelThread);
 
     activeThread = kernelThread;
@@ -47,16 +48,17 @@ void Scheduler::registerThread(Thread* t) {
     threads.add(t);
 }
 
-Process* Scheduler::spawnProcess() {
-    Process* p = new Process();
+Process* Scheduler::spawnProcess(const char* name) {
+    Process* p = new Process(name);
     p->addressSpace = AddressSpace::kernelSpace->clone();
     return p;
 }
 
-void Scheduler::spawnKernelThread(threadEntryPoint entry, void* arg, const char* name) {
-    Thread* t = kernelProcess->spawnThread(entry, arg, name);
+Thread* Scheduler::spawnKernelThread(threadEntryPoint entry, const char* name) {
+    Thread* t = kernelProcess->spawnThread(entry, name);
     klog('d', "Spawning kernel thread '%s' (entrypoint %lx)", name, entry);
     registerThread(t);
+    return t;
 }
 
 void Scheduler::scheduleNextThread() {
@@ -89,10 +91,10 @@ void Scheduler::contextSwitch(isrq_registers_t* regs) {
 
     activeThread->storeState(regs);
 
-    if (nextThread->process->addressSpace != AddressSpace::current) {
-        activeThread->process->addressSpace = AddressSpace::current;
-        nextThread->process->addressSpace->activate();
-    }
+    //if (nextThread->process->addressSpace != AddressSpace::current) {
+        //activeThread->process->addressSpace = AddressSpace::current;
+        //nextThread->process->addressSpace->activate();
+    //}
 
     nextThread->recoverState(regs);
 
@@ -117,3 +119,10 @@ void Scheduler::forceThreadSwitchISRQContext(Thread* preferred, isrq_registers_t
 }
 
   
+void Scheduler::logTask() {
+    klog('i', "Active task: %s (%i) / %s (%i)", 
+        activeThread->process->name, 
+        activeThread->process->pid,
+        activeThread->name,
+        activeThread->id);
+}

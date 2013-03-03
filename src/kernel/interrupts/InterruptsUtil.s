@@ -1,4 +1,5 @@
-%define COPY_STACK_SIZE qword 150
+%define COPY_STACK_SIZE qword 200
+KDATA_SELECTOR equ 4 << 3  
 
 isrq_stack times 409600 db 0
 isrq_stack_top dd 0
@@ -26,6 +27,8 @@ isrq_stack_top dd 0
     push rbx
     push rcx
     push rdx
+    push r8
+    push r9
     push r10
     push r11
     push r12
@@ -35,9 +38,18 @@ isrq_stack_top dd 0
     push rsi
     push rdi
     push rbp
+
+    mov  ax, gs
+    push rax
+    mov  ax, fs
+    push rax
 %endmacro
 
 %macro POPAQ 0
+    pop rax
+    mov fs, ax
+    pop rax
+    mov gs, ax
     pop rbp
     pop rdi
     pop rsi
@@ -47,6 +59,8 @@ isrq_stack_top dd 0
     pop r12
     pop r11
     pop r10
+    pop r9
+    pop r8
     pop rdx
     pop rcx
     pop rbx

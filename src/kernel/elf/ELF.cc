@@ -11,8 +11,8 @@ ELF::ELF() {
 }
 
 void ELF::loadFromFile(File* f) {
-    data = (uint8_t*)kmalloc(1024*1024);
-    f->read(data, 1024*1024);
+    data = (uint8_t*)kmalloc(4*1024*1024);
+    f->read(data, 4*1024*1024);
     f->close();
 }
 
@@ -28,6 +28,11 @@ void ELF::loadIntoProcess(Process* p) {
         if (ph->p_type == PT_LOAD) {
             klog('t', "ELF PT_LOAD %lx+%lx(%lx) -> %lx", ph->p_offset, ph->p_filesz, ph->p_memsz, ph->p_vaddr);
             as->allocateSpace(ph->p_vaddr, ph->p_memsz+0x2000, PAGEATTR_SHARED|PAGEATTR_USER);
+            as->namePage(as->getPage(ph->p_vaddr, false), "ELF Code");
+
+            if (p->brk < ph->p_vaddr + ph->p_memsz)
+                p->brk = ph->p_vaddr + ph->p_memsz;
+
             memcpy((void*)ph->p_vaddr, (void*)(data + ph->p_offset), ph->p_filesz);
             memset((void*)ph->p_vaddr + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
         }
@@ -35,7 +40,6 @@ void ELF::loadIntoProcess(Process* p) {
 
     oldAS->activate();
     CPU::STI();
-
 }
 
 uint64_t ELF::getEntryPoint() {

@@ -67,6 +67,7 @@ public:
     page_descriptor_t       allocatePage(page_descriptor_t page, uint8_t attrs);
     void                    allocateSpace(uint64_t base, uint64_t size, uint8_t attrs);
     void                    releasePage(page_descriptor_t page);
+    void                    releaseSpace(uint64_t base, uint64_t size);
     
     void                    dump();
 private:    

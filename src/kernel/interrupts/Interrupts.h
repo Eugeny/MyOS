@@ -8,7 +8,8 @@
 
 typedef struct registers
 {
-    uint64_t rbp, rdi, rsi, r15, r14, r13, r12, r11, r10, rdx, rcx, rbx, rax; // Pushed by pusha.
+    uint64_t fs, gs;
+    uint64_t rbp, rdi, rsi, r15, r14, r13, r12, r11, r10, r9, r8, rdx, rcx, rbx, rax; // Pushed by pusha.
     uint8_t int_no, err_code;    // Interrupt number and error code (if applicable)
     uint64_t dunno, rip, rflags, ss, rsp; // Pushed by the processor automatically.
 } isrq_registers_t;

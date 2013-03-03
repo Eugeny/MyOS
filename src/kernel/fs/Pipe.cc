@@ -26,3 +26,10 @@ uint64_t Pipe::read(void* buffer, uint64_t count) {
 bool Pipe::canRead() {
     return bufferLength > 0;
 }
+
+
+int Pipe::stat(struct stat* stat) {
+    File::stat(stat);
+    stat->st_mode |= S_IFIFO;
+    return 0;
+}

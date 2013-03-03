@@ -5,6 +5,12 @@
 #include <lang/Singleton.h>
 
 
+extern "C" uint32_t MSR_STAR;
+extern "C" uint32_t MSR_LSTAR;
+extern "C" uint32_t MSR_FSBASE;
+extern "C" uint32_t MSR_GSBASE; 
+
+
 class CPU {
 public:
     static uint64_t getCR0();
@@ -22,7 +28,9 @@ public:
     static void     halt();
     static void     enableSSE();
     static void     invalidateTLB(uint64_t);
-private:    
+
+    static uint64_t RDMSR(uint32_t msr_id);
+    static void     WRMSR(uint32_t msr_id, uint64_t msr_value);
 };
 
 #endif

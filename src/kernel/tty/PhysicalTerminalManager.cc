@@ -50,6 +50,10 @@ PTYSlave* PhysicalTerminalManager::openPTY(int idx) {
     return ptys[idx]->openSlave();
 }
 
+PTY* PhysicalTerminalManager::getPTY(int idx) {
+    return ptys[idx];
+}
+
 void PhysicalTerminalManager::dispatchKey(keyboard_event_t* event) {
     getActiveTerminal()->processKey(event->mods, event->scancode);
 }

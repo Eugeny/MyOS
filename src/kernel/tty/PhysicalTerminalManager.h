@@ -16,6 +16,7 @@ public:
     Terminal* getTerminal(int idx);
     Terminal* getActiveTerminal();
     PTYSlave* openPTY(int idx);
+    PTY* getPTY(int idx);
     int  getTerminalCount();
     void dispatchKey(keyboard_event_t*);
 private:

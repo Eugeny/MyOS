@@ -1,5 +1,11 @@
 #include <core/CPU.h>
 
+uint32_t MSR_STAR = 0xC0000081;
+uint32_t MSR_LSTAR = 0xC0000082;
+uint32_t MSR_FSBASE = 0xC0000100;
+uint32_t MSR_GSBASE = 0xC0000101;
+ 
+
 uint64_t CPU::getCR0() {
     uint64_t v;
     asm volatile("mov %%cr0, %0": "=r"(v));
@@ -66,4 +72,20 @@ void CPU::CLTS() {
 
 void CPU::halt() {
     asm volatile("hlt");
+}
+
+uint64_t CPU::RDMSR(uint32_t msr_id) {
+    uint64_t msr_value;
+    //if (msr_id == MSR_FSBASE)
+        //asm volatile("rdfsbase %%rax" : "=a" (msr_value));
+    //else
+        asm volatile("rdmsr" : "=A" (msr_value) : "c" (msr_id));
+    return msr_value;
+}
+
+void CPU::WRMSR(uint32_t msr_id, uint64_t msr_value) {
+    //if (msr_id == MSR_FSBASE)
+        //asm volatile("wrfsbase %%rbx" :: "b" (msr_value));
+    //else
+        asm volatile("wrmsr" :: "c" (msr_id), "A" (msr_value));
 }

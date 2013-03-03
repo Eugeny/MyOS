@@ -21,7 +21,7 @@ File* FAT32FS::open(char* path, int flags) {
     if (flags & O_TRUNC)    mode |= FA_CREATE_ALWAYS;
 
     f_open(fil, path, mode);
-    return new FAT32File(this, fil);
+    return new FAT32File(this, fil, path);
 }
 
 Directory* FAT32FS::opendir(char* path) {
@@ -31,15 +31,18 @@ Directory* FAT32FS::opendir(char* path) {
 }
 
 
-FAT32File::FAT32File(FAT32FS* fs, FIL* f) {
+FAT32File::FAT32File(FAT32FS* fs, FIL* f, char* p) {
     filesystem = fs;
     fil = f;
+    path = strdup(p);
+}
+
+FAT32File::~FAT32File() {
+    delete path;
 }
 
 
-
 void FAT32File::write(const void* buffer, uint64_t count) {
-
 }
 
 uint64_t FAT32File::read(void* buffer, uint64_t count) {
@@ -55,6 +58,15 @@ void FAT32File::close() {
 
 bool FAT32File::canRead() {
     return true;
+}
+
+int FAT32File::stat(struct stat* stat) {
+    File::stat(stat);
+    FILINFO fi;
+    f_stat(path, &fi);
+    stat->st_size = fi.fsize;
+    stat->st_mode |= S_IFREG;
+    return 0;
 }
 
 

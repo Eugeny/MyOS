@@ -16,9 +16,6 @@ AddressSpace* AddressSpace::current = NULL;
 
 
 static page_tree_node_t* allocate_node() {
-//    KTRACEMEM;klog_flush();
-    //Memory::log();klog_flush();
-    //sout("123");
     return (page_tree_node_t*)kvalloc(sizeof(page_tree_node_t));
 }
 
@@ -172,8 +169,10 @@ page_descriptor_t AddressSpace::allocatePage(page_descriptor_t page, uint8_t att
 }
 
 void AddressSpace::allocateSpace(uint64_t base, uint64_t size, uint8_t attrs) {
+    uint64_t top = base + size;
     base = base / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
-    size = (size + KCFG_PAGE_SIZE - 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
+    top = (top + KCFG_PAGE_SIZE - 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
+    size = top - base;
     klog('t', "Allocating %lx bytes at %lx", size, base);
     for (uint64_t v = base; v < base + size; v += KCFG_PAGE_SIZE) {
         allocatePage(getPage(v, true), attrs);
@@ -187,19 +186,31 @@ void AddressSpace::releasePage(page_descriptor_t page) {
     }
 }
 
+void AddressSpace::releaseSpace(uint64_t base, uint64_t size) {
+    uint64_t top = base + size;
+    base = base / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
+    top = (top + KCFG_PAGE_SIZE - 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
+    size = top - base;
+    klog('t', "Releasing %lx bytes at %lx", size, base);
+    for (uint64_t v = base; v < base + size; v += KCFG_PAGE_SIZE) {
+        releasePage(getPage(v, true));
+    }
+}
+
 AddressSpace* AddressSpace::clone() {
     CPU::CLI();
 
 
+        klog('w', "!");klog_flush();
     AddressSpace* result = new AddressSpace();
     result->initEmpty();
-        //klog('w', "!");klog_flush();
+        klog('w', "!");klog_flush();
 
     page_tree_node_t* node = getRoot();
 
     
     for (int i = 0; i < 512; i++) { // PML4s
-        //klog('w', "%i", i);klog_flush();
+      //  klog('w', "%i", i);klog_flush();
         if (node->entries[i].present) {
             page_tree_node_t* pml4 = node->entriesVirtual[i];
             
@@ -219,14 +230,15 @@ AddressSpace* AddressSpace::clone() {
                                     addr = addr * 512 + m;
                                     addr *= KCFG_PAGE_SIZE;
 
-                                    if (addr >= 800000000000) {
+                                    if (addr >=       800000000000) {
                                         addr += 0xffff000000000000;
                                     }
 
                                     page_descriptor_t oldPage = getPage(addr, false);
                                     if (!oldPage.entry) {
-                                        klog('e', "NULL PAGE");
-                                        for(;;);
+                                        klog('e', "NULL PAGE @ %lx", addr);
+                                        klog_flush();
+                                    //    for(;;);
                                     }
                                     page_descriptor_t page = result->getPage(addr, true);
 
@@ -301,15 +313,13 @@ void AddressSpace::recursiveDump(page_tree_node_t* node, int level) {
                     started = true;
 
                     uint8_t attrs = node->entriesAttrs[i];
-                    klog('i', "%s[%s %s %s] %s",
-                        Escape::C_B_GRAY,
-                        PAGEATTR_IS_SHARED(attrs) ? "SHARED ": "PRIVATE",
-                        PAGEATTR_IS_USER(attrs)   ? "USER  ": "KERNEL",
-                        PAGEATTR_IS_COPY(attrs)   ? "COPY  ": "NOCOPY",
+                    klog('i', "%s%016lx -> %016lx %s [%s %s %s] %s", Escape::C_B_GRAY, startVirt, startPhy, 
+                        Escape::C_GRAY,
+                        PAGEATTR_IS_SHARED(attrs) ? "SHR": "---",
+                        PAGEATTR_IS_USER(attrs)   ? "USR": "KRN",
+                        PAGEATTR_IS_COPY(attrs)   ? "CPY": "---",
                         node->entriesNames[i] ? node->entriesNames[i] : "---"
                     );
-                    klog('i', "%s%016lx -> %016lx %s[%i-%i-%i-%i]", Escape::C_B_GRAY, startVirt, startPhy, 
-                        Escape::C_GRAY, index[0], index[1], index[2], index[3]);
                     klog_flush();
                     len = 1;
                 } else {
@@ -331,8 +341,6 @@ void AddressSpace::recursiveDump(page_tree_node_t* node, int level) {
 }
 
 void AddressSpace::dump() {
-    klog('w', "--------------------");
     klog('w', "Dumping address space at %016lx", root);
     recursiveDump(root, 0);
-    klog('w', "--------------------");
 }

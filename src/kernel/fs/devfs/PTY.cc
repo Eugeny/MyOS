@@ -46,3 +46,9 @@ uint64_t PTYSlave::read(void* buffer, uint64_t count) {
 bool PTYSlave::canRead() {
     return pty->masterWritePipe.canRead();
 }
+
+int PTYSlave::stat(struct stat* stat) {
+    File::stat(stat);
+    stat->st_mode |= S_IFCHR;
+    return 0;
+}

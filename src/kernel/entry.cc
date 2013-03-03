@@ -17,6 +17,7 @@
 #include <syscall/Syscalls.h>
 #include <tty/PhysicalTerminalManager.h>
 
+#include <fs/devfs/DevFS.h>
 #include <fs/devfs/PTY.h>
 #include <fs/fat32/FAT32FS.h>
 #include <fs/procfs/ProcFS.h>
@@ -120,42 +121,49 @@ extern "C" void kmain () {
     dir->close();
 */
 
-    Process* p = Scheduler::get()->spawnProcess();
    
     Syscalls::init();
     
-    KTRACEMEM
 
     klog('w', "Starting task scheduler");
     Scheduler::get()->init();
-    Scheduler::get()->spawnKernelThread(&repainterThread, NULL, "Screen repainter thread");
+    KTRACEMEM
+    klog_flush();
+    Scheduler::get()->spawnKernelThread(&repainterThread, "Screen repainter thread");
 
-    //p->spawnThread(&testThread, NULL, "test");
-
+ //   Scheduler::get()->spawnKernelThread(&testThread, "test");
 
     auto vfs = VFS::get();
-    auto root = new FAT32FS();
-    auto procfs = new ProcFS();
-    vfs->mount("/", root);
-    vfs->mount("/proc", procfs);
+    vfs->mount("/", new FAT32FS());
+    vfs->mount("/dev", new DevFS());
+    vfs->mount("/proc", new ProcFS());
 
-    klog('i', "%i", vfs->open("/proc/sys/kernel/osrelease", 0));
 
     auto elf = new ELF();
 
-    auto fs = new FAT32FS();
-    auto f = fs->open("a.out", O_RDONLY);
+    Process* p = Scheduler::get()->spawnProcess("a.out");
 
-    elf->loadFromFile(f);
+    elf->loadFromFile(vfs->open("/a.out", O_RDONLY));
     elf->loadIntoProcess(p);
     
-    PTYSlave* pty = PhysicalTerminalManager::get()->openPTY(0);
+    PTY* pty = PhysicalTerminalManager::get()->getPTY(0);
 
-    p->attachFile(pty);
-    p->attachFile(pty);
-    p->attachFile(pty);
+    p->pty = pty;
+    p->attachFile(pty->openSlave());
+    p->attachFile(pty->openSlave());
+    p->attachFile(pty->openSlave());
 
-    p->spawnThread((threadEntryPoint)elf->getEntryPoint(), NULL, "test");
+    p->argc = 1;
+    p->argv = new char*[1];
+    p->argv[0] = "/a.out";
+    p->env = new char*[3];
+    p->env[0] = "USER=root";
+    p->env[1] = "LOGNAME=root";
+    p->env[2] = NULL;
+
+    CPU::CLI();
+    p->spawnMainThread((threadEntryPoint)elf->getEntryPoint());
+    CPU::STI();
 
     for (;;)
         CPU::halt();

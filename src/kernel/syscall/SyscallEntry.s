@@ -3,8 +3,7 @@ KDATA_SELECTOR equ 4 << 3
 UCODE_SELECTOR equ 5 << 3  
 UDATA_SELECTOR equ 6 << 3  
 
-%define MSR_STAR  0xC0000081
-%define MSR_LSTAR 0xC0000082
+extern MSR_STAR, MSR_LSTAR, MSR_FSBASE, MSR_GSBASE
 
 syscall_stack times 409600 db 0
 syscall_stack_top dd 0
@@ -17,12 +16,12 @@ extern _syscall_handler
 _syscall_init:
     xor eax, eax
     mov edx, (KCODE_SELECTOR) + (UCODE_SELECTOR << 16)
-    mov ecx, MSR_STAR
+    mov ecx, [MSR_STAR]
     wrmsr
 
     mov eax, _syscall_entry 
     xor edx, edx
-    mov ecx, MSR_LSTAR
+    mov ecx, [MSR_LSTAR]
     wrmsr
     ret
 
@@ -33,7 +32,11 @@ _syscall_entry:
     mov rbx, syscall_stack_top
     mov rsp, rbx
 
+    push fs
+    push gs
     push rdx
+    push r8
+    push r9
     push r10
     push r12
     push r13
@@ -46,6 +49,11 @@ _syscall_entry:
     push rax
     push rcx
     push r11
+
+
+    mov rbx, 0
+    mov fs, bx
+    mov gs, bx
 
     mov rdi, rsp
 
@@ -63,9 +71,14 @@ _syscall_entry:
     pop r13
     pop r12
     pop r10
+    pop r9
+    pop r8
     pop rdx
+    pop gs
+    pop fs
 
     mov rsp, r11
     sti
     jmp rcx
     o64 sysret
+

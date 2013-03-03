@@ -2,6 +2,7 @@
 #include <alloc/malloc.h>
 #include <core/CPU.h>
 #include <core/Debug.h>
+#include <core/Scheduler.h>
 #include <memory/AddressSpace.h>
 #include <memory/FrameAlloc.h>
 #include <kutil.h>
@@ -84,6 +85,7 @@ void Memory::handlePageFault(isrq_registers_t* regs) {
     klog('e', "Faulting address : %lx", CPU::getCR2());
     klog('e', "Faulting code    : %lx", regs->rip);
     //Debug::MSG_DUMP_REGISTERS.post((void*)regs);
+    Scheduler::get()->logTask();
     klog_flush();
     for(;;);
 }
@@ -98,6 +100,7 @@ void Memory::handleGPF(isrq_registers_t* regs) {
     klog('e', "Faulting code: %lx", regs->rip);
     klog('e', "Errcode      : %lx", regs->err_code);
     //Debug::MSG_DUMP_REGISTERS.post((void*)regs);
+    //Scheduler::get()->logTask();
     klog_flush();
     for(;;);
 }

@@ -106,7 +106,8 @@ _loop_make_page_entries:
 
     ; Enable PAE
     mov     eax, cr4 
-    or      eax, 32
+    bts     eax, 5 ; PAE
+    ;bts     eax, 16 ; FSGSBASE
     mov     cr4, eax
 
     ; Enable paging
@@ -129,6 +130,11 @@ loader64:
     mov     es, ax
     mov     fs, ax
     mov     gs, ax
+
+    mov     rax, cr4 
+    ;bts     rax, 20
+    ;bts     rax, 16 // FSGSBASE not supported by virtualbox
+    mov     cr4, rax
 
     call    kmain
     jmp     $

@@ -37,6 +37,7 @@ public:
     virtual void write(const void* buffer, uint64_t count);
     virtual uint64_t read(void* buffer, uint64_t count);
     virtual bool canRead();
+    virtual int stat(struct stat* stat);
 private:
     PTY* pty;
 };

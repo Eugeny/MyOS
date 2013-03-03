@@ -21,7 +21,7 @@ CFLAGS = -c 				\
 
 LDWRAP = \
 	-Xlinker --wrap=malloc \
-	#-Xlinker --wrap=memset \
+	-Xlinker --wrap=memset \
 #	-Xlinker --wrap=memcpy \
 
 LDFLAGS = \
@@ -54,7 +54,9 @@ SOURCES= \
 												\
 	src/kernel/elf/ELF.o 						\
 												\
+	src/kernel/fs/devfs/DevFS.o 				\
 	src/kernel/fs/devfs/PTY.o 					\
+	src/kernel/fs/devfs/RandomSource.o 			\
 	src/kernel/fs/fat32/libfat-glue.o 			\
 	src/kernel/fs/fat32/FAT32FS.o 				\
 	src/kernel/fs/procfs/ProcFS.o 				\
@@ -88,12 +90,13 @@ SOURCES= \
 	src/kernel/kutil.o 							\
 												\
 	src/kernel/lang/libc-wrap.o 				\
+	src/kernel/lang/stubs.o 					\
 
 
 all: $(SOURCES) kernel  apps
 
 clean: umount
-	@find . -name '*.o' -delete 
+	@find src -name '*.o' -delete 
 	@rm bin/kernel || true
 
 kernel: $(SOURCES)
@@ -142,4 +145,4 @@ run: deploy
 	VirtualBox --startvm VM
 
 bochs: deploy
-	bochs -f bochsrc	
+	bochs -f bochsrc -q

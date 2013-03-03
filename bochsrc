@@ -1,6 +1,7 @@
 ata0-master: type=disk, path=image.vmdk, mode=vmware4, cylinders=306, heads=4, spt=17, translation=none
 boot: disk
-display_library: sdl
-cpu: ips=100000000 reset_on_triple_fault=0
-magic_break: enabled=1
+display_library: x
+cpu: ips=100000000 reset_on_triple_fault=0 smep=1 
+cpuid: family=6, model=0x03, stepping=3, mmx=1, apic=xapic, sse=sse2, sse4a=0, sep=1, aes=0, xsave=1, xsaveopt=0, movbe=0, adx=0, smep=1, x86_64=1, 1g_pages=0, pcid=0, fsgsbase=1, mwait=1
 megs: 512
+panic: action=fatal
