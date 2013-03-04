@@ -1,9 +1,6 @@
 #include <lang/lang.h>
 #include <tty/PhysicalTerminalManager.h>
-
-
-#define WIDTH 90
-#define HEIGHT 60
+#include <hardware/vga/VGA.h>
 
 
 static void onKeyboardEvent(keyboard_event_t* e) {
@@ -16,7 +13,7 @@ void PhysicalTerminalManager::init(int terminalCount) {
     ptys = new PTY*[terminalCount];
 
     for (int i = 0; i < terminalCount; i++) {
-        terminals[i] = new Terminal(WIDTH, HEIGHT);
+        terminals[i] = new Terminal(VGA::width, VGA::height);
         ptys[i] = new PTY();
         terminals[i]->pty = ptys[i]->openMaster();
     }

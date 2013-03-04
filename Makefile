@@ -41,7 +41,6 @@ ASFLAGS=-felf64
 SOURCES= \
 	src/kernel/bootstrap.o 						\
 	src/kernel/entry.o 							\
-	src/kernel/vga.o 							\
 												\
 	src/kernel/alloc/malloc.o 					\
 												\

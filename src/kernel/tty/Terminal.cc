@@ -3,7 +3,7 @@
 #include <string.h>
 #include <kutil.h>
 
-#include <hardware/vga/vga.h>
+#include <hardware/vga/VGA.h>
 #include <ncurses.h>
 
 
@@ -82,7 +82,9 @@ void Terminal::render() {
             *(cell++) = attr;
         }
     }
-    vga_move_cursor(terminal->ccol, terminal->crow);
+
+    VGA::moveCursor(terminal->ccol, terminal->crow);
+    
     dirty = false;
 }
 

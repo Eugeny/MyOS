@@ -26,7 +26,7 @@ Thread* Process::spawnThread(threadEntryPoint entry, const char* name) {
         break;
     }
     t->state.addressSpace = addressSpace;
-    t->createStack(0x2000);
+    t->createStack(0x12000);
     t->pushOnStack(0);
     t->pushOnStack(0);
     t->state.regs.rip = (uint64_t)entry;

@@ -9,8 +9,9 @@
 #include <core/Wait.h>
 #include <hardware/keyboard/Keyboard.h>
 #include <hardware/cmos/CMOS.h>
-#include <hardware/pit/PIT.h>
 #include <hardware/io.h>
+#include <hardware/pit/PIT.h>
+#include <hardware/vga/VGA.h>
 #include <interrupts/IDT.h>
 #include <interrupts/Interrupts.h>
 #include <memory/AddressSpace.h>
@@ -29,9 +30,10 @@
 
 #include <elf/ELF.h>
 #include <multiboot.h>
-#include <vga.h>
 
-int main() {}
+
+
+int main() { return 0; }
 
 
 void pit_handler(isrq_registers_t* regs) {
@@ -85,13 +87,11 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     CPU::CLI();
     CPU::CLTS();
     
-
     Memory::init();
     kalloc_switch_to_main_heap();
     klog_init();
 
-
-    set_text_mode(1);
+    VGA::enableHighResolution();
 
     PhysicalTerminalManager::get()->init(5);
     klog_init_terminal();
@@ -173,7 +173,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     p->env[1] = "LOGNAME=root";
     //p->env[2] = NULL;
 
-    p->auxvc = 7;
+    p->auxvc = 8;
     p->auxv = new Elf64_auxv_t[9];
     p->setAuxVector(0, AT_PAGESZ, KCFG_PAGE_SIZE);
     p->setAuxVector(1, AT_ENTRY, elf->getEntryPoint());
@@ -189,7 +189,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     for (int i = 0; i < 16; i++)
         *(uint8_t*)(randomVec+i) = random() % 256;
     AddressSpace::kernelSpace->activate(); // TODO revert to actual AS
-    
+
     p->setAuxVector(7, AT_RANDOM, randomVec);
     p->setAuxVector(8, AT_NULL, 0);
 

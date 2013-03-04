@@ -161,7 +161,7 @@ GDTR:                                   ; Global Descriptors Table Register
     dq GDT                                ; linear address of GDT 
 
 GDT:
-    dw 0,0,0,0                                ; null desciptor 
+    dw 0,0,0,0                             ; null desciptor 
     db 0xff, 0xff, 0, 0, 0, 0x92, 0x8f, 0  ; flat data 32
     db 0xff, 0xff, 0, 0, 0, 0x9a, 0xcf, 0  ; flat code 32
     db 0xff, 0xff, 0, 0, 0, 0x9a, 0xaf, 0  ; flat k code 64
