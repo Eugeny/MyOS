@@ -33,6 +33,12 @@ void __outputhex(uint64_t h, int offset) {
     }
 }
 
+void __output(const char* s, int offset) {
+    for (char c = 0; c < strlen(s); c++) {
+        *((char *)0xb8000 + offset * 2 + c * 2) = s[c];
+        *((char *)0xb8000 + offset * 2 + c * 2 + 1) = 0x0f;
+    }
+}
 
 void sout(const char* str) {
     static int line = 0;

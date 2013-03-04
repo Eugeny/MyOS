@@ -32,7 +32,6 @@ void Memory::init() {
         AddressSpace::kernelSpace->mapPage(
             AddressSpace::kernelSpace->getPage(i, true), 
             i, PAGEATTR_SHARED
-            
         );
     }
 
@@ -40,6 +39,20 @@ void Memory::init() {
         AddressSpace::kernelSpace->getPage(0, false),
         "Kernel mapping"
     );
+
+
+    for (uint64_t i = 0xe0000000; i < 0x1000000; i += KCFG_PAGE_SIZE) {
+        AddressSpace::kernelSpace->mapPage(
+            AddressSpace::kernelSpace->getPage(i, true), 
+            i, PAGEATTR_SHARED
+        );
+    }
+
+    AddressSpace::kernelSpace->namePage(
+        AddressSpace::kernelSpace->getPage(0xe0000000, false),
+        "Framebuffer"
+    );
+
 
     for (uint64_t i = 0; i < KCFG_HIGH_IDENTITY_PAGING_LENGTH; i += KCFG_PAGE_SIZE) { 
         AddressSpace::kernelSpace->mapPage(

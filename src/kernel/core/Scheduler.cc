@@ -15,7 +15,10 @@ void Scheduler::saveKernelState(isrq_registers_t* regs) {
 }
 
 static void handleTimer(isrq_registers_t* regs) {
+    __output("TASK OUT", 70);
     Scheduler::get()->contextSwitch(regs);
+    __output("TASK IN", 70);
+    __outputhex(regs->rip, 60);
 }
 
 static void handleForcedTaskSwitch(isrq_registers_t* regs) {
@@ -42,6 +45,16 @@ void Scheduler::init() {
     asm volatile("int $0x7f"); // handleSaveKernelState
 
     PIT::MSG_TIMER.registerConsumer((MessageConsumer)&handleTimer);
+
+    active = false;
+}
+
+void Scheduler::pause() {
+    active = false;
+}
+
+void Scheduler::resume() {
+    active = true;
 }
 
 void Scheduler::registerThread(Thread* t) {
@@ -86,6 +99,8 @@ void Scheduler::scheduleNextThread(Thread* t) {
 }
 
 void Scheduler::contextSwitch(isrq_registers_t* regs) {
+    if (!active)
+        return;
     if (!nextThread)
         scheduleNextThread();
 

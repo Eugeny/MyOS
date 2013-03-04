@@ -2,8 +2,8 @@
 #include <tty/PhysicalTerminalManager.h>
 
 
-#define WIDTH 80
-#define HEIGHT 25
+#define WIDTH 90
+#define HEIGHT 60
 
 
 static void onKeyboardEvent(keyboard_event_t* e) {

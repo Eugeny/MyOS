@@ -26,6 +26,7 @@ void ktracemem(const char* file, int line);
 
 
 void __outputhex(uint64_t h, int offset);
+void __output(const char* s, int offset);
 void microtrace();
 void sout(const char* str);
 

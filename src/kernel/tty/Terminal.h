@@ -1,8 +1,6 @@
 #ifndef TTY_TERMINAL_H
 #define TTY_TERMINAL_H
 
-#define WIDTH  80
-#define HEIGHT 25
 
 #include <rote.h>
 #include <fs/devfs/PTY.h>

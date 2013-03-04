@@ -32,6 +32,7 @@ void Keyboard::handle(isrq_registers_t *r) {
         static keyboard_event_t event;
         event.mods = _modifiers;
         event.scancode = scancode;
+        //klog('w', "KBD %i", scancode);klog_flush();
         MSG_KEYBOARD_EVENT.post((void*)&event);
     }
 }

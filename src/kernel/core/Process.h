@@ -8,6 +8,7 @@
 #include <core/Scheduler.h>
 #include <memory/AddressSpace.h>
 #include <interrupts/Interrupts.h>
+#include <elf.h>
 
 
 class Thread;
@@ -34,7 +35,12 @@ public:
     
     uint64_t argc;
     char** argv;
+    int envc; 
     char** env; 
+    uint64_t auxvc;
+    Elf64_auxv_t* auxv;
+    void setAuxVector(int idx, uint64_t type, uint64_t val);
+
     Pool<Thread*, 1024> threads;
     Pool<File*, 1024> files;
     PTY* pty;

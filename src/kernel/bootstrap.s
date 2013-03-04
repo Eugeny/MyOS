@@ -6,6 +6,10 @@ section .data
     stack times 409600 db 0
     stacktop dd 0
 
+    global multiboot_info
+    multiboot_info dd 0
+
+
 section .text
 
 [BITS 32]
@@ -27,8 +31,8 @@ align 4
     dd 0,0,0,0,0
 
     dd 1
-    dd 132
-    dd 50
+    dd 40
+    dd 25
     dd 0
 
 
@@ -58,6 +62,8 @@ gdt_flushed:
     mov     fs, ax 
     mov     gs, ax 
     mov     ss, ax 
+
+    ;mov     [es:multiboot_info], ebx
 
     ; Zero out temporary pages
     mov     edi, 1000h 
@@ -136,6 +142,7 @@ loader64:
     ;bts     rax, 16 // FSGSBASE not supported by virtualbox
     mov     cr4, rax
 
+    mov     rdi, rbx ; multiboot_info
     call    kmain
     jmp     $
 

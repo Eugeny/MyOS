@@ -50,8 +50,8 @@ void Thread::setEntryArguments(uint64_t a, uint64_t b, uint64_t c, uint64_t d, u
     state.regs.rsi = b;
     state.regs.rdx = c;
     state.regs.rcx = d;
-//state.regs.r8 = e;
-//state.regs.r9 = f;
+    state.regs.r8 = e;
+    state.regs.r9 = f;
 }
 
 

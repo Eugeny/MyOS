@@ -37,7 +37,22 @@ Thread* Process::spawnThread(threadEntryPoint entry, const char* name) {
 
 Thread* Process::spawnMainThread(threadEntryPoint entry) {
     Thread* t = spawnThread(entry, "main");
-    t->setEntryArguments(argc, (uint64_t)argv, (uint64_t)env, 0, 0, 0);
+    t->setEntryArguments(argc, (uint64_t)argv, (uint64_t)env, (uint64_t)auxv, 0, 0);
+
+    t->pushOnStack(0);
+    t->pushOnStack(0); // AT_NULL
+    for (int i = auxvc-1; i >= 0; i--) {
+        t->pushOnStack(auxv[i].a_un.a_val);
+        t->pushOnStack(auxv[i].a_type);
+    }
+    t->pushOnStack(0);
+    for (int i = envc-1; i >= 0; i--)
+        t->pushOnStack((uint64_t)env[i]);
+    t->pushOnStack(0);
+    for (int i = argc-1; i >= 0; i--)
+        t->pushOnStack((uint64_t)argv[i]);
+    t->pushOnStack(argc);
+
     return t;
 }
 
@@ -50,6 +65,11 @@ void Process::closeFile(int fd) {
     files.remove(f);
     f->close();
     delete f;
+}
+
+void Process::setAuxVector(int idx, uint64_t type, uint64_t val) {
+    auxv[idx].a_type = type;
+    auxv[idx].a_un.a_val = val;
 }
 
 Process::~Process() {

@@ -304,6 +304,6 @@ extern "C" uint64_t _syscall_handler(syscall_regs_t* regs) {
         klog_flush();
         for(;;);
     }
-   // for(int i =0;i<1250000;i++);
+    //for(int i =0;i<500000;i++);
     return result;
 }

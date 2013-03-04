@@ -10,6 +10,7 @@
 #include <hardware/keyboard/Keyboard.h>
 #include <hardware/cmos/CMOS.h>
 #include <hardware/pit/PIT.h>
+#include <hardware/io.h>
 #include <interrupts/IDT.h>
 #include <interrupts/Interrupts.h>
 #include <memory/AddressSpace.h>
@@ -27,7 +28,8 @@
 #include <fcntl.h>
 
 #include <elf/ELF.h>
-
+#include <multiboot.h>
+#include <vga.h>
 
 int main() {}
 
@@ -76,17 +78,24 @@ void testThread(void*) {
 }
 
 
-extern "C" void kmain () {
+
+
+extern "C" void kmain (multiboot_info_t* mbi) {
     CPU::enableSSE();
     CPU::CLI();
     CPU::CLTS();
     
+
     Memory::init();
     kalloc_switch_to_main_heap();
     klog_init();
 
+
+    set_text_mode(1);
+
     PhysicalTerminalManager::get()->init(5);
     klog_init_terminal();
+    klog('w', "");
     klog('w', "Kernel log started");
     PhysicalTerminalManager::get()->render();
 
@@ -98,7 +107,7 @@ extern "C" void kmain () {
 
     klog('i', "Configuring timer");
     PIT::get()->init();
-    PIT::get()->setFrequency(250);
+    PIT::get()->setFrequency(25);
     PIT::MSG_TIMER.registerConsumer((MessageConsumer)&pit_handler);
 
     Keyboard::get()->init();
@@ -127,11 +136,12 @@ extern "C" void kmain () {
 
     klog('w', "Starting task scheduler");
     Scheduler::get()->init();
-    KTRACEMEM
     klog_flush();
     Scheduler::get()->spawnKernelThread(&repainterThread, "Screen repainter thread");
 
- //   Scheduler::get()->spawnKernelThread(&testThread, "test");
+
+
+    // -------------------------------------------------
 
     auto vfs = VFS::get();
     vfs->mount("/", new FAT32FS());
@@ -156,14 +166,38 @@ extern "C" void kmain () {
     p->argc = 1;
     p->argv = new char*[1];
     p->argv[0] = "/a.out";
-    p->env = new char*[3];
+    
+    p->envc = 2;
+    p->env = new char*[2];
     p->env[0] = "USER=root";
     p->env[1] = "LOGNAME=root";
-    p->env[2] = NULL;
+    //p->env[2] = NULL;
+
+    p->auxvc = 7;
+    p->auxv = new Elf64_auxv_t[9];
+    p->setAuxVector(0, AT_PAGESZ, KCFG_PAGE_SIZE);
+    p->setAuxVector(1, AT_ENTRY, elf->getEntryPoint());
+    p->setAuxVector(2, AT_UID,  0);
+    p->setAuxVector(3, AT_GID,  0);
+    p->setAuxVector(4, AT_EUID, 0);
+    p->setAuxVector(5, AT_EGID, 0);
+    p->setAuxVector(6, AT_PLATFORM, (uint64_t)"x86_64");
+
+    p->addressSpace->activate();
+    uint64_t randomVec = (uint64_t)p->sbrk(16);
+    klog('i', "%lx", randomVec);
+    for (int i = 0; i < 16; i++)
+        *(uint8_t*)(randomVec+i) = random() % 256;
+    AddressSpace::kernelSpace->activate(); // TODO revert to actual AS
+    
+    p->setAuxVector(7, AT_RANDOM, randomVec);
+    p->setAuxVector(8, AT_NULL, 0);
 
     CPU::CLI();
     p->spawnMainThread((threadEntryPoint)elf->getEntryPoint());
     CPU::STI();
+
+    Scheduler::get()->resume();
 
     for (;;)
         CPU::halt();
