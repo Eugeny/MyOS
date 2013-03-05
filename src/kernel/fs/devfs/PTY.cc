@@ -49,6 +49,6 @@ bool PTYSlave::canRead() {
 
 int PTYSlave::stat(struct stat* stat) {
     File::stat(stat);
-    stat->st_mode |= S_IFCHR;
+    //stat->st_mode |= S_IFCHR;
     return 0;
 }

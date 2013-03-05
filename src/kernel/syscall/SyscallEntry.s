@@ -29,8 +29,8 @@ _syscall_entry:
     cli 
 
     mov r11, rsp
-    mov rbx, syscall_stack_top
-    mov rsp, rbx
+    ;mov rbx, syscall_stack_top
+    ;mov rsp, rbx
 
     push fs
     push gs
@@ -77,7 +77,7 @@ _syscall_entry:
     pop gs
     pop fs
 
-    mov rsp, r11
+    ;mov rsp, r11
     sti
     jmp rcx
     o64 sysret

@@ -20,7 +20,7 @@ void ELF::loadFromFile(File* f) {
 void ELF::loadIntoProcess(Process* p) {
     auto oldAS = AddressSpace::current;
     auto as = p->addressSpace;
-    CPU::CLI();
+    //CPU::CLI();
     as->activate();
 
     auto hdr = (Elf64_Ehdr*)data;
@@ -39,7 +39,7 @@ void ELF::loadIntoProcess(Process* p) {
         }
     }
 
-    p->brk += 0x6f1000;
+    p->brk += 0x6e9000;
     oldAS->activate();
     CPU::STI();
 }

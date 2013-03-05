@@ -35,6 +35,8 @@ void klog_init_terminal();
 void klog(char type, const char* format, ...);
 void klog_flush();
 
+void dump_stack(uint64_t, uint64_t);
+
 //void sout(const char* str);
 
 #endif

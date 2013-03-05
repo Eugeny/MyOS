@@ -14,3 +14,11 @@ WaitForDelay::WaitForDelay(uint64_t d) {
 bool WaitForDelay::isComplete() {
     return PIT::get()->getTime() - started > delay;
 }
+
+WaitForFile::WaitForFile(File* f) {
+    file = f;
+}
+
+bool WaitForFile::isComplete() {
+    return file->canRead();
+}

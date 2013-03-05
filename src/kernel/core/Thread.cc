@@ -21,8 +21,9 @@ Thread::~Thread() {
 
 void Thread::createStack(uint64_t size) {
     stackSize = size;
-    stackBottom = process->sbrk(size);
-    state.regs.rsp = (uint64_t)stackBottom + stackSize - 16;
+    stackBottom = process->sbrkStack(size) - 0x100;
+    klog('t', "Created stack at %lx", stackBottom);
+    state.regs.rsp = (uint64_t)stackBottom - 16;
 }
 
 void Thread::storeState(isrq_registers_t* regs) {

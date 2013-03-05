@@ -139,7 +139,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     klog_flush();
     Scheduler::get()->spawnKernelThread(&repainterThread, "Screen repainter thread");
 
-
+    Scheduler::get()->resume();
 
     // -------------------------------------------------
 
@@ -153,7 +153,8 @@ extern "C" void kmain (multiboot_info_t* mbi) {
 
     Process* p = Scheduler::get()->spawnProcess("a.out");
 
-    elf->loadFromFile(vfs->open("/a.out", O_RDONLY));
+    //elf->loadFromFile(vfs->open("/a.out.uclibc", O_RDONLY));
+    elf->loadFromFile(vfs->open("/busybox_unstripped", O_RDONLY));
     elf->loadIntoProcess(p);
     
     PTY* pty = PhysicalTerminalManager::get()->getPTY(0);
@@ -163,9 +164,11 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     p->attachFile(pty->openSlave());
     p->attachFile(pty->openSlave());
 
-    p->argc = 1;
-    p->argv = new char*[1];
-    p->argv[0] = "/a.out";
+    p->argc = 3;
+    p->argv = new char*[2];
+    p->argv[0] = "busybox";
+    p->argv[1] = "sh";
+    p->argv[2] = "sh";
     
     p->envc = 2;
     p->env = new char*[2];
@@ -194,6 +197,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     p->setAuxVector(8, AT_NULL, 0);
 
     CPU::CLI();
+    p->brk = 0x2437000;
     p->spawnMainThread((threadEntryPoint)elf->getEntryPoint());
     CPU::STI();
 

@@ -25,10 +25,12 @@ public:
     void closeFile(int fd);
 
     void* sbrk(uint64_t size);
+    void* sbrkStack(uint64_t size);
 
-    uint64_t brk;
-    uint64_t pid;
-    char* name;
+    uint64_t brk, stackbrk;
+    uint64_t pid, ppid;
+    char name[1024];
+    char cwd[1024];
 
     AddressSpace* addressSpace;
     bool isKernel;

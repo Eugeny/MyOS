@@ -68,8 +68,8 @@ Process* Scheduler::spawnProcess(const char* name) {
 }
 
 Thread* Scheduler::spawnKernelThread(threadEntryPoint entry, const char* name) {
-    Thread* t = kernelProcess->spawnThread(entry, name);
     klog('d', "Spawning kernel thread '%s' (entrypoint %lx)", name, entry);
+    Thread* t = kernelProcess->spawnThread(entry, name);
     registerThread(t);
     return t;
 }

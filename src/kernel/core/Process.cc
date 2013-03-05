@@ -5,16 +5,30 @@
 
 
 Process::Process(const char* name) {
+    static int last_pid = 0;
+    pid = (last_pid++);
+    ppid = 0;
+
     brk = 0x400000;
+    stackbrk = 0x70000000000 - 0x2000;
     isKernel = false;
     pty = NULL;
-    this->name = strdup(name);
+    strcpy(this->name, name);
+    strcpy(cwd, "/");
 }
 
 void* Process::sbrk(uint64_t size) {
     addressSpace->allocateSpace(brk, size, isKernel ? 0 : PAGEATTR_USER);
     void* result = (void*)brk;
     brk += size;
+    return result;
+}
+
+void* Process::sbrkStack(uint64_t size) {
+    void* result = (void*)stackbrk;
+    stackbrk -= size;
+    addressSpace->allocateSpace(stackbrk, size, isKernel ? 0 : PAGEATTR_USER);
+    addressSpace->namePage(addressSpace->getPage(stackbrk, false), "Stacks");
     return result;
 }
 
@@ -73,5 +87,4 @@ void Process::setAuxVector(int idx, uint64_t type, uint64_t val) {
 }
 
 Process::~Process() {
-    delete name;
 }

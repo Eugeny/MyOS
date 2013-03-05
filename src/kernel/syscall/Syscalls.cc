@@ -40,7 +40,15 @@ SYSCALL(read) {
     if (count == -1)
         return 0;
 
-    return process->files[fd]->read(buffer, count);
+    int c;
+    while (!(c = process->files[fd]->read(buffer, count))) {
+        CPU::STI();
+        Scheduler::get()->resume();
+        CPU::halt();
+        Scheduler::get()->pause();
+        CPU::CLI();
+    }
+    return c;
 }
 
 
@@ -93,7 +101,7 @@ SYSCALL(fstat) {
     PROCESS
   
     auto fd = regs->rdi;    
-    auto stat = (struct stat*)regs->rdi;    
+    auto stat = (struct stat*)regs->rsi;    
 
     STRACE("fstat(%i, 0x%lx)", fd, stat);
 
@@ -166,7 +174,21 @@ SYSCALL(brk) {
     return process->brk;
 }
 
-SYSCALL(sigprocmask) {
+
+SYSCALL(rt_sigaction) { // STUB
+    PROCESS
+
+    auto signum = regs->rdi;
+    auto act = (struct sigaction *)regs->rsi;
+    auto oldact = (struct sigaction *)regs->rdx;
+
+    STRACE("rt_sigaction(%i, 0x%x, 0x%x)", signum, act, oldact); 
+
+    return 0;
+}
+
+
+SYSCALL(sigprocmask) { // STUB
     PROCESS
 
     auto how = regs->rdi;
@@ -174,6 +196,21 @@ SYSCALL(sigprocmask) {
     auto oldset = (sigset_t*)regs->rdx;
 
     STRACE("sigprocmask(%i, 0x%x, 0x%x)", how, set, oldset);
+
+    return 0;
+}
+
+
+SYSCALL(ioctl) { // STUB
+    PROCESS
+ 
+    auto fd = regs->rdi;    
+    auto request = regs->rsi;
+    auto arg = regs->rdx;
+
+    STRACE("ioctl(%u, %i, 0x%x)", fd, request, arg);
+
+    File* file = process->files[fd];
 
     return 0;
 }
@@ -202,6 +239,29 @@ SYSCALL(writev) {
 }
 
 
+SYSCALL(dup2) {
+    PROCESS
+ 
+    auto fd = regs->rdi;    
+    auto fd2 = regs->rsi;    
+
+    STRACE("dup2(%i, %i)", fd, fd2);
+
+    if (process->files[fd2])
+        process->closeFile(fd2);
+    process->files[fd2] = process->files[fd];
+
+    return fd2;
+}
+
+
+SYSCALL(getpid) {
+    PROCESS
+    STRACE("getpid()");
+    return process->pid;
+}
+
+
 SYSCALL(uname) {
     auto buf = (struct utsname*)regs->rdi;
     
@@ -214,6 +274,19 @@ SYSCALL(uname) {
     strcpy(buf->machine, "x86_64");
 
     return 0;
+}
+
+
+SYSCALL(getcwd) {
+    PROCESS
+    
+    auto buf = (char*)regs->rdi;    
+    auto size = regs->rsi;   
+    
+    STRACE("getcwd(0x%lx, 0x%lx)", buf, size);
+
+    strncpy(buf, process->cwd, size);
+    return (uint64_t)buf;
 }
 
 
@@ -244,7 +317,7 @@ SYSCALL(arch_prctl) {
 }
 
 
-SYSCALL(time) {
+SYSCALL(time) { // STUB
     PROCESS
     
     auto timeptr = (time_t*)regs->rdi;    
@@ -256,6 +329,13 @@ SYSCALL(time) {
         *timeptr = timev;
 
     return timev;
+}
+
+
+SYSCALL(getppid) {
+    PROCESS
+    STRACE("getppid()");
+    return process->ppid;
 }
 
 
@@ -278,20 +358,29 @@ void Syscalls::init() {
     syscalls[0x09] = sys_mmap;
     syscalls[0x0b] = sys_munmap;
     syscalls[0x0c] = sys_brk;
+    syscalls[0x0d] = sys_rt_sigaction;
     syscalls[0x0e] = sys_sigprocmask;
+    syscalls[0x10] = sys_ioctl;
     syscalls[0x14] = sys_writev;
+    syscalls[0x21] = sys_dup2;
+    syscalls[0x27] = sys_getpid;
     syscalls[0x3f] = sys_uname;
+    syscalls[0x4f] = sys_getcwd;
     syscalls[0x66] = sys_getuid;
     syscalls[0x68] = sys_getuid; // getgid
     syscalls[0x6b] = sys_getuid; // geteuid
     syscalls[0x6c] = sys_getuid; // getegid
     syscalls[0x9e] = sys_arch_prctl;
     syscalls[0xc9] = sys_time;
+    syscalls[0x6e] = sys_getppid;
 }
 
 
 extern "C" uint64_t _syscall_handler(syscall_regs_t* regs) {
     uint64_t result = 0;
+
+    Scheduler::get()->pause();
+
     if (syscalls[regs->id]) {
         result = syscalls[regs->id](regs);
         klog('t', " = %lx", result);
@@ -304,6 +393,11 @@ extern "C" uint64_t _syscall_handler(syscall_regs_t* regs) {
         klog_flush();
         for(;;);
     }
+
+    //dump_stack(regs->ursp, regs->rbp);
+
+    Scheduler::get()->resume();
+
     //for(int i =0;i<500000;i++);
     return result;
 }

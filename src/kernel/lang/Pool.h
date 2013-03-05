@@ -37,7 +37,7 @@ public:
         return -1;
     }
     
-    T operator[] (int index) {
+    T& operator[] (int index) {
         return items[index];
     }
 
