@@ -18,6 +18,8 @@ public:
     Process(const char* name);
     ~Process();
 
+    Process* clone();
+    
     Thread* spawnThread(threadEntryPoint entry, const char* name);
     Thread* spawnMainThread(threadEntryPoint entry);
 

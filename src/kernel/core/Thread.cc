@@ -60,6 +60,7 @@ void Thread::wait(Wait* w) {
     if (activeWait)
         stopWaiting();
     activeWait = w;
+    while (activeWait && !activeWait->isComplete());
 }
 
 void Thread::stopWaiting() {

@@ -1,6 +1,7 @@
 #include <fs/vfs/VFS.h>
 #include <string.h>
 #include <kutil.h>
+#include <errno.h>
 
 
 void VFS::mount(char* point, FS* fs) {
@@ -33,14 +34,18 @@ vfs_lookup_t VFS::lookup(char* path) {
 
 File* VFS::open(char* path, int flags) {
     auto lk = lookup(path);
-    if (!lk.found)
+    if (!lk.found) {
+        seterr(ENOENT);
         return NULL;
+    }
     return lk.fs->open(lk.path, flags);
 }
 
 Directory* VFS::opendir(char* path) {
     auto lk = lookup(path);
-    if (!lk.found)
+    if (!lk.found) {
+        seterr(ENOENT);
         return NULL;
+    }
     return lk.fs->opendir(lk.path);
 }

@@ -12,6 +12,7 @@ public:
     isrq_registers_t regs;
     uint64_t fsbase, gsbase;
     AddressSpace* addressSpace;
+    bool forked;
 };
 
 class Process;

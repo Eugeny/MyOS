@@ -4,6 +4,8 @@
 #include <lang/lang.h>
 #include <fs/File.h>
 #include <fs/Directory.h>
+#include <sys/stat.h>
+
 
 class FS {
 public:

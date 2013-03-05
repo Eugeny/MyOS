@@ -12,6 +12,7 @@ struct syscall_regs_t {
 class Syscalls {
 public:
     static void init();
+    static uint64_t error();
 };
 
 #endif

@@ -5,15 +5,21 @@
 #include <sys/stat.h>
 
 
+class FS;
+
+
 class File {
 public:
+    File(const char* path, FS*);
     virtual void write(const void* buffer, uint64_t count);
     virtual uint64_t read(void* buffer, uint64_t count);
     virtual void close();
     virtual bool canRead();
     virtual int stat(struct stat* stat);
 
-    char* path;
+private:
+    char path[1024];
+    FS* filesystem;
 };
 
 

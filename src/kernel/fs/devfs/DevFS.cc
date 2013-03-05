@@ -15,9 +15,9 @@ File* DevFS::open(char* path, int flags) {
     if (strcmp(path, "/tty") == 0)
         return Scheduler::get()->getActiveThread()->process->pty->openSlave();
     if (strcmp(path, "/random") == 0)
-        return new RandomSource();
+        return new RandomSource("/random", this);
     if (strcmp(path, "/urandom") == 0)
-        return new RandomSource();
+        return new RandomSource("/urandom", this);
     klog('w', "DevFS entry not found: %s", path);
     return NULL;
 }

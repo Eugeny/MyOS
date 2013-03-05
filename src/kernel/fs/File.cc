@@ -2,8 +2,12 @@
 #include <string.h>
 
 
+File::File(const char* path, FS* fs) {
+    strcpy(this->path, path ? path : "");
+    filesystem = fs;
+}
+
 void File::close() {
-    
 }
 
 void File::write(const void* buffer, uint64_t count) {
@@ -26,12 +30,11 @@ int File::stat(struct stat* stat) {
     stat->st_gid = 0;
     stat->st_size = 0;
     stat->st_nlink = 1;
-
     return -1;
 }
 
 
-StaticFile::StaticFile(void* c, uint64_t s) {
+StaticFile::StaticFile(void* c, uint64_t s) : File(NULL, NULL) {
     content = c;
     size = s;
     offset = 0;

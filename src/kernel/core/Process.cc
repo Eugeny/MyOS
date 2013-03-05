@@ -17,8 +17,15 @@ Process::Process(const char* name) {
     strcpy(cwd, "/");
 }
 
+Process* Process::clone() {
+    Process* p = new Process(*this);
+    p->threads.clear();
+    return p;
+}
+
 void* Process::sbrk(uint64_t size) {
-    addressSpace->allocateSpace(brk, size, isKernel ? 0 : PAGEATTR_USER);
+    addressSpace->allocateSpace(brk, size, 
+        PAGEATTR_SHARED | (isKernel ? 0 : (PAGEATTR_USER | PAGEATTR_COPY)));
     void* result = (void*)brk;
     brk += size;
     return result;
@@ -27,7 +34,7 @@ void* Process::sbrk(uint64_t size) {
 void* Process::sbrkStack(uint64_t size) {
     void* result = (void*)stackbrk;
     stackbrk -= size;
-    addressSpace->allocateSpace(stackbrk, size, isKernel ? 0 : PAGEATTR_USER);
+    addressSpace->allocateSpace(stackbrk, size, isKernel ? 0 : (PAGEATTR_SHARED | PAGEATTR_USER));
     addressSpace->namePage(addressSpace->getPage(stackbrk, false), "Stacks");
     return result;
 }

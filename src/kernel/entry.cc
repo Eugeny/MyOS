@@ -89,6 +89,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     
     Memory::init();
     kalloc_switch_to_main_heap();
+
     klog_init();
 
     VGA::enableHighResolution();
@@ -97,6 +98,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     klog_init_terminal();
     klog('w', "");
     klog('w', "Kernel log started");
+
     PhysicalTerminalManager::get()->render();
 
     Debug::init();
@@ -115,6 +117,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     Interrupts::get()->setHandler(IRQ(15), INTERRUPT_MUTE);
     Interrupts::get()->setHandler(0x80, isrq80);
     Interrupts::get()->setHandler(0x06, isrq6);
+
 
     AddressSpace::kernelSpace->dump();
 
@@ -152,9 +155,9 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     auto elf = new ELF();
 
     Process* p = Scheduler::get()->spawnProcess("a.out");
-
-    //elf->loadFromFile(vfs->open("/a.out.uclibc", O_RDONLY));
-    elf->loadFromFile(vfs->open("/busybox_unstripped", O_RDONLY));
+    
+    elf->loadFromFile(vfs->open("/a.out", O_RDONLY));
+    //elf->loadFromFile(vfs->open("/busybox_unstripped", O_RDONLY));
     elf->loadIntoProcess(p);
     
     PTY* pty = PhysicalTerminalManager::get()->getPTY(0);
@@ -164,16 +167,16 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     p->attachFile(pty->openSlave());
     p->attachFile(pty->openSlave());
 
-    p->argc = 3;
+    p->argc = 2;
     p->argv = new char*[2];
     p->argv[0] = "busybox";
-    p->argv[1] = "sh";
-    p->argv[2] = "sh";
+    p->argv[1] = "ash";
+    p->argv[2] = "aash";
     
     p->envc = 2;
     p->env = new char*[2];
     p->env[0] = "USER=root";
-    p->env[1] = "LOGNAME=root";
+    p->env[1] = "PATH=";
     //p->env[2] = NULL;
 
     p->auxvc = 8;
@@ -188,7 +191,6 @@ extern "C" void kmain (multiboot_info_t* mbi) {
 
     p->addressSpace->activate();
     uint64_t randomVec = (uint64_t)p->sbrk(16);
-    klog('i', "%lx", randomVec);
     for (int i = 0; i < 16; i++)
         *(uint8_t*)(randomVec+i) = random() % 256;
     AddressSpace::kernelSpace->activate(); // TODO revert to actual AS

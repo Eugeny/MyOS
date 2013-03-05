@@ -1,18 +1,18 @@
 #include <core/Scheduler.h>
+#include <core/CPU.h>
 #include <core/Process.h>
 #include <core/MQ.h>
 #include <hardware/pit/PIT.h>
 #include <kutil.h>
 
 
-static void handleSaveKernelState(isrq_registers_t* regs) {
-    klog('d', "Saving kernel thread state");
-    Scheduler::get()->saveKernelState(regs);
+static Thread* __saving_state_for = NULL;
+
+static void handleSaveState(isrq_registers_t* regs) {
+    klog('d', "Saving thread state");
+    __saving_state_for->storeState(regs);
 }
 
-void Scheduler::saveKernelState(isrq_registers_t* regs) {
-    kernelThread->storeState(regs);
-}
 
 static void handleTimer(isrq_registers_t* regs) {
     __output("TASK OUT", 70);
@@ -27,7 +27,7 @@ static void handleForcedTaskSwitch(isrq_registers_t* regs) {
 
 
 void Scheduler::init() {
-    Interrupts::get()->setHandler(0x7f, handleSaveKernelState);
+    Interrupts::get()->setHandler(0x7f, handleSaveState);
     Interrupts::get()->setHandler(0xff, handleForcedTaskSwitch);
 
     kernelProcess = new Process("Kernel");
@@ -42,7 +42,7 @@ void Scheduler::init() {
 
     activeThread = kernelThread;
     
-    asm volatile("int $0x7f"); // handleSaveKernelState
+    saveState(kernelThread);
 
     PIT::MSG_TIMER.registerConsumer((MessageConsumer)&handleTimer);
 
@@ -73,6 +73,40 @@ Thread* Scheduler::spawnKernelThread(threadEntryPoint entry, const char* name) {
     registerThread(t);
     return t;
 }
+
+
+void Scheduler::fork() {
+    Process* p1 = activeThread->process;
+    Process* p2 = p1->clone();
+
+    p1->addressSpace->dump();
+    p2->addressSpace = p1->addressSpace->clone();
+
+    AddressSpace* oldAS = AddressSpace::current;
+    p2->addressSpace->activate();
+
+    Thread* nt = p2->spawnThread(0, activeThread->name);
+    nt->state = activeThread->state;
+    nt->state.forked = true;
+    nt->createStack(activeThread->stackSize);
+    memcpy(
+        (void*)nt->state.regs.rsp, 
+        (void*)activeThread->state.regs.rsp, 
+        (uint64_t)activeThread->stackBottom - activeThread->state.regs.rsp
+    );
+
+    oldAS->activate();
+    threads.remove(nt);
+}
+
+void Scheduler::saveState(Thread* t) {
+    __saving_state_for = t;
+    CPU::STI();
+    asm volatile("int $0x7f"); // handleSaveKernelState
+    CPU::CLI();
+    __saving_state_for = NULL;
+}
+
 
 void Scheduler::scheduleNextThread() {
     static int index = 0;

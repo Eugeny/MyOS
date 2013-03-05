@@ -5,10 +5,6 @@ UDATA_SELECTOR equ 6 << 3
 
 extern MSR_STAR, MSR_LSTAR, MSR_FSBASE, MSR_GSBASE
 
-syscall_stack times 409600 db 0
-syscall_stack_top dd 0
-
-
 
 global _syscall_init, _syscall_entry
 extern _syscall_handler
@@ -29,8 +25,6 @@ _syscall_entry:
     cli 
 
     mov r11, rsp
-    ;mov rbx, syscall_stack_top
-    ;mov rsp, rbx
 
     push fs
     push gs
@@ -77,7 +71,6 @@ _syscall_entry:
     pop gs
     pop fs
 
-    ;mov rsp, r11
     sti
     jmp rcx
     o64 sysret

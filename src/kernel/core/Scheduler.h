@@ -26,7 +26,8 @@ public:
     void forceThreadSwitchUserspace(Thread* preferred);
     void forceThreadSwitchISRQContext(Thread* preferred, isrq_registers_t* regs);
     
-    void saveKernelState(isrq_registers_t*);
+    void fork();
+    void saveState(Thread* t);
 
     Thread* getActiveThread();
 

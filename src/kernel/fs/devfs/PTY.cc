@@ -1,4 +1,7 @@
 #include <fs/devfs/PTY.h>
+#include <fs/FS.h>
+#include <lang/lang.h>
+
 
 PTY::PTY() {
 
@@ -13,7 +16,7 @@ PTYSlave* PTY::openSlave() {
 }
 
 
-PTYMaster::PTYMaster(PTY* p) {
+PTYMaster::PTYMaster(PTY* p) : File(0, 0) {
     pty = p;
 }
 
@@ -31,7 +34,7 @@ bool PTYMaster::canRead() {
 
 
 
-PTYSlave::PTYSlave(PTY* p) {
+PTYSlave::PTYSlave(PTY* p) : File(0, 0) {
     pty = p;
 }
 
@@ -49,6 +52,6 @@ bool PTYSlave::canRead() {
 
 int PTYSlave::stat(struct stat* stat) {
     File::stat(stat);
-    //stat->st_mode |= S_IFCHR;
+    stat->st_mode |= S_IFCHR;
     return 0;
 }

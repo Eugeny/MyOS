@@ -19,7 +19,7 @@ private:
 
 class FAT32File : public File {
 public:
-    FAT32File(FAT32FS* fs, FIL* f, char* p);
+    FAT32File(const char*, FAT32FS*, FIL* f);
     ~FAT32File();
     virtual void write(const void* buffer, uint64_t count);
     virtual uint64_t read(void* buffer, uint64_t count);

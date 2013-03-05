@@ -9,8 +9,24 @@ static syscall syscalls[1024];
 
 #define SYSCALL(name) uint64_t sys_ ## name (syscall_regs_t* regs) 
 #define PROCESS Process* process = Scheduler::get()->getActiveThread()->process;
-#define STRACE(format, args...) {klog('t', format " from 0x%lx", ## args, regs->urip);klog_flush();}
 
+#ifdef KCFG_STRACE
+    #define STRACE(format, args...) { \
+        __strace_in_progress = true; \
+        klog('t', format " from 0x%lx", ## args, regs->urip); \
+        klog_flush(); \
+    }
+#else
+    #define STRACE(format, args...) {}
+#endif
+
+#ifdef KCFG_STRACE2
+    #define STRACE2 STRACE
+#else
+    #define STRACE2(format, args...) {}
+#endif
+
+static bool __strace_in_progress = false;
 
 //-----------------------------------
 //-----------------------------------
@@ -24,7 +40,9 @@ static syscall syscalls[1024];
 #include <sys/mman.h>
 #include <string.h>
 #include <time.h>
+#include <fcntl.h>
 #include <signal.h>
+#include <sys/resource.h>
 
 
 
@@ -35,7 +53,7 @@ SYSCALL(read) {
     auto buffer = (void*)regs->rsi;
     auto count = (int)regs->rdx;
 
-    STRACE("read(%i, 0x%x, %i)", fd, buffer, count);
+    STRACE2("read(%i, 0x%x, %i)", fd, buffer, count);
 
     if (count == -1)
         return 0;
@@ -59,7 +77,7 @@ SYSCALL(write) {
     auto buffer = (void*)regs->rsi;
     auto count = (int)regs->rdx;
 
-    STRACE("write(%i, 0x%x, %i)", fd, buffer, count);
+    STRACE2("write(%i, 0x%x, %i)", fd, buffer, count);
 
     if (count == -1)
         return 0;
@@ -80,6 +98,10 @@ SYSCALL(open) {
     STRACE("open('%s', 0x%x, 0x%x)", path, flags, mode);
 
     auto file = VFS::get()->open(path, flags);
+
+    if (haserr()) 
+        return Syscalls::error();
+
     return process->attachFile(file);
 }
 
@@ -92,6 +114,28 @@ SYSCALL(close) {
     STRACE("close(%i)", fd);
 
     process->closeFile(fd);
+
+    return 0;
+}
+
+
+SYSCALL(stat) {
+    auto path = (char*)regs->rdi;    
+    auto stat = (struct stat*)regs->rsi;    
+
+    STRACE("stat(%s, 0x%lx)", path, stat);
+
+    File* f = VFS::get()->open(path, O_RDONLY);
+    if (haserr())
+        return Syscalls::error();
+
+    f->stat(stat);
+    if (haserr()) {
+        f->close();
+        return Syscalls::error();
+    }
+
+    f->close();
 
     return 0;
 }
@@ -262,6 +306,36 @@ SYSCALL(getpid) {
 }
 
 
+SYSCALL(fork) { 
+    PROCESS
+ 
+    STRACE("fork()");
+
+    Scheduler::get()->getActiveThread()->state.forked = false;
+    Scheduler::get()->saveState(Scheduler::get()->getActiveThread());
+    if (!Scheduler::get()->getActiveThread()->state.forked) {
+        Scheduler::get()->fork();
+    } else {
+        Scheduler::get()->getActiveThread()->state.forked = false;
+    }
+    return 0;
+}
+
+
+SYSCALL(wait4) { // STUB
+    PROCESS
+ 
+    auto pid = regs->rdi;    
+    auto status = (int*)regs->rsi;    
+    auto options = regs->rdx;    
+    auto usage = (struct rusage*)regs->r10;    
+
+    STRACE("wait4(%i, %lx, %i, %lx)", pid, status, options, usage);
+
+    return 0;
+}
+
+
 SYSCALL(uname) {
     auto buf = (struct utsname*)regs->rdi;
     
@@ -287,6 +361,23 @@ SYSCALL(getcwd) {
 
     strncpy(buf, process->cwd, size);
     return (uint64_t)buf;
+}
+
+
+SYSCALL(chdir) {
+    PROCESS
+    
+    auto path = (char*)regs->rdi;    
+    
+    STRACE("chdir(%s)", path);
+
+    Directory* dir = VFS::get()->opendir(path);
+    if (haserr())
+        return Syscalls::error();
+    dir->close();
+
+    strcpy(process->cwd, path);
+    return 0;
 }
 
 
@@ -354,6 +445,7 @@ void Syscalls::init() {
     syscalls[0x01] = sys_write;
     syscalls[0x02] = sys_open;
     syscalls[0x03] = sys_close;
+    syscalls[0x04] = sys_stat;
     syscalls[0x05] = sys_fstat;
     syscalls[0x09] = sys_mmap;
     syscalls[0x0b] = sys_munmap;
@@ -364,8 +456,11 @@ void Syscalls::init() {
     syscalls[0x14] = sys_writev;
     syscalls[0x21] = sys_dup2;
     syscalls[0x27] = sys_getpid;
+    syscalls[0x39] = sys_fork;
+    syscalls[0x3d] = sys_wait4;
     syscalls[0x3f] = sys_uname;
     syscalls[0x4f] = sys_getcwd;
+    syscalls[0x50] = sys_chdir;
     syscalls[0x66] = sys_getuid;
     syscalls[0x68] = sys_getuid; // getgid
     syscalls[0x6b] = sys_getuid; // geteuid
@@ -382,9 +477,14 @@ extern "C" uint64_t _syscall_handler(syscall_regs_t* regs) {
     Scheduler::get()->pause();
 
     if (syscalls[regs->id]) {
+        __strace_in_progress = false;
         result = syscalls[regs->id](regs);
-        klog('t', " = %lx", result);
-        klog_flush();
+        #ifdef KCFG_STRACE
+            if (__strace_in_progress) {
+                klog('t', " = %lx", result);
+                klog_flush();
+            }
+        #endif
     } else {
         __outputhex(regs->id, 70);
         klog('w', "Unknown syscall");
@@ -400,4 +500,13 @@ extern "C" uint64_t _syscall_handler(syscall_regs_t* regs) {
 
     //for(int i =0;i<500000;i++);
     return result;
+}
+
+uint64_t Syscalls::error() {
+    int r = -geterr();
+    #ifdef KCFG_STRACE
+        //klog('t', " = (err) %i", r);
+        //klog_flush();
+    #endif   
+    return (uint64_t)r;
 }

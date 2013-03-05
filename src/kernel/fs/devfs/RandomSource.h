@@ -2,9 +2,12 @@
 #define FS_DEVFS_RANDOMSOURCE_H
 
 #include <fs/File.h>
+#include <fs/FS.h>
+
 
 class RandomSource : public File {
 public:
+    RandomSource(const char* path, FS*);
     virtual void write(const void* buffer, uint64_t count);
     virtual uint64_t read(void* buffer, uint64_t count) ;
     virtual void close();

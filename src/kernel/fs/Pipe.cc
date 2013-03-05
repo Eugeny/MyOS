@@ -3,7 +3,7 @@
 #include <string.h>
 
 
-Pipe::Pipe() {
+Pipe::Pipe() : File(0, 0) {
     bufferLength = 0;
 }
 

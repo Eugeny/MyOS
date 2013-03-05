@@ -4,6 +4,7 @@
 #include <fs/FS.h>
 #include <fs/File.h>
 #include <fs/Directory.h>
+#include <fs/devfs/PTY.h>
 
 
 class DevFS : public FS {

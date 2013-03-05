@@ -22,7 +22,7 @@ static void gpfISRQ(isrq_registers_t* reg) {
 
 
 void Memory::init() {
-    AddressSpace::kernelSpace->setRoot((page_tree_node_t*) 0x20000);
+    AddressSpace::kernelSpace->setRoot((page_tree_node_t*) KCFG_PML4_LOCATION);
     AddressSpace::kernelSpace->initEmpty();
 
     FrameAlloc::get()->init((512*1024*1024) / KCFG_PAGE_SIZE);

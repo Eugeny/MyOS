@@ -139,3 +139,20 @@ void dump_stack(uint64_t rsp, uint64_t rbp) {
         //}
     }
 }
+
+
+static int err = 0;
+
+void seterr(int e) {
+    err = e;
+}
+
+bool haserr() {
+    return err != 0;
+}
+
+int geterr() {
+    int r = err;
+    err = 0;
+    return r;
+}

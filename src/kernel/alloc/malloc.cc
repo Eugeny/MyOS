@@ -10,6 +10,7 @@
     #define USE_DL_PREFIX
     #define MORECORE __dlmalloc_sbrk
     #define MORECORE_CANNOT_TRIM
+    #define MORECORE_CONTIGUOUS 0
     #define ABORT __dlmalloc_abort
     #define MALLOC_FAILURE_ACTION __dlmalloc_fail
     #define MALLINFO_FIELD_TYPE uint32_t
@@ -31,7 +32,7 @@
 
     typedef int ptrdiff_t;
 
-    static char theap[409600];
+    static char theap[KCFG_TEMPHEAP_SIZE];
     static void* hptr = (void*)theap;
     static bool large_heap_active = false;
 
@@ -39,6 +40,11 @@
         KTRACE
         void* r = hptr;
         hptr = (void*)((uint64_t)hptr + size);
+        if (hptr > theap + KCFG_TEMPHEAP_SIZE && !large_heap_active) {
+            klog('e', "Temporary heap overflow");
+            klog_flush();
+            for(;;);
+        }
         return r;
     }
 

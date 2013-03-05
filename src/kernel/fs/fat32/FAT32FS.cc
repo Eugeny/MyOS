@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <kutil.h>
 #include <string.h>
+#include <errno.h>
 
 
 FAT32FS::FAT32FS() {
@@ -20,18 +21,30 @@ File* FAT32FS::open(char* path, int flags) {
     if (flags & O_CREAT)    mode |= FA_OPEN_ALWAYS;
     if (flags & O_TRUNC)    mode |= FA_CREATE_ALWAYS;
 
-    f_open(fil, path, mode);
-    return new FAT32File(this, fil, path);
+    int result = f_open(fil, path, mode);
+    if (result == FR_NO_FILE || result == FR_NO_PATH) {
+        delete fil;
+        seterr(ENOENT);
+        return NULL;
+    }
+
+    return new FAT32File(path, this, fil);
 }
 
 Directory* FAT32FS::opendir(char* path) {
     FDIR* dir = new FDIR();
-    f_opendir(dir, path);
+    int result = f_opendir(dir, path);
+    if (result == FR_NO_FILE || result == FR_NO_PATH) {
+        delete dir;
+        seterr(ENOENT);
+        return NULL;
+    }
     return new FAT32Directory(this, dir);
 }
 
 
-FAT32File::FAT32File(FAT32FS* fs, FIL* f, char* p) {
+
+FAT32File::FAT32File(const char* p, FAT32FS* fs, FIL* f) : File(p, fs) {
     filesystem = fs;
     fil = f;
     path = strdup(p);
@@ -66,7 +79,7 @@ int FAT32File::stat(struct stat* stat) {
     f_stat(path, &fi);
     stat->st_size = fi.fsize;
     stat->st_mode |= S_IFREG;
-    return 0;
+    return 0; 
 }
 
 

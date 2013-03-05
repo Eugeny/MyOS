@@ -9,6 +9,7 @@ CFLAGS = -c 				\
 	-fno-builtin 			\
 	-fno-exceptions 		\
 	-fno-stack-protector 	\
+	-fno-omit-frame-pointer	\
 	-fno-rtti 				\
 	-ffreestanding 			\
 	-mno-red-zone 			\
@@ -61,6 +62,7 @@ SOURCES= \
 	src/kernel/fs/fat32/FAT32FS.o 				\
 	src/kernel/fs/procfs/ProcFS.o 				\
 	src/kernel/fs/vfs/VFS.o 					\
+	src/kernel/fs/FS.o 							\
 	src/kernel/fs/File.o 						\
 	src/kernel/fs/Pipe.o 						\
 												\
@@ -69,7 +71,7 @@ SOURCES= \
 	src/kernel/hardware/cmos/CMOS.o 			\
 	src/kernel/hardware/keyboard/Keyboard.o 	\
 	src/kernel/hardware/pit/PIT.o 				\
-	src/kernel/hardware/vga/vga.o 				\
+	src/kernel/hardware/vga/VGA.o 				\
 												\
 	src/kernel/interrupts/IDT.o 				\
 	src/kernel/interrupts/IDTUtil.o				\

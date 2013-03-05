@@ -37,6 +37,11 @@ public:
         return -1;
     }
     
+    void clear() {
+        for (int i = 0; i < size; i++)
+            items[i] = NULL;
+    }
+    
     T& operator[] (int index) {
         return items[index];
     }

@@ -1,6 +1,7 @@
 #include <fs/devfs/RandomSource.h>
 #include <stdlib.h>
 
+RandomSource::RandomSource(const char* path, FS* fs) : File(path, fs) {}
 
 void RandomSource::write(const void* buffer, uint64_t count) {
 }

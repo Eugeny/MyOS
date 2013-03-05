@@ -1,5 +1,6 @@
 #include <memory/AddressSpace.h>
 
+#include <core/Scheduler.h>
 #include <memory/FrameAlloc.h>
 #include <memory/Memory.h>
 #include <alloc/malloc.h>
@@ -13,6 +14,7 @@ static AddressSpace __kernelSpace;
 AddressSpace* AddressSpace::kernelSpace = &__kernelSpace;
 AddressSpace* AddressSpace::current = NULL;
 
+#define ADDR_TRAP 0xcccccccc
 
 
 static page_tree_node_t* allocate_node() {
@@ -24,7 +26,7 @@ static void initialize_node_entry(page_tree_node_entry_t* entry) {
     entry->rw = 1;
     entry->user = 1;
     entry->unused = 0;
-    entry->address = 0xcccccccc; // trap
+    entry->address = ADDR_TRAP; // trap
 }
 
 static void initialize_node(page_tree_node_t* node) {
@@ -199,18 +201,19 @@ void AddressSpace::releaseSpace(uint64_t base, uint64_t size) {
 
 AddressSpace* AddressSpace::clone() {
     CPU::CLI();
+    Scheduler::get()->pause();
 
-
-        klog('w', "!");klog_flush();
+    klog('w', "Cloning address space from %lx", this);klog_flush();
     AddressSpace* result = new AddressSpace();
     result->initEmpty();
         klog('w', "!");klog_flush();
 
     page_tree_node_t* node = getRoot();
 
+    dump();
     
     for (int i = 0; i < 512; i++) { // PML4s
-      //  klog('w', "%i", i);klog_flush();
+        //klog('w', "%i", i);
         if (node->entries[i].present) {
             page_tree_node_t* pml4 = node->entriesVirtual[i];
             
@@ -240,24 +243,28 @@ AddressSpace* AddressSpace::clone() {
                                         klog_flush();
                                     //    for(;;);
                                     }
-                                    page_descriptor_t page = result->getPage(addr, true);
-
-                                    *(page.vAddr) = *oldPage.vAddr;
+                                    if (oldPage.entry->address == ADDR_TRAP) {
+                                        klog('e', "TRAP PAGE @ %lx", addr);
+                                        klog_flush();
+                                    //    for(;;);
+                                    }
 
                                     if (PAGEATTR_IS_SHARED(*oldPage.attrs)) {
+                                        page_descriptor_t page = result->getPage(addr, true);
+
+                                        *(page.vAddr) = *oldPage.vAddr;
                                         *(page.entry) = *oldPage.entry;
                                         *(page.attrs) = *oldPage.attrs;
                                         *(page.name) = *oldPage.name;
-                                    }
 
-                                    if (PAGEATTR_IS_COPY(*oldPage.attrs)) {
-                                        page.entry->present = false;
-                                        result->allocatePage(page, *oldPage.attrs);
-
-                                        copy_page_physical(
-                                            oldPage.entry->address * KCFG_PAGE_SIZE,
-                                            page.entry->address * KCFG_PAGE_SIZE
-                                        );
+                                        if (PAGEATTR_IS_COPY(*oldPage.attrs)) {
+                                            page.entry->present = false;
+                                            result->allocatePage(page, *oldPage.attrs);
+                                            copy_page_physical(
+                                                oldPage.entry->address * KCFG_PAGE_SIZE,
+                                                page.entry->address * KCFG_PAGE_SIZE
+                                            );
+                                        }
                                     }
                                 }
                             }
@@ -268,8 +275,11 @@ AddressSpace* AddressSpace::clone() {
         }
     }
 
+    klog('w', "Cloned address space into %lx", result);klog_flush();
     CPU::STI();
 
+    result->dump();
+    
     return result;
 }
 
@@ -341,6 +351,6 @@ void AddressSpace::recursiveDump(page_tree_node_t* node, int level) {
 }
 
 void AddressSpace::dump() {
-    klog('w', "Dumping address space at %016lx", root);
+    klog('w', "Dumping address space %016lx", this);
     recursiveDump(root, 0);
 }
