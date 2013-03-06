@@ -154,10 +154,11 @@ extern "C" void kmain (multiboot_info_t* mbi) {
 
     auto elf = new ELF();
 
-    Process* p = Scheduler::get()->spawnProcess("a.out");
+    Process* p = Scheduler::get()->spawnProcess(Scheduler::get()->kernelProcess, "a.out");
     
-    elf->loadFromFile(vfs->open("/a.out", O_RDONLY));
-    //elf->loadFromFile(vfs->open("/busybox_unstripped", O_RDONLY));
+    //elf->loadFromFile(vfs->open("/a.out", O_RDONLY));
+    elf->loadFromFile(vfs->open("/busybox_unstripped", O_RDONLY));
+    //elf->loadFromFile(vfs->open("/dash", O_RDONLY));
     elf->loadIntoProcess(p);
     
     PTY* pty = PhysicalTerminalManager::get()->getPTY(0);
@@ -171,7 +172,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     p->argv = new char*[2];
     p->argv[0] = "busybox";
     p->argv[1] = "ash";
-    p->argv[2] = "aash";
+    //p->argv[2] = "aash";
     
     p->envc = 2;
     p->env = new char*[2];
@@ -199,7 +200,6 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     p->setAuxVector(8, AT_NULL, 0);
 
     CPU::CLI();
-    p->brk = 0x2437000;
     p->spawnMainThread((threadEntryPoint)elf->getEntryPoint());
     CPU::STI();
 

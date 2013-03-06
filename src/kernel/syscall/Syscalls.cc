@@ -13,7 +13,9 @@ static syscall syscalls[1024];
 #ifdef KCFG_STRACE
     #define STRACE(format, args...) { \
         __strace_in_progress = true; \
-        klog('t', format " from 0x%lx", ## args, regs->urip); \
+        klog('t', format " from pid %i @ 0x%lx", ## args, \
+            Scheduler::get()->getActiveThread()->process->pid, \
+            regs->urip); \
         klog_flush(); \
     }
 #else
@@ -35,14 +37,18 @@ static bool __strace_in_progress = false;
 #include <core/CPU.h>
 #include <core/Scheduler.h>
 #include <core/Process.h>
+#include <hardware/vga/VGA.h>
 #include <sys/utsname.h>
 #include <sys/uio.h>
 #include <sys/mman.h>
 #include <string.h>
 #include <time.h>
+#include <termios.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
 #include <signal.h>
 #include <sys/resource.h>
+#include <errno.h>
 
 
 
@@ -165,17 +171,14 @@ SYSCALL(mmap) {
     auto fd = regs->r8;    
     auto offset = regs->r9;    
 
-    STRACE("mmap(0x%lx, 0x%lx, %i, %i, %i, 0x%lx)", addr, length, prot, flags, fd, offset);
+    STRACE2("mmap(0x%lx, 0x%lx, %i, %i, %i, 0x%lx)", addr, length, prot, flags, fd, offset);
 
     if (flags | MAP_ANONYMOUS) {
         if (!addr || (addr < KCFG_PAGE_SIZE)) {
             addr = process->brk;
             addr = (addr + KCFG_PAGE_SIZE - 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
             process->brk = addr + length;
-
-            //addr &= 0xFFFFFFFFFF000000; // FUCK MALLOC
         }
-        //return (uint64_t)MAP_FAILED;
         process->addressSpace->allocateSpace(addr, length, PAGEATTR_USER); // TODO: flags
         process->addressSpace->namePage(process->addressSpace->getPage(addr, false), "mmap()");
 
@@ -197,7 +200,7 @@ SYSCALL(munmap) {
     auto addr = regs->rdi;
     auto length = regs->rsi;
 
-    STRACE("munmap(0x%lx, 0x%lx)", addr, length);
+    STRACE2("munmap(0x%lx, 0x%lx)", addr, length);
 
     process->addressSpace->releaseSpace(addr, length); // TODO: flags
 
@@ -245,7 +248,7 @@ SYSCALL(sigprocmask) { // STUB
 }
 
 
-SYSCALL(ioctl) { // STUB
+SYSCALL(ioctl) { 
     PROCESS
  
     auto fd = regs->rdi;    
@@ -255,6 +258,43 @@ SYSCALL(ioctl) { // STUB
     STRACE("ioctl(%u, %i, 0x%x)", fd, request, arg);
 
     File* file = process->files[fd];
+
+    if (request == TIOCGWINSZ) {
+        auto wsz = (struct winsize*)arg;
+        wsz->ws_row = VGA::width;
+        wsz->ws_col = VGA::height;
+        wsz->ws_xpixel = VGA::width * 8;
+        wsz->ws_ypixel = VGA::height * 8;
+        return 0;
+    } 
+
+    if (request == TCGETS) {
+        auto ios = (struct termios*)arg;
+        ios->c_iflag = 0;
+        ios->c_oflag = 0;
+        ios->c_cflag = 0;
+        ios->c_lflag = 0;
+        ios->c_cc[VEOF] = 4;
+        ios->c_cc[VINTR] = 13;
+        ios->c_cc[VSUSP] = 32;
+        cfsetospeed(ios, 8000);
+        cfsetispeed(ios, 8000);
+        return 0;
+    }
+
+    if (request == TIOCGPGRP) {
+        auto res = (uint64_t*)arg;
+        *res = process->pgid;
+        return 0;
+    }
+
+    if (request == TIOCSPGRP) {
+        auto res = (uint64_t*)arg;
+        process->pgid = *res;
+        return 0;
+    }
+
+    klog('w', "Unknown ioctl 0x%lx", request);
 
     return 0;
 }
@@ -311,13 +351,10 @@ SYSCALL(fork) {
  
     STRACE("fork()");
 
-    if (Scheduler::get()->fork()) {
-        klog('w', "FORK OUT 1");
-        return Scheduler::get()->getActiveThread()->process->pid;
-    } else {
-        klog('w', "FORK OUT 2");
-        return 0;
-    }
+    Process* p = Scheduler::get()->fork();
+    if (p)
+        return p->pid;
+    return 0;
 }
 
 
@@ -330,6 +367,20 @@ SYSCALL(wait4) { // STUB
     auto usage = (struct rusage*)regs->r10;    
 
     STRACE("wait4(%i, %lx, %i, %lx)", pid, status, options, usage);
+
+    seterr(ECHILD);
+    return Syscalls::error();
+    //return 0;
+}
+
+
+SYSCALL(kill) { // STUB
+    PROCESS
+ 
+    auto pid = regs->rdi;    
+    auto signal = regs->rsi;    
+
+    STRACE("kill(%i, %i)", pid, signal);
 
     return 0;
 }
@@ -345,6 +396,38 @@ SYSCALL(uname) {
     strcpy(buf->release, "3.2.0-35-generic");
     strcpy(buf->version, "#55-Ubuntu SMP Wed Dec 5 17:42:16 UTC 2012");
     strcpy(buf->machine, "x86_64");
+
+    return 0;
+}
+
+
+SYSCALL(fcntl) { 
+    PROCESS
+ 
+    auto fd = regs->rdi;    
+    auto cmd = regs->rsi;
+    auto arg = regs->rdx;
+
+    STRACE("fcntl(%u, %i, 0x%x)", fd, cmd, arg);
+
+    File* file = process->files[fd];
+
+    if (cmd == F_DUPFD) {
+        for (int i = arg; i < process->files.capacity; i++)
+            if (!process->files[i]) {
+                process->files[i] = process->files[fd];
+                return i;
+            }
+        seterr(EMFILE);
+        return Syscalls::error();
+    } 
+
+    if (cmd == F_SETFD) {
+        // STUB
+        return 0;
+    }
+
+    klog('w', "Unknown fcntl %i", cmd);
 
     return 0;
 }
@@ -383,6 +466,36 @@ SYSCALL(chdir) {
 SYSCALL(getuid) {
     STRACE("getuid()");
     return 0;
+}
+
+
+SYSCALL(setpgid) {
+    auto pid = regs->rdi;    
+    auto pgid = regs->rsi;    
+
+    STRACE("setpgid(%i, %i)", pid, pgid);
+
+    Process* p = Scheduler::get()->getProcess(pid);
+    if (haserr())
+        return Syscalls::error();
+    p->pgid = pgid;
+    return 0;
+}
+
+
+SYSCALL(getpgrp) {
+    PROCESS
+
+    //auto pid = regs->rdi;    
+
+    STRACE("getpgrp()");
+
+    return process->pgid;
+
+    //Process* p = Scheduler::get()->getProcess(pid);
+    //if (haserr())
+        //return Syscalls::error();
+    //return p->pgid;
 }
 
 
@@ -457,13 +570,17 @@ void Syscalls::init() {
     syscalls[0x27] = sys_getpid;
     syscalls[0x39] = sys_fork;
     syscalls[0x3d] = sys_wait4;
+    syscalls[0x3e] = sys_kill;
     syscalls[0x3f] = sys_uname;
+    syscalls[0x48] = sys_fcntl;
     syscalls[0x4f] = sys_getcwd;
     syscalls[0x50] = sys_chdir;
     syscalls[0x66] = sys_getuid;
     syscalls[0x68] = sys_getuid; // getgid
     syscalls[0x6b] = sys_getuid; // geteuid
     syscalls[0x6c] = sys_getuid; // getegid
+    syscalls[0x6d] = sys_setpgid; 
+    syscalls[0x6f] = sys_getpgrp;
     syscalls[0x9e] = sys_arch_prctl;
     syscalls[0xc9] = sys_time;
     syscalls[0x6e] = sys_getppid;

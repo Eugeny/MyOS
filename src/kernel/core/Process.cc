@@ -9,9 +9,11 @@ static int makepid() {
     return last_pid++;
 }
 
-Process::Process(const char* name) {
+Process::Process(Process* parent, const char* name) {
     pid = makepid();
-    ppid = 0;
+    this->parent = parent;
+    ppid = parent ? parent->pid : 0;
+    pgid = parent ? parent->pgid : pid;
 
     brk = 0x400000;
     stackbrk = 0x70000000000 - 0x2000;
@@ -58,11 +60,8 @@ Thread* Process::spawnThread(threadEntryPoint entry, const char* name) {
         break;
     }
     t->state.addressSpace = addressSpace;
-    t->createStack(0x12000);
-    addressSpace->dump();
-   KTRACE
+    t->createStack(0x200000);
     t->pushOnStack(0);
-   KTRACE
     t->pushOnStack(0);
     t->state.regs.rip = (uint64_t)entry;
     threads.add(t);

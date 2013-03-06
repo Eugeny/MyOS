@@ -97,7 +97,7 @@ void Memory::handlePageFault(isrq_registers_t* regs) {
     klog('e', "PAGE FAULT [%s%s%s%s%s]", fPresent, fWrite, fUser, fRW, fIFetch);
     klog('e', "Faulting address : %lx", CPU::getCR2());
     klog('e', "Faulting code    : %lx", regs->rip);
-    //Debug::MSG_DUMP_REGISTERS.post((void*)regs);
+    Debug::MSG_DUMP_REGISTERS.post((void*)regs);
     Scheduler::get()->logTask();
     klog_flush();
     for(;;);
@@ -112,8 +112,8 @@ void Memory::handleGPF(isrq_registers_t* regs) {
     klog('e', "GENERAL PROTECTION FAULT");
     klog('e', "Faulting code: %lx", regs->rip);
     klog('e', "Errcode      : %lx", regs->err_code);
-    //Debug::MSG_DUMP_REGISTERS.post((void*)regs);
-    //Scheduler::get()->logTask();
+    Debug::MSG_DUMP_REGISTERS.post((void*)regs);
+    Scheduler::get()->logTask();
     klog_flush();
     for(;;);
 }

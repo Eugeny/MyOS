@@ -16,7 +16,7 @@ public:
     void init();
     void pause();
     void resume();
-    Process* spawnProcess(const char* name);
+    Process* spawnProcess(Process* parent, const char* name);
     Thread* spawnKernelThread(threadEntryPoint entry, const char* name);
     void registerThread(Thread* t);
     void scheduleNextThread();
@@ -27,9 +27,10 @@ public:
     void forceThreadSwitchISRQContext(Thread* preferred, isrq_registers_t* regs);
     
     Process* fork();
-    void saveState(Thread* t, void* stack_buf, uint64_t stack_buf_size);
+    uint64_t saveState(Thread* t, void* stack_buf, uint64_t stack_buf_size);
 
     Thread* getActiveThread();
+    Process* getProcess(uint64_t pid);
 
     void logTask();
     

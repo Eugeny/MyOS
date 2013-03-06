@@ -23,10 +23,10 @@ void Debug::init() {
 
 void Debug::onDumpRegisters(isrq_registers_t* regs) {
     klog('w', "Register dump");
-    klog('w', "RIP: %016lx   RSP: %016lx", regs->rip, regs->rsp);
-    klog('w', "RDI: %016lx   RSI: %016lx", regs->rdi, regs->rsi);
-    klog('w', "RAX: %016lx   RBX: %016lx", regs->rax, regs->rbx);
-    klog('w', "RCX: %016lx   RDX: %016lx", regs->rcx, regs->rdx);
+    klog('w', "RIP: %16lx   RSP: %16lx", regs->rip, regs->rsp);
+    klog('w', "RDI: %16lx   RSI: %16lx", regs->rdi, regs->rsi);
+    klog('w', "RAX: %16lx   RBX: %16lx", regs->rax, regs->rbx);
+    klog('w', "RCX: %16lx   RDX: %16lx", regs->rcx, regs->rdx);
     klog_flush();
 }
 

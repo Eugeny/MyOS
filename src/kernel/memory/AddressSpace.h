@@ -66,6 +66,7 @@ public:
     void                    namePage(page_descriptor_t page, char* name);
     page_descriptor_t       allocatePage(page_descriptor_t page, uint8_t attrs);
     void                    allocateSpace(uint64_t base, uint64_t size, uint8_t attrs);
+    void                    writePage(void* buf, uint64_t base, uint64_t size);
     void                    write(void* buf, uint64_t base, uint64_t size);
     void                    releasePage(page_descriptor_t page);
     void                    releaseSpace(uint64_t base, uint64_t size);

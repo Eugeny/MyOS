@@ -15,7 +15,7 @@ class Thread;
 
 class Process {
 public:
-    Process(const char* name);
+    Process(Process* parent, const char* name);
     ~Process();
 
     Process* clone();
@@ -31,7 +31,8 @@ public:
     void  allocateStack(uint64_t base, uint64_t size);
 
     uint64_t brk, stackbrk;
-    uint64_t pid, ppid;
+    uint64_t pid, ppid, pgid;
+    Process* parent;
     char name[1024];
     char cwd[1024];
 

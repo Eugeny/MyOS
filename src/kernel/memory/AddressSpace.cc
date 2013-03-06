@@ -182,7 +182,7 @@ void AddressSpace::allocateSpace(uint64_t base, uint64_t size, uint8_t attrs) {
     }
 }
 
-void AddressSpace::write(void* buf, uint64_t base, uint64_t size) {
+void AddressSpace::writePage(void* buf, uint64_t base, uint64_t size) {
     uint64_t ptr = base / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
     uint64_t bufptr = (uint64_t)buf / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
     uint64_t offset = (uint64_t)base - ptr;
@@ -210,6 +210,22 @@ void AddressSpace::write(void* buf, uint64_t base, uint64_t size) {
 
     //dump_stack((uint64_t)KCFG_TEMP_PAGE_1 + bufoffset, 0);
     //AddressSpace::current->dump();
+}
+
+void AddressSpace::write(void* buf, uint64_t base, uint64_t size) {
+    if (size <= KCFG_PAGE_SIZE)
+        writePage(buf, base, size);
+    else {
+        writePage(buf, base, KCFG_PAGE_SIZE);
+        uint64_t ptr = base / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
+        uint64_t bufptr = (uint64_t)buf / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
+        uint64_t buftop = (uint64_t)buf + size;
+        ptr += KCFG_PAGE_SIZE;
+        bufptr += KCFG_PAGE_SIZE;
+        while (bufptr < buftop) {
+            writePage((void*)bufptr, ptr, (buftop - bufptr > 1024) ? 1024 : (buftop - bufptr));
+        }
+    }
 }
 
 void AddressSpace::releasePage(page_descriptor_t page) {

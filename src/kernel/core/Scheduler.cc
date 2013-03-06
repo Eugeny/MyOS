@@ -4,10 +4,12 @@
 #include <core/MQ.h>
 #include <hardware/pit/PIT.h>
 #include <kutil.h>
+#include <errno.h>
 
 
 static Thread* __saving_state_for = NULL;
 static void* __saving_state_stack_buf = NULL;
+static uint64_t __saving_state_stack_buf_used = 0;
 static uint64_t __saving_state_stack_buf_size = 0;
 
 
@@ -15,8 +17,9 @@ static void handleSaveState(isrq_registers_t* regs) {
     klog('d', "Saving thread state");
     __saving_state_for->storeState(regs);
     if (__saving_state_stack_buf) {
-        klog('d', "Saving stack");
-        memcpy(__saving_state_stack_buf, (void*)regs->rsp, __saving_state_stack_buf_size);
+        __saving_state_stack_buf_used = (uint64_t)Scheduler::get()->getActiveThread()->stackBottom - regs->rsp;
+        klog('d', "Saving 0x%lx bytes of stack from 0x%lx", __saving_state_stack_buf_used, regs->rsp);
+        memcpy(__saving_state_stack_buf, (void*)regs->rsp, __saving_state_stack_buf_used);
     }
 }
 
@@ -37,9 +40,10 @@ void Scheduler::init() {
     Interrupts::get()->setHandler(0x7f, handleSaveState);
     Interrupts::get()->setHandler(0xff, handleForcedTaskSwitch);
 
-    kernelProcess = new Process("Kernel");
+    kernelProcess = new Process(NULL, "Kernel");
     kernelProcess->addressSpace = AddressSpace::kernelSpace;
     kernelProcess->isKernel = true;
+    kernelProcess->pgid = 1000;
     processes.add(kernelProcess);
 
     kernelThread = new Thread(kernelProcess, "idle thread");
@@ -70,8 +74,8 @@ void Scheduler::registerThread(Thread* t) {
     threads.add(t);
 }
 
-Process* Scheduler::spawnProcess(const char* name) {
-    Process* p = new Process(name);
+Process* Scheduler::spawnProcess(Process* parent, const char* name) {
+    Process* p = new Process(parent, name);
     p->addressSpace = AddressSpace::kernelSpace->clone();
     processes.add(p);
     return p;
@@ -88,28 +92,23 @@ Thread* Scheduler::spawnKernelThread(threadEntryPoint entry, const char* name) {
 extern "C" void fork_continue();
 
 Process* Scheduler::fork() {
-    static uint8_t stackbuf[1024];
-    uint64_t stackbufSize = (uint64_t)activeThread->stackBottom - activeThread->state.regs.rsp;
-    saveState(activeThread, stackbuf, stackbufSize);
+    #define STACKBUF_SIZE 1024*1024
+    static uint8_t stackbuf[STACKBUF_SIZE];
+
+    klog('t', "Stack bottom is 0x%lx, RSP is 0x%lx", activeThread->stackBottom, activeThread->state.regs.rsp);
+    uint64_t stackbuf_used = saveState(activeThread, stackbuf, STACKBUF_SIZE);
     asm volatile(".global fork_continue\nfork_continue:");
 
     if (activeThread->state.forked)
         return NULL;
 
-KTRACE
     Process* p1 = activeThread->process;
-KTRACE
     Process* p2 = p1->clone();
-KTRACE
     processes.add(p2);
 
-KTRACE
     p2->addressSpace = p1->addressSpace->clone();
-KTRACE
 
     AddressSpace* oldAS = AddressSpace::current;
-KTRACE
-    //p1->addressSpace->dump();
 
     Thread* nt = new Thread(p2, activeThread->name);
     threads.add(nt);
@@ -118,12 +117,12 @@ KTRACE
     nt->state.addressSpace = p2->addressSpace;
     nt->state.forked = true;
 
-    p2->addressSpace->write(stackbuf, nt->state.regs.rsp, stackbufSize);
+    p2->addressSpace->write(stackbuf, nt->state.regs.rsp, stackbuf_used);
 
     return p2;
 }
 
-void Scheduler::saveState(Thread* t, void* stack_buf, uint64_t stack_buf_size) {
+uint64_t Scheduler::saveState(Thread* t, void* stack_buf, uint64_t stack_buf_size) {
     __saving_state_for = t;
     __saving_state_stack_buf = stack_buf;
     __saving_state_stack_buf_size = stack_buf_size;
@@ -133,11 +132,7 @@ void Scheduler::saveState(Thread* t, void* stack_buf, uint64_t stack_buf_size) {
     klog('d', "Thread state saved");
     KTRACE
     __saving_state_for = NULL;
-
-    static uint64_t rsp;
-    asm volatile ("mov %%rsp, %0" : "=r"(rsp));
-    //((uint64_t*)rsp)[5] = (uint64_t)&fork_continue;//0xccccccccccccc;
-    dump_stack(rsp, 0);
+    return __saving_state_stack_buf_used;
 }
 
 
@@ -186,6 +181,14 @@ void Scheduler::contextSwitch(isrq_registers_t* regs) {
 
 Thread* Scheduler::getActiveThread() {
     return activeThread;
+}
+
+Process* Scheduler::getProcess(uint64_t pid) {
+    for (Process* p : processes)
+        if (p->pid == pid)
+            return p;
+    seterr(ESRCH);
+    return NULL;
 }
 
 void Scheduler::forceThreadSwitchUserspace(Thread* preferred) {
