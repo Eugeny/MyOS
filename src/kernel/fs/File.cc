@@ -10,22 +10,11 @@ File::File(const char* path, FS* fs) {
 void File::close() {
 }
 
-void File::write(const void* buffer, uint64_t count) {
-}
-
-uint64_t File::read(void* buffer, uint64_t count) {
-    return 0;
-}
-
-bool File::canRead() {
-    return false;
-}
 
 int File::stat(struct stat* stat) {
     stat->st_dev = 0;
-    stat->st_ino = 0;
+    stat->st_ino = 1;
     stat->st_mode = S_IRWXU | S_IRWXG | S_IRWXO;
-    stat->st_dev = 0;
     stat->st_uid = 0;
     stat->st_gid = 0;
     stat->st_size = 0;
@@ -34,7 +23,26 @@ int File::stat(struct stat* stat) {
 }
 
 
-StaticFile::StaticFile(void* c, uint64_t s) : File(NULL, NULL) {
+
+
+StreamFile::StreamFile(const char* path, FS* fs) : File(path, fs) {
+    type = FILE_STREAM;
+}
+
+void StreamFile::write(const void* buffer, uint64_t count) {
+}
+
+uint64_t StreamFile::read(void* buffer, uint64_t count) {
+    return 0;
+}
+
+bool StreamFile::canRead() {
+    return false;
+}
+
+
+
+StaticFile::StaticFile(void* c, uint64_t s) : StreamFile(NULL, NULL) {
     content = c;
     size = s;
     offset = 0;

@@ -31,11 +31,17 @@ void Debug::onDumpRegisters(isrq_registers_t* regs) {
 }
 
 void Debug::onDumpTasks(void*) {
-    klog('i', "Tasks:");
+    klog('i', "Tasks: -------------------------------------------------");
+    klog('i', "Scheduler %s", Scheduler::get()->active ? "active" : "OFF");
     for (Process* p : Scheduler::get()->processes) {
         klog('i', " - %3i %s", p->pid, p->name);
         for (Thread* t : p->threads) {
-            klog('d', "      - %3i %10s @ %16lx", t->id, t->name, t->state.regs.rip);
+            klog('d', "      - %3i %30s | %s | %i ticks", 
+                t->id, 
+                t->name, 
+                t->activeWait ? "waiting" : "running",
+                t->cycles
+            );
         }
     }
     klog_flush();

@@ -39,7 +39,7 @@ int main() { return 0; }
 void pit_handler(isrq_registers_t* regs) {
     static int counter = 0;
     counter++;
-    microtrace();
+    //microtrace();
 }
 
 void isrq80(isrq_registers_t* regs)  {
@@ -58,25 +58,15 @@ void repainterThread(void*) {
     for (;;) {
         Scheduler::get()->getActiveThread()->wait(new WaitForDelay(50));
         PhysicalTerminalManager::get()->render();
+        microtrace();
     }
 }
 
 void testThread(void*) {
-    PTYSlave* p = PhysicalTerminalManager::get()->openPTY(0);
     for (;;) {
-        p->write(".", 1);
-        for (int i =0; i < 1000000;i++);
-        Scheduler::get()->getActiveThread()->wait(new WaitForDelay(1000));
+        Scheduler::get()->getActiveThread()->wait(new WaitForDelay(3000));
+        KTRACEMEM
     }
-    for(;;) {
-        Scheduler::get()->getActiveThread()->wait(new WaitForDelay(500));
-        Scheduler::get()->forceThreadSwitchUserspace(NULL);
-        //klog('i', "%i", PIT::get()->getTime());
-        //KTRACEMEM
-        char buf [1024];
-        int c = p->read(buf, 1024);
-        p->write(buf, c);
-    }   
 }
 
 
@@ -141,6 +131,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     Scheduler::get()->init();
     klog_flush();
     Scheduler::get()->spawnKernelThread(&repainterThread, "Screen repainter thread");
+ //   Scheduler::get()->spawnKernelThread(&testThread, "test thread");
 
     Scheduler::get()->resume();
 
@@ -171,7 +162,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     p->argc = 2;
     p->argv = new char*[2];
     p->argv[0] = "busybox";
-    p->argv[1] = "ash";
+    p->argv[1] = "ls";
     //p->argv[2] = "aash";
     
     p->envc = 2;

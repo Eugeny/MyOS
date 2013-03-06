@@ -34,7 +34,7 @@ public:
     bool   dead;
     char*   name;
 
-    uint64_t id;
+    uint64_t id, cycles;
     void*    stackBottom;
     uint64_t stackSize;
 

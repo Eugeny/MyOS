@@ -11,7 +11,7 @@ DevFS::DevFS() {
 }
 
 
-File* DevFS::open(char* path, int flags) {
+StreamFile* DevFS::open(char* path, int flags) {
     if (strcmp(path, "/tty") == 0)
         return Scheduler::get()->getActiveThread()->process->pty->openSlave();
     if (strcmp(path, "/random") == 0)

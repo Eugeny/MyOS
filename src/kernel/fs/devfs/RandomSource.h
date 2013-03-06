@@ -5,7 +5,7 @@
 #include <fs/FS.h>
 
 
-class RandomSource : public File {
+class RandomSource : public StreamFile {
 public:
     RandomSource(const char* path, FS*);
     virtual void write(const void* buffer, uint64_t count);

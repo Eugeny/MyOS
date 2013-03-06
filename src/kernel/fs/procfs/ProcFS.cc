@@ -10,7 +10,7 @@ ProcFS::ProcFS() {
 }
 
 
-File* ProcFS::open(char* path, int flags) {
+StreamFile* ProcFS::open(char* path, int flags) {
     if (strcmp(path, "/sys/kernel/osrelease") == 0) {
         return new StaticFile(CONTENT_OSRELEASE, strlen(CONTENT_OSRELEASE));
     }

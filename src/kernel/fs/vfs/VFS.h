@@ -24,7 +24,7 @@ class VFS : public FS, public Singleton<VFS> {
 public:
     void mount(char* point, FS* fs);
     vfs_lookup_t lookup(char* path);
-    virtual File* open(char* path, int flags);
+    virtual StreamFile* open(char* path, int flags);
     virtual Directory* opendir(char* path);
 private:
     Pool<mount_t*, 1024> mounts;

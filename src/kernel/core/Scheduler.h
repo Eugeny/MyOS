@@ -37,11 +37,12 @@ public:
     Thread* kernelThread;
     Process* kernelProcess;
     Pool<Process*, 1024> processes;
+    
+    bool active;
 private:
     Thread* nextThread;
     Pool<Thread*, 1024> threads;
     Thread* activeThread;
-    bool active;
 };
 
 #endif

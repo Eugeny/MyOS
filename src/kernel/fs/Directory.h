@@ -2,19 +2,25 @@
 #define FS_DIRECTORY_H
 
 #include <lang/lang.h>
+#include <sys/stat.h>
 #include <dirent.h>
+#include <fs/File.h>
 
 
 class FS;
 
-class Directory {
+class Directory : public File {
 public:
+    Directory(const char*, FS*);
     virtual struct dirent* read() = 0;
     virtual void close() = 0;
+    virtual int stat(struct stat* stat);
 
+protected:
     FS* filesystem;
-    struct dirent currentEntry;
     char* path;
+
+    struct dirent currentEntry;
 };
 
 

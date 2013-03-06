@@ -8,7 +8,7 @@
 #define PIPE_BUFFER_SIZE 10240
 
 
-class Pipe : public File {
+class Pipe : public StreamFile {
 public:
     Pipe();
     virtual void write(const void* buffer, uint64_t count);

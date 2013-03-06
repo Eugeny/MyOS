@@ -16,7 +16,7 @@ PTYSlave* PTY::openSlave() {
 }
 
 
-PTYMaster::PTYMaster(PTY* p) : File(0, 0) {
+PTYMaster::PTYMaster(PTY* p) : StreamFile(0, 0) {
     pty = p;
 }
 
@@ -34,7 +34,7 @@ bool PTYMaster::canRead() {
 
 
 
-PTYSlave::PTYSlave(PTY* p) : File(0, 0) {
+PTYSlave::PTYSlave(PTY* p) : StreamFile(0, 0) {
     pty = p;
 }
 

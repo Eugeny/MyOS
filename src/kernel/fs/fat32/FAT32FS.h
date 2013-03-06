@@ -10,14 +10,14 @@
 class FAT32FS : public FS {
 public:
     FAT32FS();
-    virtual File* open(char* path, int flags);
+    virtual StreamFile* open(char* path, int flags);
     virtual Directory* opendir(char* path);
 private:
     FATFS* fs;
 };  
 
 
-class FAT32File : public File {
+class FAT32File : public StreamFile {
 public:
     FAT32File(const char*, FAT32FS*, FIL* f);
     ~FAT32File();
@@ -34,10 +34,10 @@ private:
 
 class FAT32Directory : public Directory {
 public:
-    FAT32Directory(FAT32FS* fs, FDIR* d);
-
+    FAT32Directory(const char* path, FAT32FS* f, FDIR*);
     virtual struct dirent* read();
     virtual void close();
+    virtual int stat(struct stat* stat);
 private:
     FAT32FS* filesystem;
     FDIR* dir;

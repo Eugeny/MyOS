@@ -176,7 +176,7 @@ void AddressSpace::allocateSpace(uint64_t base, uint64_t size, uint8_t attrs) {
     base = base / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
     top = (top + KCFG_PAGE_SIZE - 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
     size = top - base;
-    klog('t', "Allocating %lx bytes at %lx", size, base);
+    klog('t', "Allocating %lx bytes at %lx", size, base);klog_flush();
     for (uint64_t v = base; v < base + size; v += KCFG_PAGE_SIZE) {
         allocatePage(getPage(v, true), attrs);
     }

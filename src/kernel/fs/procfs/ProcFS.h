@@ -9,7 +9,7 @@
 class ProcFS : public FS {
 public:
     ProcFS();
-    virtual File* open(char* path, int flags);
+    virtual StreamFile* open(char* path, int flags);
     virtual Directory* opendir(char* path);
 };  
 

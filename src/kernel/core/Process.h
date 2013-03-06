@@ -25,6 +25,7 @@ public:
 
     int attachFile(File* f);
     void closeFile(int fd);
+    void realpath(char* p, char* buf);
 
     void* sbrk(uint64_t size);
     void* sbrkStack(uint64_t size);
@@ -51,6 +52,8 @@ public:
     Pool<File*, 1024> files;
     PTY* pty;
 
+    void notifyChildDied(Process* p);
+    uint64_t deadChildPID;
 private:
 };
 #endif

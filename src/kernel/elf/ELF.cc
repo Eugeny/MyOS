@@ -11,7 +11,7 @@ ELF::ELF() {
 
 }
 
-void ELF::loadFromFile(File* f) {
+void ELF::loadFromFile(StreamFile* f) {
     data = (uint8_t*)kmalloc(4*1024*1024);
     f->read(data, 4*1024*1024);
     f->close();

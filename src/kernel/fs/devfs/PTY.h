@@ -21,7 +21,7 @@ public:
     Pipe masterReadPipe;
 };
 
-class PTYMaster : public File {
+class PTYMaster : public StreamFile {
 public:
     PTYMaster(PTY*);
     virtual void write(const void* buffer, uint64_t count);
@@ -31,7 +31,7 @@ private:
     PTY* pty;
 };
 
-class PTYSlave : public File {
+class PTYSlave : public StreamFile {
 public:
     PTYSlave(PTY*);
     virtual void write(const void* buffer, uint64_t count);

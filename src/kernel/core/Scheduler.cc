@@ -97,20 +97,23 @@ Process* Scheduler::fork() {
 
     klog('t', "Stack bottom is 0x%lx, RSP is 0x%lx", activeThread->stackBottom, activeThread->state.regs.rsp);
     uint64_t stackbuf_used = saveState(activeThread, stackbuf, STACKBUF_SIZE);
-    asm volatile(".global fork_continue\nfork_continue:");
+    //asm volatile(".global fork_continue\nfork_continue:");
 
     if (activeThread->state.forked)
         return NULL;
 
     Process* p1 = activeThread->process;
     Process* p2 = p1->clone();
+    p2->ppid = p1->pid;
     processes.add(p2);
 
+    pause();
     p2->addressSpace = p1->addressSpace->clone();
 
     AddressSpace* oldAS = AddressSpace::current;
 
     Thread* nt = new Thread(p2, activeThread->name);
+    p2->threads.add(nt);
     threads.add(nt);
     nt->createStack((uint64_t)activeThread->stackBottom, activeThread->stackSize);
     nt->state = activeThread->state;
@@ -126,11 +129,9 @@ uint64_t Scheduler::saveState(Thread* t, void* stack_buf, uint64_t stack_buf_siz
     __saving_state_for = t;
     __saving_state_stack_buf = stack_buf;
     __saving_state_stack_buf_size = stack_buf_size;
-    KTRACE
     asm volatile("int $0x7f"); // handleSaveKernelState
     CPU::CLI();
     klog('d', "Thread state saved");
-    KTRACE
     __saving_state_for = NULL;
     return __saving_state_stack_buf_used;
 }
@@ -173,6 +174,7 @@ void Scheduler::contextSwitch(isrq_registers_t* regs) {
         //nextThread->process->addressSpace->activate();
     //}
 
+    nextThread->cycles++;
     nextThread->recoverState(regs);
 
     activeThread = nextThread;

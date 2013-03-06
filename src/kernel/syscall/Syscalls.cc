@@ -8,7 +8,14 @@ typedef uint64_t (*syscall) (syscall_regs_t*);
 static syscall syscalls[1024];
 
 #define SYSCALL(name) uint64_t sys_ ## name (syscall_regs_t* regs) 
-#define PROCESS Process* process = Scheduler::get()->getActiveThread()->process;
+#define PROCESS auto process = Scheduler::get()->getActiveThread()->process;
+#define THREAD auto thread = Scheduler::get()->getActiveThread();
+#define RESOLVE_PATH(var, val) char var[1024]; process->realpath((char*)val, var);
+#define WAIT \
+    CPU::STI();                  \
+    Scheduler::get()->resume();  \
+    while (thread->activeWait)   \
+        CPU::halt();               
 
 #ifdef KCFG_STRACE
     #define STRACE(format, args...) { \
@@ -49,6 +56,7 @@ static bool __strace_in_progress = false;
 #include <signal.h>
 #include <sys/resource.h>
 #include <errno.h>
+#include <sys/file.h>
 
 
 
@@ -64,15 +72,22 @@ SYSCALL(read) {
     if (count == -1)
         return 0;
 
-    int c;
-    while (!(c = process->files[fd]->read(buffer, count))) {
-        CPU::STI();
-        Scheduler::get()->resume();
-        CPU::halt();
-        Scheduler::get()->pause();
-        CPU::CLI();
+    File* f = process->files[fd];
+
+    if (f->type == FILE_STREAM) {
+        int c;
+        while (!(c = ((StreamFile*)process->files[fd])->read(buffer, count))) {
+            CPU::STI();
+            Scheduler::get()->resume();
+            CPU::halt();
+            Scheduler::get()->pause();
+            CPU::CLI();
+        }
+        return c;
+    } else {
+        klog('w', "Bad fd type");
+        return 0;
     }
-    return c;
 }
 
 
@@ -88,7 +103,10 @@ SYSCALL(write) {
     if (count == -1)
         return 0;
 
-    process->files[fd]->write(buffer, count);
+    File* f = process->files[fd];
+
+    if (f->type == FILE_STREAM)
+        ((StreamFile*)f)->write(buffer, count);
 
     return count;
 }
@@ -96,19 +114,24 @@ SYSCALL(write) {
 
 SYSCALL(open) {
     PROCESS
+    RESOLVE_PATH(path, regs->rdi)
   
-    auto path = (char*)regs->rdi;    
     auto flags = regs->rsi;
     auto mode = regs->rdx;
 
     STRACE("open('%s', 0x%x, 0x%x)", path, flags, mode);
 
-    auto file = VFS::get()->open(path, flags);
-
-    if (haserr()) 
-        return Syscalls::error();
-
-    return process->attachFile(file);
+    if (flags & O_DIRECTORY) {
+        auto dir = VFS::get()->opendir(path);
+        if (haserr()) 
+            return Syscalls::error();
+        return process->attachFile(dir);
+    } else {
+        auto file = VFS::get()->open(path, flags);
+        if (haserr()) 
+            return Syscalls::error();
+        return process->attachFile(file);
+    }
 }
 
 
@@ -126,23 +149,46 @@ SYSCALL(close) {
 
 
 SYSCALL(stat) {
-    auto path = (char*)regs->rdi;    
+    PROCESS
+    RESOLVE_PATH(path, regs->rdi)
+
     auto stat = (struct stat*)regs->rsi;    
 
     STRACE("stat(%s, 0x%lx)", path, stat);
 
     File* f = VFS::get()->open(path, O_RDONLY);
-    if (haserr())
-        return Syscalls::error();
+    KTRACE
+    if (haserr()) {
+    KTRACE
+        geterr();
+        // dir?
+        Directory* d = VFS::get()->opendir(path);
+        if (haserr())
+            return Syscalls::error();
+
+        d->stat(stat);
+        if (haserr()) {
+            d->close();
+            delete d;
+            return Syscalls::error();
+        }
+
+        d->close();
+        delete d;
+        return 0;    
+    }
+    KTRACE
 
     f->stat(stat);
     if (haserr()) {
         f->close();
+        delete f;
         return Syscalls::error();
     }
 
     f->close();
 
+    delete f;
     return 0;
 }
 
@@ -173,13 +219,22 @@ SYSCALL(mmap) {
 
     STRACE2("mmap(0x%lx, 0x%lx, %i, %i, %i, 0x%lx)", addr, length, prot, flags, fd, offset);
 
+    if (length > 0x100000000) { // uClibc, U MAD?
+        length = 0x80000;
+    }
+
     if (flags | MAP_ANONYMOUS) {
         if (!addr || (addr < KCFG_PAGE_SIZE)) {
             addr = process->brk;
             addr = (addr + KCFG_PAGE_SIZE - 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
             process->brk = addr + length;
         }
-        process->addressSpace->allocateSpace(addr, length, PAGEATTR_USER); // TODO: flags
+
+        uint64_t pflags = PAGEATTR_USER;
+        if (flags | MAP_SHARED)
+            pflags |= PAGEATTR_SHARED;
+
+        process->addressSpace->allocateSpace(addr, length, pflags); // TODO: flags
         process->addressSpace->namePage(process->addressSpace->getPage(addr, false), "mmap()");
 
         memset((void*)addr, 0, length);
@@ -201,6 +256,10 @@ SYSCALL(munmap) {
     auto length = regs->rsi;
 
     STRACE2("munmap(0x%lx, 0x%lx)", addr, length);
+
+    if (length > 0x100000000) { // uClibc, U MAD?
+        length = 0x80000;
+    }
 
     process->addressSpace->releaseSpace(addr, length); // TODO: flags
 
@@ -315,7 +374,7 @@ SYSCALL(writev) {
 
     for (uint64_t i = 0; i < iovcnt; i++) {
         auto vector = (struct iovec*)(iov + i * sizeof(iovec));
-        file->write(vector->iov_base, vector->iov_len);
+        ((StreamFile*)file)->write(vector->iov_base, vector->iov_len);
         written += vector->iov_len;
     }
 
@@ -352,14 +411,19 @@ SYSCALL(fork) {
     STRACE("fork()");
 
     Process* p = Scheduler::get()->fork();
-    if (p)
+    if (p) {
+        klog('d', "Forked parent ok");
         return p->pid;
-    return 0;
+    } else {
+        klog('d', "Forked child ok");
+        return 0;
+    }
 }
 
 
-SYSCALL(wait4) { // STUB
+SYSCALL(wait4) {
     PROCESS
+    THREAD
  
     auto pid = regs->rdi;    
     auto status = (int*)regs->rsi;    
@@ -367,6 +431,14 @@ SYSCALL(wait4) { // STUB
     auto usage = (struct rusage*)regs->r10;    
 
     STRACE("wait4(%i, %lx, %i, %lx)", pid, status, options, usage);
+
+    for (Process* p : Scheduler::get()->processes) {
+        if (p->ppid == process->pid) {
+            //thread->wait(new WaitForChild(-1));
+            //WAIT
+            return process->deadChildPID;
+        }
+    }
 
     seterr(ECHILD);
     return Syscalls::error();
@@ -429,6 +501,17 @@ SYSCALL(fcntl) {
 
     klog('w', "Unknown fcntl %i", cmd);
 
+    return 0;
+}
+
+
+SYSCALL(flock) { // STUB
+    PROCESS
+ 
+    auto fd = regs->rdi;    
+    auto cmd = regs->rsi;
+
+    STRACE("flock(%u, %i)", fd, cmd);
     return 0;
 }
 
@@ -535,6 +618,44 @@ SYSCALL(time) { // STUB
 }
 
 
+struct kernel_dirent64
+{
+    uint64_t        d_ino;
+    int64_t         d_off;
+    unsigned short  d_reclen;
+    unsigned char   d_type;
+    char            d_name[];
+};
+
+SYSCALL(getdents64) { 
+    PROCESS
+ 
+    auto fd = regs->rdi;    
+    auto buf = (struct kernel_dirent64*)regs->rsi;
+    auto sz = regs->rdx; // TODO take in account
+
+    STRACE("getdents64(%u, 0x%lx, %u)", fd, buf, sz);
+
+    auto dir = (Directory*)process->files[fd];
+    uint64_t count = 0;
+
+    dirent* de;
+    while (de = dir->read()) {
+        buf->d_ino = de->d_ino + 5;
+        buf->d_reclen = 32;//strlen(de->d_name) + 32;
+        buf->d_off = (count += buf->d_reclen);
+        strcpy(buf->d_name, de->d_name);
+        ///*(char*)(buf + buf->d_reclen - 1) = de->d_type;
+        buf->d_type = de->d_type;
+        buf += buf->d_reclen;
+        return 1;
+        //return count;
+    }
+
+    return count;
+}
+
+
 SYSCALL(getppid) {
     PROCESS
     STRACE("getppid()");
@@ -559,6 +680,7 @@ void Syscalls::init() {
     syscalls[0x03] = sys_close;
     syscalls[0x04] = sys_stat;
     syscalls[0x05] = sys_fstat;
+    syscalls[0x06] = sys_stat; // lstat
     syscalls[0x09] = sys_mmap;
     syscalls[0x0b] = sys_munmap;
     syscalls[0x0c] = sys_brk;
@@ -573,6 +695,7 @@ void Syscalls::init() {
     syscalls[0x3e] = sys_kill;
     syscalls[0x3f] = sys_uname;
     syscalls[0x48] = sys_fcntl;
+    syscalls[0x49] = sys_flock;
     syscalls[0x4f] = sys_getcwd;
     syscalls[0x50] = sys_chdir;
     syscalls[0x66] = sys_getuid;
@@ -583,6 +706,7 @@ void Syscalls::init() {
     syscalls[0x6f] = sys_getpgrp;
     syscalls[0x9e] = sys_arch_prctl;
     syscalls[0xc9] = sys_time;
+    syscalls[0xd9] = sys_getdents64;
     syscalls[0x6e] = sys_getppid;
 }
 

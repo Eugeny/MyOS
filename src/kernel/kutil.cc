@@ -124,7 +124,8 @@ void ktracemem(const char* file, int line) {
 }
 
 void klog_flush() {
-    PhysicalTerminalManager::get()->render();
+    if (__logging_terminal_ready)
+        PhysicalTerminalManager::get()->render();
 }
 
 

@@ -8,6 +8,7 @@
 Thread::Thread(Process* p, const char* name) {
     static int tid = 0;
     id = tid++;
+    cycles = 0;
     stackSize = 0;
     dead = false;
     process = p;

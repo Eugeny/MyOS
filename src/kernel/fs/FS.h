@@ -9,7 +9,7 @@
 
 class FS {
 public:
-    virtual File* open(char* path, int flags) = 0;
+    virtual StreamFile* open(char* path, int flags) = 0;
     virtual Directory* opendir(char* path) = 0;
 };
 

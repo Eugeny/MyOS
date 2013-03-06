@@ -32,7 +32,7 @@ vfs_lookup_t VFS::lookup(char* path) {
     return result;
 }
 
-File* VFS::open(char* path, int flags) {
+StreamFile* VFS::open(char* path, int flags) {
     auto lk = lookup(path);
     if (!lk.found) {
         seterr(ENOENT);

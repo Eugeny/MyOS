@@ -60,7 +60,7 @@ Thread* Process::spawnThread(threadEntryPoint entry, const char* name) {
         break;
     }
     t->state.addressSpace = addressSpace;
-    t->createStack(0x200000);
+    t->createStack(0x900000);
     t->pushOnStack(0);
     t->pushOnStack(0);
     t->state.regs.rip = (uint64_t)entry;
@@ -101,9 +101,37 @@ void Process::closeFile(int fd) {
     delete f;
 }
 
+void Process::realpath(char* p, char* buf) {
+    strcpy(buf, "");
+    if (p[0] != '/') {
+        if (strlen(cwd) > 1)
+            strcpy(buf, cwd);
+    }
+
+    char* tok = strtok(p, "/");
+    do {
+        if (strcmp(tok, ".") != 0) {
+            strcat(buf, "/");
+            strcat(buf, tok);
+        }
+        tok = strtok(NULL, "/");
+    } while (tok != NULL);
+
+    if (strlen(buf) == 0)
+        strcpy(buf, "/");
+}
+
 void Process::setAuxVector(int idx, uint64_t type, uint64_t val) {
     auxv[idx].a_type = type;
     auxv[idx].a_un.a_val = val;
+}
+
+void Process::notifyChildDied(Process* p) {
+    deadChildPID = p->pid;
+    for (Thread* t : threads)
+        if (t->activeWait && t->activeWait->type == WAIT_FOR_CHILD) {
+            t->stopWaiting();
+        }
 }
 
 Process::~Process() {

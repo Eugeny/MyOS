@@ -83,8 +83,6 @@ void Memory::log() {
 }
 
 void Memory::handlePageFault(isrq_registers_t* regs) {
-    AddressSpace::current->dump();
-
     const char* fPresent  = (regs->err_code & 1) ? "P" : "-";
     const char* fWrite    = (regs->err_code & 2) ? "W" : "-";
     const char* fUser     = (regs->err_code & 4) ? "U" : "-";
@@ -97,6 +95,9 @@ void Memory::handlePageFault(isrq_registers_t* regs) {
     klog('e', "PAGE FAULT [%s%s%s%s%s]", fPresent, fWrite, fUser, fRW, fIFetch);
     klog('e', "Faulting address : %lx", CPU::getCR2());
     klog('e', "Faulting code    : %lx", regs->rip);
+    
+    AddressSpace::current->dump();
+    
     Debug::MSG_DUMP_REGISTERS.post((void*)regs);
     Scheduler::get()->logTask();
     klog_flush();

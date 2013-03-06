@@ -11,8 +11,9 @@ FAT32FS::FAT32FS() {
 }
 
 
-File* FAT32FS::open(char* path, int flags) {
+StreamFile* FAT32FS::open(char* path, int flags) {
     FIL* fil = new FIL();
+    klog('w', "fatopenfile %s", path);  
 
     int mode = FA_READ;
     if (flags & O_RDONLY)   mode |= FA_READ;
@@ -22,7 +23,8 @@ File* FAT32FS::open(char* path, int flags) {
     if (flags & O_TRUNC)    mode |= FA_CREATE_ALWAYS;
 
     int result = f_open(fil, path, mode);
-    if (result == FR_NO_FILE || result == FR_NO_PATH) {
+klog('i', "FRESULT = %i", result);
+    if (result == FR_NO_FILE || result == FR_NO_PATH || result == FR_INVALID_NAME) {
         delete fil;
         seterr(ENOENT);
         return NULL;
@@ -33,18 +35,21 @@ File* FAT32FS::open(char* path, int flags) {
 
 Directory* FAT32FS::opendir(char* path) {
     FDIR* dir = new FDIR();
+    klog('w', "fatopendir %s", path);  
+    
     int result = f_opendir(dir, path);
     if (result == FR_NO_FILE || result == FR_NO_PATH) {
         delete dir;
         seterr(ENOENT);
         return NULL;
     }
-    return new FAT32Directory(this, dir);
+
+    return new FAT32Directory(path, this, dir);
 }
 
 
 
-FAT32File::FAT32File(const char* p, FAT32FS* fs, FIL* f) : File(p, fs) {
+FAT32File::FAT32File(const char* p, FAT32FS* fs, FIL* f) : StreamFile(p, fs) {
     filesystem = fs;
     fil = f;
     path = strdup(p);
@@ -76,6 +81,9 @@ bool FAT32File::canRead() {
 int FAT32File::stat(struct stat* stat) {
     File::stat(stat);
     FILINFO fi;
+    fi.lfsize = 0;
+    //char lfnBuffer[255];
+    //fi.lfname = lfnBuffer;
     f_stat(path, &fi);
     stat->st_size = fi.fsize;
     stat->st_mode |= S_IFREG;
@@ -83,8 +91,7 @@ int FAT32File::stat(struct stat* stat) {
 }
 
 
-FAT32Directory::FAT32Directory(FAT32FS* f, FDIR* d) {
-    filesystem = f;
+FAT32Directory::FAT32Directory(const char* path, FAT32FS* f, FDIR* d) : Directory(path, f) {
     dir = d;
 }
 
@@ -105,4 +112,12 @@ struct dirent* FAT32Directory::read() {
 
 void FAT32Directory::close() {
     delete dir;
+}
+
+int FAT32Directory::stat(struct stat* stat) {
+    Directory::stat(stat);
+    FILINFO fi;
+    f_stat(path, &fi);
+    stat->st_nlink = 5;
+    return 0; 
 }

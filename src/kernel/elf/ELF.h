@@ -9,7 +9,7 @@
 class ELF {
 public:
     ELF();
-    void loadFromFile(File* f);
+    void loadFromFile(StreamFile* f);
     void loadIntoProcess(Process* p);
     uint64_t getEntryPoint();
 private:
