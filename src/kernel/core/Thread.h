@@ -23,6 +23,7 @@ public:
     ~Thread();
 
     void createStack(uint64_t size);
+    void createStack(uint64_t bottom, uint64_t size);
     void storeState(isrq_registers_t* isrq);
     void recoverState(isrq_registers_t* isrq);
     void pushOnStack(uint64_t v);

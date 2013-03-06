@@ -37,7 +37,6 @@
     static bool large_heap_active = false;
 
     extern "C" void* __dlmalloc_sbrk(int size) {
-        KTRACE
         void* r = hptr;
         hptr = (void*)((uint64_t)hptr + size);
         if (hptr > theap + KCFG_TEMPHEAP_SIZE && !large_heap_active) {
@@ -79,7 +78,6 @@ void kalloc_switch_to_main_heap() {
 }
 
 void* kmalloc(int size) {
-    //KTRACE
     return dlmalloc(size);
 }
 
@@ -89,7 +87,6 @@ void* kvalloc(int size) {
 
 
 void  kfree(void* ptr) {
-    //KTRACE
     dlfree(ptr);
 }
 

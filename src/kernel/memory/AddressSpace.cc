@@ -62,6 +62,7 @@ static page_tree_node_t* node_get_child(page_tree_node_t* node, uint64_t idx, bo
 static void copy_page_physical(uint64_t src, uint64_t dst) {
     AddressSpace::current->mapPage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_1, true), src, PAGEATTR_SHARED);
     AddressSpace::current->mapPage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_2, true), dst, PAGEATTR_SHARED);
+    AddressSpace::current->activate();
     memcpy((void*)KCFG_TEMP_PAGE_2, (void*)KCFG_TEMP_PAGE_1, KCFG_PAGE_SIZE);
     //AddressSpace::current->releasePage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_1, false));
     //AddressSpace::current->releasePage(AddressSpace::current->getPage(KCFG_TEMP_PAGE_2, false));
@@ -87,7 +88,7 @@ void AddressSpace::initEmpty() {
 
 void AddressSpace::activate() {
     if (AddressSpace::current) {
-        //klog('t',"Switching address space: %016lx",AddressSpace::current->getPhysicalAddress((uint64_t)root));
+        //klog('t',"Switching address space: %16lx",AddressSpace::current->getPhysicalAddress((uint64_t)root));
         CPU::setCR3(AddressSpace::current->getPhysicalAddress((uint64_t)root));
     }
     else
@@ -181,6 +182,36 @@ void AddressSpace::allocateSpace(uint64_t base, uint64_t size, uint8_t attrs) {
     }
 }
 
+void AddressSpace::write(void* buf, uint64_t base, uint64_t size) {
+    uint64_t ptr = base / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
+    uint64_t bufptr = (uint64_t)buf / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
+    uint64_t offset = (uint64_t)base - ptr;
+    uint64_t bufoffset = (uint64_t)buf - bufptr;
+
+    klog('t', "Copying %lx bytes to %lx+%lx", size, ptr, offset);
+
+    AddressSpace::current->mapPage(
+        AddressSpace::current->getPage(KCFG_TEMP_PAGE_1, true), 
+        AddressSpace::current->getPhysicalAddress(bufptr), 
+        PAGEATTR_SHARED
+    );
+    AddressSpace::current->mapPage(
+        AddressSpace::current->getPage(KCFG_TEMP_PAGE_2, true), 
+        getPhysicalAddress(ptr), 
+        PAGEATTR_SHARED
+    );
+    AddressSpace::current->activate();
+
+    memcpy(
+        (void*)KCFG_TEMP_PAGE_2 + offset, 
+        (void*)KCFG_TEMP_PAGE_1 + bufoffset, 
+        size
+    );
+
+    //dump_stack((uint64_t)KCFG_TEMP_PAGE_1 + bufoffset, 0);
+    //AddressSpace::current->dump();
+}
+
 void AddressSpace::releasePage(page_descriptor_t page) {
     if (page.entry->present) {
         FrameAlloc::get()->release(page.entry->address);
@@ -210,8 +241,6 @@ AddressSpace* AddressSpace::clone() {
 
     page_tree_node_t* node = getRoot();
 
-    dump();
-    
     for (int i = 0; i < 512; i++) { // PML4s
         //klog('w', "%i", i);
         if (node->entries[i].present) {
@@ -278,8 +307,6 @@ AddressSpace* AddressSpace::clone() {
     klog('w', "Cloned address space into %lx", result);klog_flush();
     CPU::STI();
 
-    result->dump();
-    
     return result;
 }
 
@@ -319,11 +346,15 @@ void AddressSpace::recursiveDump(page_tree_node_t* node, int level) {
                 startPhy = node->entries[i].address * KCFG_PAGE_SIZE;
                 if ((startVirt != lastVirt + KCFG_PAGE_SIZE) || (startPhy != lastPhy + KCFG_PAGE_SIZE)) {
                     if (started)
-                        klog('i', "            %slength: %016lx", Escape::C_GRAY, len * KCFG_PAGE_SIZE);
+                        klog('i', "%s%16lx    %16lx  %lx", 
+                            Escape::C_GRAY, 
+                            lastVirt + 0xfff, 
+                            lastPhy + 0xfff, 
+                            len * KCFG_PAGE_SIZE);
                     started = true;
 
                     uint8_t attrs = node->entriesAttrs[i];
-                    klog('i', "%s%016lx -> %016lx %s [%s %s %s] %s", Escape::C_B_GRAY, startVirt, startPhy, 
+                    klog('i', "%s%16lx -> %16lx %s [%s %s %s] %s", Escape::C_B_GRAY, startVirt, startPhy, 
                         Escape::C_GRAY,
                         PAGEATTR_IS_SHARED(attrs) ? "SHR": "---",
                         PAGEATTR_IS_USER(attrs)   ? "USR": "KRN",
@@ -351,6 +382,6 @@ void AddressSpace::recursiveDump(page_tree_node_t* node, int level) {
 }
 
 void AddressSpace::dump() {
-    klog('w', "Dumping address space %016lx", this);
+    klog('w', "Dumping address space %16lx", this);
     recursiveDump(root, 0);
 }

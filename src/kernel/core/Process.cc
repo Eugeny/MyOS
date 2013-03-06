@@ -4,9 +4,13 @@
 #include <string.h>
 
 
-Process::Process(const char* name) {
+static int makepid() {
     static int last_pid = 0;
-    pid = (last_pid++);
+    return last_pid++;
+}
+
+Process::Process(const char* name) {
+    pid = makepid();
     ppid = 0;
 
     brk = 0x400000;
@@ -20,6 +24,7 @@ Process::Process(const char* name) {
 Process* Process::clone() {
     Process* p = new Process(*this);
     p->threads.clear();
+    p->pid = makepid();
     return p;
 }
 
@@ -34,10 +39,16 @@ void* Process::sbrk(uint64_t size) {
 void* Process::sbrkStack(uint64_t size) {
     void* result = (void*)stackbrk;
     stackbrk -= size;
-    addressSpace->allocateSpace(stackbrk, size, isKernel ? 0 : (PAGEATTR_SHARED | PAGEATTR_USER));
-    addressSpace->namePage(addressSpace->getPage(stackbrk, false), "Stacks");
+    allocateStack(stackbrk, size);
     return result;
 }
+
+void Process::allocateStack(uint64_t base, uint64_t size) {
+    klog('t', "Allocating stack at %lx (%lx b)", base ,size);
+    addressSpace->allocateSpace(base, size, isKernel ? 0 : (PAGEATTR_USER));
+    addressSpace->namePage(addressSpace->getPage(base, false), "Stacks");
+}
+
 
 Thread* Process::spawnThread(threadEntryPoint entry, const char* name) {
     Thread* t = new Thread(this, name);
@@ -48,7 +59,10 @@ Thread* Process::spawnThread(threadEntryPoint entry, const char* name) {
     }
     t->state.addressSpace = addressSpace;
     t->createStack(0x12000);
+    addressSpace->dump();
+   KTRACE
     t->pushOnStack(0);
+   KTRACE
     t->pushOnStack(0);
     t->state.regs.rip = (uint64_t)entry;
     threads.add(t);

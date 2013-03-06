@@ -26,8 +26,8 @@ public:
     void forceThreadSwitchUserspace(Thread* preferred);
     void forceThreadSwitchISRQContext(Thread* preferred, isrq_registers_t* regs);
     
-    void fork();
-    void saveState(Thread* t);
+    Process* fork();
+    void saveState(Thread* t, void* stack_buf, uint64_t stack_buf_size);
 
     Thread* getActiveThread();
 
@@ -35,6 +35,7 @@ public:
     
     Thread* kernelThread;
     Process* kernelProcess;
+    Pool<Process*, 1024> processes;
 private:
     Thread* nextThread;
     Pool<Thread*, 1024> threads;

@@ -28,6 +28,7 @@ public:
 
     void* sbrk(uint64_t size);
     void* sbrkStack(uint64_t size);
+    void  allocateStack(uint64_t base, uint64_t size);
 
     uint64_t brk, stackbrk;
     uint64_t pid, ppid;

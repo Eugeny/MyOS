@@ -21,9 +21,17 @@ Thread::~Thread() {
 
 void Thread::createStack(uint64_t size) {
     stackSize = size;
-    stackBottom = process->sbrkStack(size) - 0x100;
+    stackBottom = process->sbrkStack(size);
     klog('t', "Created stack at %lx", stackBottom);
-    state.regs.rsp = (uint64_t)stackBottom - 16;
+    state.regs.rsp = (uint64_t)stackBottom - 0x100;
+}
+
+void Thread::createStack(uint64_t bottom, uint64_t size) {
+    stackSize = size;
+    stackBottom = (void*)bottom;
+    process->allocateStack(bottom-size, size);
+    klog('t', "Created stack at %lx", stackBottom);
+    state.regs.rsp = (uint64_t)stackBottom - 0x100;
 }
 
 void Thread::storeState(isrq_registers_t* regs) {
@@ -60,7 +68,12 @@ void Thread::wait(Wait* w) {
     if (activeWait)
         stopWaiting();
     activeWait = w;
-    while (activeWait && !activeWait->isComplete());
+    while (1) {
+        CPU::CLI();
+        if (!activeWait || activeWait->isComplete())
+            break;
+        CPU::STI();
+    }
 }
 
 void Thread::stopWaiting() {

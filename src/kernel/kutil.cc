@@ -109,11 +109,11 @@ void microtrace() {
 
 
 void ktrace(const char* file, int line) {
-    ktrace(file, line, "tracepoint");
+    ktrace(file, line, "tracepoint"); klog_flush();
 }
 
 void ktrace(const char* file, int line, const char* msg) {
-    klog('t', "%s:%i : %s", file, line, msg);
+    klog('t', "%s:%i : %s", file, line, msg); klog_flush();
 }
 
 void ktracemem(const char* file, int line) {
@@ -131,7 +131,7 @@ void klog_flush() {
 void dump_stack(uint64_t rsp, uint64_t rbp) {
     klog('i', "RSP was %16lx, RBP was %16lx", rsp, rbp);
     
-    for (uint64_t i = rsp + 256; i >= rsp; i -= 8) {
+    for (uint64_t i = rsp + 128; i >= rsp; i -= 8) {
         uint64_t v = *(uint64_t*)i;
         //if (v < 0x700000 && v > 0x100000) {
             klog('i', "[%16lx] = %16lx", i, v);

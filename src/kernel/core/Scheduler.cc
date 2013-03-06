@@ -7,10 +7,17 @@
 
 
 static Thread* __saving_state_for = NULL;
+static void* __saving_state_stack_buf = NULL;
+static uint64_t __saving_state_stack_buf_size = 0;
+
 
 static void handleSaveState(isrq_registers_t* regs) {
     klog('d', "Saving thread state");
     __saving_state_for->storeState(regs);
+    if (__saving_state_stack_buf) {
+        klog('d', "Saving stack");
+        memcpy(__saving_state_stack_buf, (void*)regs->rsp, __saving_state_stack_buf_size);
+    }
 }
 
 
@@ -33,6 +40,7 @@ void Scheduler::init() {
     kernelProcess = new Process("Kernel");
     kernelProcess->addressSpace = AddressSpace::kernelSpace;
     kernelProcess->isKernel = true;
+    processes.add(kernelProcess);
 
     kernelThread = new Thread(kernelProcess, "idle thread");
     kernelThread->state.addressSpace = AddressSpace::kernelSpace;
@@ -42,8 +50,9 @@ void Scheduler::init() {
 
     activeThread = kernelThread;
     
-    saveState(kernelThread);
-
+    __saving_state_for = kernelThread;
+    asm volatile("int $0x7f"); // handleSaveKernelState
+    
     PIT::MSG_TIMER.registerConsumer((MessageConsumer)&handleTimer);
 
     active = false;
@@ -64,6 +73,7 @@ void Scheduler::registerThread(Thread* t) {
 Process* Scheduler::spawnProcess(const char* name) {
     Process* p = new Process(name);
     p->addressSpace = AddressSpace::kernelSpace->clone();
+    processes.add(p);
     return p;
 }
 
@@ -75,36 +85,59 @@ Thread* Scheduler::spawnKernelThread(threadEntryPoint entry, const char* name) {
 }
 
 
-void Scheduler::fork() {
-    Process* p1 = activeThread->process;
-    Process* p2 = p1->clone();
+extern "C" void fork_continue();
 
-    p1->addressSpace->dump();
+Process* Scheduler::fork() {
+    static uint8_t stackbuf[1024];
+    uint64_t stackbufSize = (uint64_t)activeThread->stackBottom - activeThread->state.regs.rsp;
+    saveState(activeThread, stackbuf, stackbufSize);
+    asm volatile(".global fork_continue\nfork_continue:");
+
+    if (activeThread->state.forked)
+        return NULL;
+
+KTRACE
+    Process* p1 = activeThread->process;
+KTRACE
+    Process* p2 = p1->clone();
+KTRACE
+    processes.add(p2);
+
+KTRACE
     p2->addressSpace = p1->addressSpace->clone();
+KTRACE
 
     AddressSpace* oldAS = AddressSpace::current;
-    p2->addressSpace->activate();
+KTRACE
+    //p1->addressSpace->dump();
 
-    Thread* nt = p2->spawnThread(0, activeThread->name);
+    Thread* nt = new Thread(p2, activeThread->name);
+    threads.add(nt);
+    nt->createStack((uint64_t)activeThread->stackBottom, activeThread->stackSize);
     nt->state = activeThread->state;
+    nt->state.addressSpace = p2->addressSpace;
     nt->state.forked = true;
-    nt->createStack(activeThread->stackSize);
-    memcpy(
-        (void*)nt->state.regs.rsp, 
-        (void*)activeThread->state.regs.rsp, 
-        (uint64_t)activeThread->stackBottom - activeThread->state.regs.rsp
-    );
 
-    oldAS->activate();
-    threads.remove(nt);
+    p2->addressSpace->write(stackbuf, nt->state.regs.rsp, stackbufSize);
+
+    return p2;
 }
 
-void Scheduler::saveState(Thread* t) {
+void Scheduler::saveState(Thread* t, void* stack_buf, uint64_t stack_buf_size) {
     __saving_state_for = t;
-    CPU::STI();
+    __saving_state_stack_buf = stack_buf;
+    __saving_state_stack_buf_size = stack_buf_size;
+    KTRACE
     asm volatile("int $0x7f"); // handleSaveKernelState
     CPU::CLI();
+    klog('d', "Thread state saved");
+    KTRACE
     __saving_state_for = NULL;
+
+    static uint64_t rsp;
+    asm volatile ("mov %%rsp, %0" : "=r"(rsp));
+    //((uint64_t*)rsp)[5] = (uint64_t)&fork_continue;//0xccccccccccccc;
+    dump_stack(rsp, 0);
 }
 
 

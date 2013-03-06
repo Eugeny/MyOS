@@ -1,4 +1,4 @@
-%define COPY_STACK_SIZE qword 200
+%define COPY_STACK_SIZE qword 190
 KDATA_SELECTOR equ 4 << 3  
 
 isrq_stack times 409600 db 0

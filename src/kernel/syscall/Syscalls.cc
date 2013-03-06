@@ -311,14 +311,13 @@ SYSCALL(fork) {
  
     STRACE("fork()");
 
-    Scheduler::get()->getActiveThread()->state.forked = false;
-    Scheduler::get()->saveState(Scheduler::get()->getActiveThread());
-    if (!Scheduler::get()->getActiveThread()->state.forked) {
-        Scheduler::get()->fork();
+    if (Scheduler::get()->fork()) {
+        klog('w', "FORK OUT 1");
+        return Scheduler::get()->getActiveThread()->process->pid;
     } else {
-        Scheduler::get()->getActiveThread()->state.forked = false;
+        klog('w', "FORK OUT 2");
+        return 0;
     }
-    return 0;
 }
 
 
