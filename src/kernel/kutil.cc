@@ -3,9 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <memory/FrameAlloc.h>
+#include <hardware/io.h>
 #include <tty/Escape.h>
 #include <tty/PhysicalTerminalManager.h>
-
+#include <core/Debug.h>
 #include "alloc/malloc.h"
 
 
@@ -40,6 +41,12 @@ void __output(const char* s, int offset) {
     }
 }
 
+static void __output_bochs(const char* s) {
+    for (char c = 0; c < strlen(s); c++)
+        outb(0xe9, s[c]);
+}
+
+
 void sout(const char* str) {
     static int line = 0;
 
@@ -59,17 +66,24 @@ void klog(char type, const char* format, ...) {
     va_list args;
     va_start(args, format);
 
-    char buffer[1024];
+    static char buffer[1024];
     vsprintf(buffer, format, args);
 
+    if (type == 't') {
+        if (Debug::tracingOn) {
+            __output_bochs(buffer);
+            __output_bochs("\n");
+        }
+        return;
+        //t->write(Escape::C_GRAY);
+        //t->write("TRACE");
+    }
+    
     if (__logging_terminal_ready) {
         Terminal* t = PhysicalTerminalManager::get()->getActiveTerminal();    
 
-        if (type == 't') {
+        if (type == 'd') {
             t->write(Escape::C_GRAY);
-            t->write("TRACE");
-        } else if (type == 'd') {
-            t->write(Escape::C_B_GRAY);
             t->write("DEBUG");
         } else if (type == 'w') {
             t->write(Escape::C_B_YELLOW);
@@ -109,11 +123,11 @@ void microtrace() {
 
 
 void ktrace(const char* file, int line) {
-    ktrace(file, line, "tracepoint"); klog_flush();
+    ktrace(file, line, "tracepoint");
 }
 
 void ktrace(const char* file, int line, const char* msg) {
-    klog('t', "%s:%i : %s", file, line, msg); klog_flush();
+    klog('t', "%s:%i : %s", file, line, msg);
 }
 
 void ktracemem(const char* file, int line) {

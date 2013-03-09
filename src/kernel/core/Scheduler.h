@@ -19,6 +19,10 @@ public:
     Process* spawnProcess(Process* parent, const char* name);
     Thread* spawnKernelThread(threadEntryPoint entry, const char* name);
     void registerThread(Thread* t);
+    void requestKill(Process* p);
+    void kill(Process* p);
+    void kill(Thread* p);
+
     void scheduleNextThread();
     void scheduleNextThread(Thread* t);
     void contextSwitch(isrq_registers_t*);
@@ -40,6 +44,8 @@ public:
     
     bool active;
 private:
+    void doRoutine();
+    Pool<Process*, 32> killQueue;
     Thread* nextThread;
     Pool<Thread*, 1024> threads;
     Thread* activeThread;

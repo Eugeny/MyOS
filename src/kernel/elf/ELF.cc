@@ -39,7 +39,7 @@ void ELF::loadIntoProcess(Process* p) {
         }
     }
 
-    p->brk += 0x6e9000;
+    //p->brk += 0x6e9000;
     oldAS->activate();
     CPU::STI();
 }

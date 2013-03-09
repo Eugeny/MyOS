@@ -9,7 +9,7 @@
 
     #define USE_DL_PREFIX
     #define MORECORE __dlmalloc_sbrk
-    #define MORECORE_CANNOT_TRIM
+    #define MORECORE_CANNOT_TRIM 1
     #define MORECORE_CONTIGUOUS 0
     #define ABORT __dlmalloc_abort
     #define MALLOC_FAILURE_ACTION __dlmalloc_fail
@@ -39,20 +39,32 @@
     extern "C" void* __dlmalloc_sbrk(int size) {
         void* r = hptr;
         hptr = (void*)((uint64_t)hptr + size);
+        klog('t', "Extending heap to %lx", hptr);
         if (hptr > theap + KCFG_TEMPHEAP_SIZE && !large_heap_active) {
             klog('e', "Temporary heap overflow");
             klog_flush();
             for(;;);
+        }
+        if ((uint64_t)hptr > KCFG_KERNEL_HEAP_START + KCFG_KERNEL_HEAP_SIZE) {
+            klog('e', "Kernel heap overflow");
+            klog_flush();
+            for(;;);   
         }
         return r;
     }
 
     extern "C" void __dlmalloc_abort() {
         KTRACE
+        klog('e', "dmalloc abort");
+        klog_flush();
+        for(;;);
     }
 
     extern "C" void __dlmalloc_fail() {
         KTRACE
+        klog('e', "dmalloc fail");
+        klog_flush();
+        for(;;);
     }
 
     #pragma GCC diagnostic push
@@ -66,7 +78,8 @@
 // -----------------------------
 
 void kalloc_switch_to_main_heap() {
-    AddressSpace::kernelSpace->allocateSpace(KCFG_KERNEL_HEAP_START, KCFG_KERNEL_HEAP_SIZE, PAGEATTR_SHARED);
+    klog('t', "Enabling main heap");
+    AddressSpace::kernelSpace->allocateSpace(KCFG_KERNEL_HEAP_START, KCFG_KERNEL_HEAP_SIZE_INITIAL, PAGEATTR_SHARED);
 
     AddressSpace::kernelSpace->namePage(
         AddressSpace::kernelSpace->getPage(KCFG_KERNEL_HEAP_START, false),
@@ -75,6 +88,8 @@ void kalloc_switch_to_main_heap() {
 
     hptr = (void*)KCFG_KERNEL_HEAP_START;
     large_heap_active = true;
+
+    AddressSpace::kernelSpace->allocateSpace(KCFG_KERNEL_HEAP_START, KCFG_KERNEL_HEAP_SIZE, PAGEATTR_SHARED);
 }
 
 void* kmalloc(int size) {
@@ -82,8 +97,16 @@ void* kmalloc(int size) {
 }
 
 void* kvalloc(int size) {
-    return dlvalloc(size);
+    //return dlvalloc(size);
+    void* ptr = dlmalloc(size + KCFG_PAGE_SIZE);
+    ptr = (void*)(((uint64_t)ptr + KCFG_PAGE_SIZE - 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE);
+    return ptr;
 }
+
+void kmalloc_trim() {
+//    dlmalloc_trim(0);
+}
+
 
 
 void  kfree(void* ptr) {

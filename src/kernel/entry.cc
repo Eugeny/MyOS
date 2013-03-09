@@ -79,8 +79,8 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     
     Memory::init();
     kalloc_switch_to_main_heap();
-
     klog_init();
+
 
     VGA::enableHighResolution();
 
@@ -108,6 +108,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     Interrupts::get()->setHandler(0x80, isrq80);
     Interrupts::get()->setHandler(0x06, isrq6);
 
+    kmalloc_trim();
 
     AddressSpace::kernelSpace->dump();
 
@@ -159,10 +160,10 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     p->attachFile(pty->openSlave());
     p->attachFile(pty->openSlave());
 
-    p->argc = 2;
+    p->argc = 1;
     p->argv = new char*[2];
     p->argv[0] = "busybox";
-    p->argv[1] = "ls";
+    p->argv[1] = "sh";
     //p->argv[2] = "aash";
     
     p->envc = 2;
@@ -191,6 +192,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     p->setAuxVector(8, AT_NULL, 0);
 
     CPU::CLI();
+    klog('w', "Starting Busybox");
     p->spawnMainThread((threadEntryPoint)elf->getEntryPoint());
     CPU::STI();
 

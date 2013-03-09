@@ -13,7 +13,7 @@ FAT32FS::FAT32FS() {
 
 StreamFile* FAT32FS::open(char* path, int flags) {
     FIL* fil = new FIL();
-    klog('w', "fatopenfile %s", path);  
+    //klog('w', "fatopenfile %s", path);  
 
     int mode = FA_READ;
     if (flags & O_RDONLY)   mode |= FA_READ;
@@ -23,7 +23,7 @@ StreamFile* FAT32FS::open(char* path, int flags) {
     if (flags & O_TRUNC)    mode |= FA_CREATE_ALWAYS;
 
     int result = f_open(fil, path, mode);
-klog('i', "FRESULT = %i", result);
+//klog('i', "FRESULT = %i", result);
     if (result == FR_NO_FILE || result == FR_NO_PATH || result == FR_INVALID_NAME) {
         delete fil;
         seterr(ENOENT);
@@ -35,7 +35,6 @@ klog('i', "FRESULT = %i", result);
 
 Directory* FAT32FS::opendir(char* path) {
     FDIR* dir = new FDIR();
-    klog('w', "fatopendir %s", path);  
     
     int result = f_opendir(dir, path);
     if (result == FR_NO_FILE || result == FR_NO_PATH) {
@@ -82,8 +81,6 @@ int FAT32File::stat(struct stat* stat) {
     File::stat(stat);
     FILINFO fi;
     fi.lfsize = 0;
-    //char lfnBuffer[255];
-    //fi.lfname = lfnBuffer;
     f_stat(path, &fi);
     stat->st_size = fi.fsize;
     stat->st_mode |= S_IFREG;

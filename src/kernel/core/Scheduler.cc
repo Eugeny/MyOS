@@ -14,11 +14,11 @@ static uint64_t __saving_state_stack_buf_size = 0;
 
 
 static void handleSaveState(isrq_registers_t* regs) {
-    klog('d', "Saving thread state");
+    klog('t', "Saving thread state");
     __saving_state_for->storeState(regs);
     if (__saving_state_stack_buf) {
         __saving_state_stack_buf_used = (uint64_t)Scheduler::get()->getActiveThread()->stackBottom - regs->rsp;
-        klog('d', "Saving 0x%lx bytes of stack from 0x%lx", __saving_state_stack_buf_used, regs->rsp);
+        klog('t', "Saving 0x%lx bytes of stack from 0x%lx", __saving_state_stack_buf_used, regs->rsp);
         memcpy(__saving_state_stack_buf, (void*)regs->rsp, __saving_state_stack_buf_used);
     }
 }
@@ -74,6 +74,25 @@ void Scheduler::registerThread(Thread* t) {
     threads.add(t);
 }
 
+void Scheduler::requestKill(Process* p) {
+    killQueue.add(p);
+}
+
+void Scheduler::kill(Process* p) {
+    killQueue.remove(p);
+    processes.remove(p);
+    if (p->parent) {
+        p->parent->queueSignal(SIGCHLD);
+        p->parent->notifyChildDied(p);
+    }
+}
+
+void Scheduler::kill(Thread* t) {
+    threads.remove(t);
+}
+
+
+
 Process* Scheduler::spawnProcess(Process* parent, const char* name) {
     Process* p = new Process(parent, name);
     p->addressSpace = AddressSpace::kernelSpace->clone();
@@ -105,22 +124,31 @@ Process* Scheduler::fork() {
     Process* p1 = activeThread->process;
     Process* p2 = p1->clone();
     p2->ppid = p1->pid;
+    p2->parent = p1;
     processes.add(p2);
 
     pause();
+    p1->addressSpace->dump();
+    KTRACE
     p2->addressSpace = p1->addressSpace->clone();
+    KTRACE
 
     AddressSpace* oldAS = AddressSpace::current;
 
+    KTRACE
     Thread* nt = new Thread(p2, activeThread->name);
     p2->threads.add(nt);
     threads.add(nt);
+    KTRACE
     nt->createStack((uint64_t)activeThread->stackBottom, activeThread->stackSize);
+    KTRACE
     nt->state = activeThread->state;
     nt->state.addressSpace = p2->addressSpace;
     nt->state.forked = true;
 
+    KTRACE
     p2->addressSpace->write(stackbuf, nt->state.regs.rsp, stackbuf_used);
+    KTRACE
 
     return p2;
 }
@@ -131,7 +159,7 @@ uint64_t Scheduler::saveState(Thread* t, void* stack_buf, uint64_t stack_buf_siz
     __saving_state_stack_buf_size = stack_buf_size;
     asm volatile("int $0x7f"); // handleSaveKernelState
     CPU::CLI();
-    klog('d', "Thread state saved");
+    klog('t', "Thread state saved");
     __saving_state_for = NULL;
     return __saving_state_stack_buf_used;
 }
@@ -164,21 +192,29 @@ void Scheduler::scheduleNextThread(Thread* t) {
 void Scheduler::contextSwitch(isrq_registers_t* regs) {
     if (!active)
         return;
-    if (!nextThread)
-        scheduleNextThread();
 
     activeThread->storeState(regs);
 
-    //if (nextThread->process->addressSpace != AddressSpace::current) {
-        //activeThread->process->addressSpace = AddressSpace::current;
-        //nextThread->process->addressSpace->activate();
-    //}
+    if (!nextThread)
+        scheduleNextThread();
+
+    if (nextThread == kernelThread)
+        doRoutine();
 
     nextThread->cycles++;
     nextThread->recoverState(regs);
 
     activeThread = nextThread;
     nextThread = NULL;
+
+    activeThread->process->runPendingSignals();
+}
+
+void Scheduler::doRoutine() {
+    for (Process* p : killQueue) {
+        klog('d', "Reaping process %i", p->pid);
+        kill(p);
+    }
 }
 
 Thread* Scheduler::getActiveThread() {

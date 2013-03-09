@@ -52,6 +52,41 @@ void Process::allocateStack(uint64_t base, uint64_t size) {
 }
 
 
+void Process::requestKill() {
+    Scheduler::get()->requestKill(this);
+}
+
+void Process::setSignalHandler(int signal, struct sigaction* a) {
+    if (signalHandlers[signal])
+        delete signalHandlers[signal];
+    struct sigaction* na = new struct sigaction();
+    *na = *a;
+    klog('d', "Installing signal handler %i (%lx/%lx)", signal, a->sa_handler, a->sa_sigaction);
+    signalHandlers[signal] = na;
+}
+
+void Process::queueSignal(int signal) {
+    pendingSignals |= (1 << signal);
+}
+
+typedef void (*sa_handler_t)(int);
+
+void Process::runPendingSignals() {
+    for (int i = 0; i < 63; i++) {
+        if (pendingSignals & (1 << i)) {
+            if (signalHandlers[i]) {
+                sa_handler_t handler = signalHandlers[i]->sa_handler;
+                if (handler == SIG_DFL) ;
+                else if (handler == SIG_IGN) ;
+                else 
+                    handler(i);
+            }
+        }
+    }
+    pendingSignals = 0;
+}
+
+
 Thread* Process::spawnThread(threadEntryPoint entry, const char* name) {
     Thread* t = new Thread(this, name);
     t->state = Scheduler::get()->kernelThread->state;
@@ -130,6 +165,7 @@ void Process::notifyChildDied(Process* p) {
     deadChildPID = p->pid;
     for (Thread* t : threads)
         if (t->activeWait && t->activeWait->type == WAIT_FOR_CHILD) {
+            klog('d', "Notifying thread %i of dead child %i", t->id, p->pid);
             t->stopWaiting();
         }
 }

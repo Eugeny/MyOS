@@ -12,15 +12,17 @@ static syscall syscalls[1024];
 #define THREAD auto thread = Scheduler::get()->getActiveThread();
 #define RESOLVE_PATH(var, val) char var[1024]; process->realpath((char*)val, var);
 #define WAIT \
-    CPU::STI();                  \
     Scheduler::get()->resume();  \
-    while (thread->activeWait)   \
-        CPU::halt();               
+    CPU::STI();                  \
+    while (thread->activeWait) { \
+        KTRACE                   \
+        CPU::halt();             \
+    }  
 
 #ifdef KCFG_STRACE
     #define STRACE(format, args...) { \
         __strace_in_progress = true; \
-        klog('t', format " from pid %i @ 0x%lx", ## args, \
+        klog('d', format " from pid %i @ 0x%lx", ## args, \
             Scheduler::get()->getActiveThread()->process->pid, \
             regs->urip); \
         klog_flush(); \
@@ -219,7 +221,7 @@ SYSCALL(mmap) {
 
     STRACE2("mmap(0x%lx, 0x%lx, %i, %i, %i, 0x%lx)", addr, length, prot, flags, fd, offset);
 
-    if (length > 0x100000000) { // uClibc, U MAD?
+    if (length > 0x100000) { // uClibc, U MAD?
         length = 0x80000;
     }
 
@@ -257,7 +259,7 @@ SYSCALL(munmap) {
 
     STRACE2("munmap(0x%lx, 0x%lx)", addr, length);
 
-    if (length > 0x100000000) { // uClibc, U MAD?
+    if (length > 0x100000) { // uClibc, U MAD?
         length = 0x80000;
     }
 
@@ -290,6 +292,14 @@ SYSCALL(rt_sigaction) { // STUB
 
     STRACE("rt_sigaction(%i, 0x%x, 0x%x)", signum, act, oldact); 
 
+    if (oldact && process->signalHandlers[signum])
+        *oldact = *process->signalHandlers[signum];
+
+    if (act) {
+        if (act->sa_flags & SA_SIGINFO)
+            klog('w', "SA_SIGINFO not supported");
+        process->setSignalHandler(signum, act);
+    }
     return 0;
 }
 
@@ -421,10 +431,21 @@ SYSCALL(fork) {
 }
 
 
+SYSCALL(exit) { 
+    PROCESS
+    THREAD
+
+    STRACE("exit()");
+    process->requestKill();
+    thread->wait(new WaitForever());
+
+    return 0;
+}
+
+
 SYSCALL(wait4) {
     PROCESS
     THREAD
- 
     auto pid = regs->rdi;    
     auto status = (int*)regs->rsi;    
     auto options = regs->rdx;    
@@ -432,17 +453,22 @@ SYSCALL(wait4) {
 
     STRACE("wait4(%i, %lx, %i, %lx)", pid, status, options, usage);
 
+    if (status)
+        *status = 0;
+
     for (Process* p : Scheduler::get()->processes) {
         if (p->ppid == process->pid) {
-            //thread->wait(new WaitForChild(-1));
-            //WAIT
+            thread->wait(new WaitForChild(-1));
+            WAIT 
+            if (status)
+                *status = 0x007f;
             return process->deadChildPID;
         }
     }
 
     seterr(ECHILD);
+    //return -1;
     return Syscalls::error();
-    //return 0;
 }
 
 
@@ -691,6 +717,7 @@ void Syscalls::init() {
     syscalls[0x21] = sys_dup2;
     syscalls[0x27] = sys_getpid;
     syscalls[0x39] = sys_fork;
+    syscalls[0x3c] = sys_exit;
     syscalls[0x3d] = sys_wait4;
     syscalls[0x3e] = sys_kill;
     syscalls[0x3f] = sys_uname;
@@ -715,13 +742,14 @@ extern "C" uint64_t _syscall_handler(syscall_regs_t* regs) {
     uint64_t result = 0;
 
     Scheduler::get()->pause();
+    geterr(); // drop errors
 
     if (syscalls[regs->id]) {
         __strace_in_progress = false;
         result = syscalls[regs->id](regs);
         #ifdef KCFG_STRACE
             if (__strace_in_progress) {
-                klog('t', " = %lx", result);
+                klog('d', " = %lx", result);
                 klog_flush();
             }
         #endif
@@ -731,10 +759,8 @@ extern "C" uint64_t _syscall_handler(syscall_regs_t* regs) {
         klog_flush();
         klog('w', "0x%lx", regs->id);
         klog_flush();
-        for(;;);
+        //for(;;);
     }
-
-    //dump_stack(regs->ursp, regs->rbp);
 
     Scheduler::get()->resume();
 

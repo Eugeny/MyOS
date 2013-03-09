@@ -14,6 +14,7 @@ void kalloc_switch_to_main_heap();
 void* kmalloc(int size);
 void* kvalloc(int size);
 void  kfree(void* ptr);
+void  kmalloc_trim();
 
 kheap_info_t kmallinfo();
 

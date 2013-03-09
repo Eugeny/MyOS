@@ -69,11 +69,16 @@ void Thread::wait(Wait* w) {
     if (activeWait)
         stopWaiting();
     activeWait = w;
-    while (1) {
-        CPU::CLI();
-        if (!activeWait || activeWait->isComplete())
-            break;
-        CPU::STI();
+
+    if (this == Scheduler::get()->getActiveThread()) {
+        Scheduler::get()->resume();
+        while (1) {
+            CPU::CLI();
+            if (!activeWait || activeWait->isComplete())
+                break;
+            CPU::STI();
+            CPU::halt();
+        }
     }
 }
 

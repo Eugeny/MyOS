@@ -1,6 +1,7 @@
 #include <memory/AddressSpace.h>
 
 #include <core/Scheduler.h>
+#include <core/Debug.h>
 #include <memory/FrameAlloc.h>
 #include <memory/Memory.h>
 #include <alloc/malloc.h>
@@ -14,7 +15,7 @@ static AddressSpace __kernelSpace;
 AddressSpace* AddressSpace::kernelSpace = &__kernelSpace;
 AddressSpace* AddressSpace::current = NULL;
 
-#define ADDR_TRAP 0xcccccccc
+#define ADDR_TRAP 0xbadc0de
 
 
 static page_tree_node_t* allocate_node() {
@@ -125,6 +126,8 @@ page_descriptor_t AddressSpace::getPage(uint64_t virt, bool create) {
     };
 
     for (int i = 0; i < 3; i++) {
+        //if (Debug::tracingOn)
+        //klog('t', "ngc root %lx index %i", root, indexes[i]);
         root = node_get_child(root, indexes[i], create);
 
         if (root == NULL && !create) {
@@ -176,7 +179,9 @@ void AddressSpace::allocateSpace(uint64_t base, uint64_t size, uint8_t attrs) {
     base = base / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
     top = (top + KCFG_PAGE_SIZE - 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
     size = top - base;
-    klog('t', "Allocating %lx bytes at %lx", size, base);klog_flush();
+    #ifdef KCFG_ENABLE_TRACING
+        klog('t', "Allocating %lx bytes at %lx", size, base);klog_flush();
+    #endif
     for (uint64_t v = base; v < base + size; v += KCFG_PAGE_SIZE) {
         allocatePage(getPage(v, true), attrs);
     }
@@ -240,7 +245,9 @@ void AddressSpace::releaseSpace(uint64_t base, uint64_t size) {
     base = base / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
     top = (top + KCFG_PAGE_SIZE - 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
     size = top - base;
-    klog('t', "Releasing %lx bytes at %lx", size, base);
+    #ifdef KCFG_ENABLE_TRACING
+        klog('t', "Releasing %lx bytes at %lx", size, base);
+    #endif
     for (uint64_t v = base; v < base + size; v += KCFG_PAGE_SIZE) {
         releasePage(getPage(v, true));
     }
@@ -250,15 +257,14 @@ AddressSpace* AddressSpace::clone() {
     CPU::CLI();
     Scheduler::get()->pause();
 
-    klog('w', "Cloning address space from %lx", this);klog_flush();
     AddressSpace* result = new AddressSpace();
     result->initEmpty();
-        klog('w', "!");klog_flush();
+    klog('t', "Cloning address space from %lx (%lx) into %lx (%lx)", this, getRoot(), result, result->getRoot());
 
     page_tree_node_t* node = getRoot();
 
     for (int i = 0; i < 512; i++) { // PML4s
-        //klog('w', "%i", i);
+        //klog('w', "%i", i);klog_flush();
         if (node->entries[i].present) {
             page_tree_node_t* pml4 = node->entriesVirtual[i];
             
@@ -278,23 +284,27 @@ AddressSpace* AddressSpace::clone() {
                                     addr = addr * 512 + m;
                                     addr *= KCFG_PAGE_SIZE;
 
+
                                     if (addr >=       800000000000) {
                                         addr += 0xffff000000000000;
                                     }
 
                                     page_descriptor_t oldPage = getPage(addr, false);
+                                    //klog('t', "Processing page %lx == %lx", addr, oldPage.entry->address);
+                                    
                                     if (!oldPage.entry) {
                                         klog('e', "NULL PAGE @ %lx", addr);
                                         klog_flush();
-                                    //    for(;;);
+                                        for(;;);
                                     }
                                     if (oldPage.entry->address == ADDR_TRAP) {
                                         klog('e', "TRAP PAGE @ %lx", addr);
                                         klog_flush();
-                                    //    for(;;);
+                                        for(;;);
                                     }
 
                                     if (PAGEATTR_IS_SHARED(*oldPage.attrs)) {
+                                        //klog('t', "Mapping this page as shared");
                                         page_descriptor_t page = result->getPage(addr, true);
 
                                         *(page.vAddr) = *oldPage.vAddr;
@@ -303,6 +313,9 @@ AddressSpace* AddressSpace::clone() {
                                         *(page.name) = *oldPage.name;
 
                                         if (PAGEATTR_IS_COPY(*oldPage.attrs)) {
+                                            klog('t', "Copying phy page (%lx -> %lx)",
+                                                oldPage.entry->address * KCFG_PAGE_SIZE,
+                                                page.entry->address * KCFG_PAGE_SIZE);
                                             page.entry->present = false;
                                             result->allocatePage(page, *oldPage.attrs);
                                             copy_page_physical(
@@ -320,7 +333,7 @@ AddressSpace* AddressSpace::clone() {
         }
     }
 
-    klog('w', "Cloned address space into %lx", result);klog_flush();
+    klog('t', "Cloned address space into %lx", result);
     CPU::STI();
 
     return result;

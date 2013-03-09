@@ -13,6 +13,7 @@ Message Memory::MSG_GPF("gpf");
 
 
 static void pfISRQ(isrq_registers_t* reg) {
+    for(;;);
     Memory::MSG_PAGEFAULT.post((void*)reg);
 }
 
