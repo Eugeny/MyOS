@@ -159,9 +159,7 @@ SYSCALL(stat) {
     STRACE("stat(%s, 0x%lx)", path, stat);
 
     File* f = VFS::get()->open(path, O_RDONLY);
-    KTRACE
     if (haserr()) {
-    KTRACE
         geterr();
         // dir?
         Directory* d = VFS::get()->opendir(path);
@@ -179,7 +177,6 @@ SYSCALL(stat) {
         delete d;
         return 0;    
     }
-    KTRACE
 
     f->stat(stat);
     if (haserr()) {
@@ -403,6 +400,7 @@ SYSCALL(dup2) {
     if (process->files[fd2])
         process->closeFile(fd2);
     process->files[fd2] = process->files[fd];
+    process->files[fd2]->refcount++;
 
     return fd2;
 }
@@ -514,6 +512,7 @@ SYSCALL(fcntl) {
         for (int i = arg; i < process->files.capacity; i++)
             if (!process->files[i]) {
                 process->files[i] = process->files[fd];
+                process->files[i]->refcount++;
                 return i;
             }
         seterr(EMFILE);

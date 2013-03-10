@@ -9,7 +9,7 @@
 
     #define USE_DL_PREFIX
     #define MORECORE __dlmalloc_sbrk
-    #define MORECORE_CANNOT_TRIM 1
+    //#define MORECORE_CANNOT_TRIM 1
     #define MORECORE_CONTIGUOUS 0
     #define ABORT __dlmalloc_abort
     #define MALLOC_FAILURE_ACTION __dlmalloc_fail
@@ -30,7 +30,7 @@
     #define LACKS_SCHED_H
     #define LACKS_TIME_H
 
-    typedef int ptrdiff_t;
+    typedef int64_t ptrdiff_t;
 
     static char theap[KCFG_TEMPHEAP_SIZE];
     static void* hptr = (void*)theap;
@@ -39,7 +39,7 @@
     extern "C" void* __dlmalloc_sbrk(int size) {
         void* r = hptr;
         hptr = (void*)((uint64_t)hptr + size);
-        klog('t', "Extending heap to %lx", hptr);
+        klog('t', "ksbrk(%lx) = %lx", size, r);
         if (hptr > theap + KCFG_TEMPHEAP_SIZE && !large_heap_active) {
             klog('e', "Temporary heap overflow");
             klog_flush();
@@ -116,8 +116,10 @@ void  kfree(void* ptr) {
 
 kheap_info_t kmallinfo() {
     kheap_info_t info;
-    mallinfo mi = dlmallinfo();
-    info.total_bytes = mi.arena;
-    info.used_bytes =  mi.uordblks;
+    //mallinfo mi = dlmallinfo();
+    //info.total_bytes = mi.arena;
+    //info.used_bytes =  mi.uordblks;
+    info.total_bytes = KCFG_KERNEL_HEAP_SIZE;
+    info.used_bytes =  (uint64_t)hptr - KCFG_KERNEL_HEAP_START;
     return info;
 }

@@ -163,7 +163,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     p->argc = 1;
     p->argv = new char*[2];
     p->argv[0] = "busybox";
-    p->argv[1] = "sh";
+    p->argv[1] = "hush";
     //p->argv[2] = "aash";
     
     p->envc = 2;
@@ -193,6 +193,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
 
     CPU::CLI();
     klog('w', "Starting Busybox");
+    Debug::tracingOn = true;
     p->spawnMainThread((threadEntryPoint)elf->getEntryPoint());
     CPU::STI();
 

@@ -27,7 +27,7 @@ void __outputhex(uint64_t h, int offset) {
     char chr[] = "0123456789abcdef";
 
     uint64_t cr0 =(uint64_t) h;
-    for (char c = 0; c < 8; c++) {
+    for (char c = 0; c < 16; c++) {
         *((char *)0xb8000 + offset * 2 - c * 2) = chr[cr0 % 16];
         *((char *)0xb8000 + offset * 2 - c * 2 + 1) = 0x0f;
         cr0 /=16;

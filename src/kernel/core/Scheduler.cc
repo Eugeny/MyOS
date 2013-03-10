@@ -79,21 +79,29 @@ void Scheduler::requestKill(Process* p) {
 }
 
 void Scheduler::kill(Process* p) {
+    Memory::log();
+    for (Thread* t : p->threads)
+        kill(t);
     killQueue.remove(p);
     processes.remove(p);
     if (p->parent) {
         p->parent->queueSignal(SIGCHLD);
         p->parent->notifyChildDied(p);
     }
+    klog('i', "Process %i is dead", p->pid);
+    delete p;
+    Memory::log();
 }
 
 void Scheduler::kill(Thread* t) {
     threads.remove(t);
+    delete t;
 }
 
 
 
 Process* Scheduler::spawnProcess(Process* parent, const char* name) {
+    Memory::log();
     Process* p = new Process(parent, name);
     p->addressSpace = AddressSpace::kernelSpace->clone();
     processes.add(p);
@@ -198,11 +206,11 @@ void Scheduler::contextSwitch(isrq_registers_t* regs) {
     if (!nextThread)
         scheduleNextThread();
 
-    if (nextThread == kernelThread)
-        doRoutine();
-
     nextThread->cycles++;
     nextThread->recoverState(regs);
+
+    if (nextThread == kernelThread)
+        doRoutine();
 
     activeThread = nextThread;
     nextThread = NULL;

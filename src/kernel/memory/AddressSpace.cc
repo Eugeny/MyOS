@@ -41,7 +41,7 @@ static void initialize_node(page_tree_node_t* node) {
 
 
 static page_tree_node_t* node_get_child(page_tree_node_t* node, uint64_t idx, bool create) {
-    if (!node->entries[idx].present) {
+    if (!node->entries[idx].present || node->entries[idx].address == ADDR_TRAP) {
         if (!create) {
             return NULL;
         }
@@ -78,6 +78,44 @@ AddressSpace::AddressSpace() {
 }
 
 AddressSpace::~AddressSpace() {
+    page_tree_node_t* node = getRoot();
+
+    for (int i = 0; i < 512; i++) { // PML4s
+        if (node->entries[i].present) {
+            page_tree_node_t* pml4 = node->entriesVirtual[i];
+            for (int j = 0; j < 512; j++) { // PDPTs
+                if (pml4->entries[j].present) {
+                    page_tree_node_t* pd = pml4->entriesVirtual[j];
+                    for (int l = 0; l < 512; l++) { // PTs
+                        if (pd->entries[l].present) {
+                            page_tree_node_t* pt = pd->entriesVirtual[l];
+                            for (int m = 0; m < 512; m++) { // Pages
+                                if (pt->entries[m].present) {
+                                    uint64_t addr = i;
+                                    addr = addr * 512 + j;
+                                    addr = addr * 512 + l;
+                                    addr = addr * 512 + m;
+                                    addr *= KCFG_PAGE_SIZE;
+
+                                    if (addr >=       800000000000) {
+                                        addr += 0xffff000000000000;
+                                    }
+
+                                    page_descriptor_t oldPage = getPage(addr, false);
+                                    
+                                    if (PAGEATTR_IS_COPY(*oldPage.attrs))
+                                        releasePage(oldPage);
+                                }
+                            }
+                            delete pt;
+                        }
+                    }
+                    delete pd;
+                }
+            }
+            delete pml4;
+        }
+    }
     delete root;
 }
 
@@ -127,8 +165,14 @@ page_descriptor_t AddressSpace::getPage(uint64_t virt, bool create) {
 
     for (int i = 0; i < 3; i++) {
         //if (Debug::tracingOn)
-        //klog('t', "ngc root %lx index %i", root, indexes[i]);
+            //klog('t', "ngc root %lx index %i", root, indexes[i]);
         root = node_get_child(root, indexes[i], create);
+
+        if ((uint64_t)root == ADDR_TRAP * KCFG_PAGE_SIZE) {
+            klog('e', "NODE ADDRESS WAS TRAP @ getpage(%lx)", virt);
+            klog_flush();
+            for(;;);
+        }
 
         if (root == NULL && !create) {
             d.entry = 0;
@@ -339,7 +383,7 @@ AddressSpace* AddressSpace::clone() {
     return result;
 }
 
-void AddressSpace::release() {
+void AddressSpace::release() {    
 }
 
 

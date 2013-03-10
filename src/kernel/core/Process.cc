@@ -25,6 +25,8 @@ Process::Process(Process* parent, const char* name) {
 
 Process* Process::clone() {
     Process* p = new Process(*this);
+    for (auto f : files)
+        f->refcount++;
     p->threads.clear();
     p->pid = makepid();
     return p;
@@ -47,7 +49,7 @@ void* Process::sbrkStack(uint64_t size) {
 
 void Process::allocateStack(uint64_t base, uint64_t size) {
     klog('t', "Allocating stack at %lx (%lx b)", base ,size);
-    addressSpace->allocateSpace(base, size, isKernel ? 0 : (PAGEATTR_USER));
+    addressSpace->allocateSpace(base, size, isKernel ? 0 : (PAGEATTR_USER|PAGEATTR_COPY));
     addressSpace->namePage(addressSpace->getPage(base, false), "Stacks");
 }
 
@@ -126,14 +128,18 @@ Thread* Process::spawnMainThread(threadEntryPoint entry) {
 }
 
 int Process::attachFile(File* f) {
+    f->refcount++;
     return files.add(f);
 }
 
 void Process::closeFile(int fd) {
     File* f = files[fd];
+    f->refcount--;
     files.remove(f);
-    f->close();
-    delete f;
+    if (f->refcount == 0) {
+        f->close();
+        delete f;
+    }
 }
 
 void Process::realpath(char* p, char* buf) {
@@ -171,4 +177,10 @@ void Process::notifyChildDied(Process* p) {
 }
 
 Process::~Process() {
+    for (int i = 0; i < files.capacity; i++)
+        if (files[i])
+            closeFile(i);
+    for (auto h : signalHandlers)
+        delete h;
+    delete addressSpace;
 }

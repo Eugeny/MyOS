@@ -81,6 +81,7 @@ void Memory::log() {
     klog('i', "Phy frames:  %i/%i (%i/%i KB)", 
         FrameAlloc::get()->getAllocated(), FrameAlloc::get()->getTotal(),
         FrameAlloc::get()->getAllocated() * 4, FrameAlloc::get()->getTotal() * 4);   
+    klog_flush();
 }
 
 void Memory::handlePageFault(isrq_registers_t* regs) {

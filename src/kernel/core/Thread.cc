@@ -17,6 +17,8 @@ Thread::Thread(Process* p, const char* name) {
 }
 
 Thread::~Thread() {
+    if (activeWait)
+        stopWaiting();
     delete name;
 }
 

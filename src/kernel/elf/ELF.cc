@@ -28,7 +28,7 @@ void ELF::loadIntoProcess(Process* p) {
         auto ph = (Elf64_Phdr*)(data + hdr->e_phoff + i * hdr->e_phentsize);
         if (ph->p_type == PT_LOAD) {
             klog('t', "ELF PT_LOAD %lx+%lx(%lx) -> %lx", ph->p_offset, ph->p_filesz, ph->p_memsz, ph->p_vaddr);
-            as->allocateSpace(ph->p_vaddr, ph->p_memsz+0x2000, PAGEATTR_SHARED|PAGEATTR_USER);
+            as->allocateSpace(ph->p_vaddr, ph->p_memsz+0x2000, PAGEATTR_SHARED|PAGEATTR_USER|PAGEATTR_COPY);
             as->namePage(as->getPage(ph->p_vaddr, false), "ELF Code");
 
             if (p->brk < ph->p_vaddr + ph->p_memsz)

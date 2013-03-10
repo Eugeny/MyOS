@@ -5,6 +5,7 @@
 File::File(const char* path, FS* fs) {
     strcpy(this->path, path ? path : "");
     filesystem = fs;
+    refcount = 0;
 }
 
 void File::close() {

@@ -18,6 +18,7 @@ public:
     virtual int stat(struct stat* stat);
 
     int type;
+    int refcount;
 private:
     char path[1024];
     FS* filesystem;
