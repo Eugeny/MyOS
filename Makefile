@@ -3,7 +3,7 @@ CC = gcc
 LIBS = -L libs libs/librote.a libs/libfat.a libs/uclibc.a
 
 INCLUDES = -I include -I src/kernel
-CFLAGS = -c 				\
+CFLAGS = -c -g 				\
 	-std=c++0x 				\
 	-DKERNEL 				\
 	-fno-builtin 			\
@@ -23,7 +23,7 @@ CFLAGS = -c 				\
 LDWRAP = \
 	-Xlinker --wrap=malloc \
 	-Xlinker --wrap=memset \
-#	-Xlinker --wrap=memcpy \
+	-Xlinker --wrap=memcpy \
 
 LDFLAGS = \
 	-static \
@@ -62,6 +62,7 @@ SOURCES= \
 	src/kernel/fs/fat32/FAT32FS.o 				\
 	src/kernel/fs/procfs/ProcFS.o 				\
 	src/kernel/fs/vfs/VFS.o 					\
+	src/kernel/fs/Directory.o 					\
 	src/kernel/fs/FS.o 							\
 	src/kernel/fs/File.o 						\
 	src/kernel/fs/Pipe.o 						\
@@ -92,6 +93,7 @@ SOURCES= \
 	src/kernel/kutil.o 							\
 												\
 	src/kernel/lang/libc-wrap.o 				\
+	src/kernel/lang/libc-ext.o 					\
 	src/kernel/lang/stubs.o 					\
 
 
