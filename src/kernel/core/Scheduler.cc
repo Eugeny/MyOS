@@ -78,6 +78,10 @@ void Scheduler::requestKill(Process* p) {
     killQueue.add(p);
 }
 
+void Scheduler::requestKill(Thread* t) {
+    killQueueThreads.add(t);
+}
+
 void Scheduler::kill(Process* p) {
     Memory::log();
     for (Thread* t : p->threads)
@@ -88,7 +92,7 @@ void Scheduler::kill(Process* p) {
         p->parent->queueSignal(SIGCHLD);
         p->parent->notifyChildDied(p);
     }
-    klog('i', "Process %i is dead", p->pid);
+    klog('d', "Process %i is dead", p->pid);
     delete p;
     Memory::log();
 }
@@ -116,18 +120,17 @@ Thread* Scheduler::spawnKernelThread(threadEntryPoint entry, const char* name) {
 }
 
 
-extern "C" void fork_continue();
-
 Process* Scheduler::fork() {
     #define STACKBUF_SIZE 1024*1024
     static uint8_t stackbuf[STACKBUF_SIZE];
 
     klog('t', "Stack bottom is 0x%lx, RSP is 0x%lx", activeThread->stackBottom, activeThread->state.regs.rsp);
     uint64_t stackbuf_used = saveState(activeThread, stackbuf, STACKBUF_SIZE);
-    //asm volatile(".global fork_continue\nfork_continue:");
 
-    if (activeThread->state.forked)
+    if (activeThread->state.forked) {
+        activeThread->state.forked = false;
         return NULL;
+    }
 
     Process* p1 = activeThread->process;
     Process* p2 = p1->clone();
@@ -136,20 +139,15 @@ Process* Scheduler::fork() {
     processes.add(p2);
 
     pause();
-    p1->addressSpace->dump();
-    KTRACE
+    //p1->addressSpace->dump();
     p2->addressSpace = p1->addressSpace->clone();
-    KTRACE
 
     AddressSpace* oldAS = AddressSpace::current;
 
-    KTRACE
     Thread* nt = new Thread(p2, activeThread->name);
     p2->threads.add(nt);
     threads.add(nt);
-    KTRACE
     nt->createStack((uint64_t)activeThread->stackBottom, activeThread->stackSize);
-    KTRACE
     nt->state = activeThread->state;
     nt->state.addressSpace = p2->addressSpace;
     nt->state.forked = true;
@@ -160,6 +158,14 @@ Process* Scheduler::fork() {
 
     return p2;
 }
+
+void Scheduler::waitForNextTask() {
+    resume();
+    CPU::STI();
+    for (;;)
+        CPU::halt();
+}
+
 
 uint64_t Scheduler::saveState(Thread* t, void* stack_buf, uint64_t stack_buf_size) {
     __saving_state_for = t;
@@ -223,6 +229,12 @@ void Scheduler::doRoutine() {
         klog('d', "Reaping process %i", p->pid);
         kill(p);
     }
+    for (Thread* t : killQueueThreads) {
+        klog('d', "Reaping thread %i", t->id);
+        kill(t);
+    }
+    killQueue.clear();
+    killQueueThreads.clear();
 }
 
 Thread* Scheduler::getActiveThread() {

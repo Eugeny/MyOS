@@ -113,8 +113,8 @@ void FAT32Directory::close() {
 
 int FAT32Directory::stat(struct stat* stat) {
     Directory::stat(stat);
-    FILINFO fi;
-    f_stat(path, &fi);
+    //FILINFO fi;
+    //f_stat(path, &fi);
     stat->st_nlink = 5;
     return 0; 
 }

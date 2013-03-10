@@ -1,5 +1,8 @@
 #include <syscall/Syscalls.h>
 #include <kutil.h>
+#include <elf/ELF.h>
+#include <fs/vfs/VFS.h>
+
 
 extern "C" void _syscall_init();
 
@@ -22,7 +25,7 @@ static syscall syscalls[1024];
 #ifdef KCFG_STRACE
     #define STRACE(format, args...) { \
         __strace_in_progress = true; \
-        klog('d', format " from pid %i @ 0x%lx", ## args, \
+        klog('t', format " from pid %i @ 0x%lx", ## args, \
             Scheduler::get()->getActiveThread()->process->pid, \
             regs->urip); \
         klog_flush(); \
@@ -420,12 +423,44 @@ SYSCALL(fork) {
 
     Process* p = Scheduler::get()->fork();
     if (p) {
-        klog('d', "Forked parent ok");
+        klog('t', "Forked parent ok");
         return p->pid;
     } else {
-        klog('d', "Forked child ok");
+        klog('t', "Forked child ok");
         return 0;
     }
+}
+
+
+SYSCALL(execve) { 
+    PROCESS
+    THREAD
+    RESOLVE_PATH(path, regs->rdi)
+    
+    auto argv = (char**)regs->rsi;
+    auto envp = (char**)regs->rdx;
+
+    STRACE("execve(%s, 0x%lx, 0x%lx)", path, argv, envp);
+
+    auto elf = new ELF();
+    elf->loadFromFile(path);
+
+    if (haserr()) {
+        delete elf;
+        return Syscalls::error();
+    }
+
+    elf->loadIntoProcess(process);
+
+    klog('w', "Starting execve");
+    elf->startMainThread(process, argv, envp);  
+    delete elf;
+    
+    Scheduler::get()->requestKill(thread);
+    thread->wait(new WaitForever());
+    Scheduler::get()->waitForNextTask();
+
+    return 0;
 }
 
 
@@ -434,8 +469,9 @@ SYSCALL(exit) {
     THREAD
 
     STRACE("exit()");
-    process->requestKill();
+    Scheduler::get()->requestKill(process);
     thread->wait(new WaitForever());
+    Scheduler::get()->waitForNextTask();
 
     return 0;
 }
@@ -556,8 +592,7 @@ SYSCALL(getcwd) {
 
 SYSCALL(chdir) {
     PROCESS
-    
-    auto path = (char*)regs->rdi;    
+    RESOLVE_PATH(path, regs->rdi)
     
     STRACE("chdir(%s)", path);
 
@@ -716,6 +751,7 @@ void Syscalls::init() {
     syscalls[0x21] = sys_dup2;
     syscalls[0x27] = sys_getpid;
     syscalls[0x39] = sys_fork;
+    syscalls[0x3b] = sys_execve;
     syscalls[0x3c] = sys_exit;
     syscalls[0x3d] = sys_wait4;
     syscalls[0x3e] = sys_kill;
@@ -748,7 +784,7 @@ extern "C" uint64_t _syscall_handler(syscall_regs_t* regs) {
         result = syscalls[regs->id](regs);
         #ifdef KCFG_STRACE
             if (__strace_in_progress) {
-                klog('d', " = %lx", result);
+                klog('t', " = %lx", result);
                 klog_flush();
             }
         #endif

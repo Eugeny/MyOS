@@ -50,7 +50,7 @@ void Debug::onDumpTasks(void*) {
         for (Thread* t : p->threads) {
             uint64_t su = (uint64_t)t->stackBottom - t->state.regs.rsp;
             su = su * 100 / (t->stackSize + 1);
-            klog('d', "      - %3i %30s | %s | %4i ticks | %i%% stack used of %lx kb", 
+            klog('i', "      - %3i %30s | %s | %4i ticks | %i%% stack used of %lx kb", 
                 t->id, 
                 t->name, 
                 t->activeWait ? "waiting" : "running",

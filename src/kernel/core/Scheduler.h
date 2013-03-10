@@ -20,6 +20,7 @@ public:
     Thread* spawnKernelThread(threadEntryPoint entry, const char* name);
     void registerThread(Thread* t);
     void requestKill(Process* p);
+    void requestKill(Thread* t);
     void kill(Process* p);
     void kill(Thread* p);
 
@@ -31,6 +32,7 @@ public:
     void forceThreadSwitchISRQContext(Thread* preferred, isrq_registers_t* regs);
     
     Process* fork();
+    void waitForNextTask();
     uint64_t saveState(Thread* t, void* stack_buf, uint64_t stack_buf_size);
 
     Thread* getActiveThread();
@@ -46,6 +48,7 @@ public:
 private:
     void doRoutine();
     Pool<Process*, 32> killQueue;
+    Pool<Thread*, 32> killQueueThreads;
     Thread* nextThread;
     Pool<Thread*, 1024> threads;
     Thread* activeThread;

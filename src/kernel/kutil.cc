@@ -75,8 +75,12 @@ void klog(char type, const char* format, ...) {
             __output_bochs("\n");
         }
         return;
-        //t->write(Escape::C_GRAY);
-        //t->write("TRACE");
+    }
+    
+    if (type == 'd') {
+        __output_bochs(buffer);
+        __output_bochs("\n");
+        return;
     }
     
     if (__logging_terminal_ready) {

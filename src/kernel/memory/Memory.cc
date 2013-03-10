@@ -13,7 +13,6 @@ Message Memory::MSG_GPF("gpf");
 
 
 static void pfISRQ(isrq_registers_t* reg) {
-    for(;;);
     Memory::MSG_PAGEFAULT.post((void*)reg);
 }
 
@@ -77,8 +76,8 @@ void Memory::init() {
 
 void Memory::log() {
     kheap_info_t mem = kmallinfo();
-    klog('i', "Kernel heap: %i/%i KB", mem.used_bytes / 1024, mem.total_bytes / 1024);   
-    klog('i', "Phy frames:  %i/%i (%i/%i KB)", 
+    klog('d', "Kernel heap: %i/%i KB", mem.used_bytes / 1024, mem.total_bytes / 1024);   
+    klog('d', "Phy frames:  %i/%i (%i/%i KB)", 
         FrameAlloc::get()->getAllocated(), FrameAlloc::get()->getTotal(),
         FrameAlloc::get()->getAllocated() * 4, FrameAlloc::get()->getTotal() * 4);   
     klog_flush();

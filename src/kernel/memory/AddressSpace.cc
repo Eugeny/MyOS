@@ -75,6 +75,7 @@ static void copy_page_physical(uint64_t src, uint64_t dst) {
 
 
 AddressSpace::AddressSpace() {
+    root = NULL;
 }
 
 AddressSpace::~AddressSpace() {
@@ -166,13 +167,14 @@ page_descriptor_t AddressSpace::getPage(uint64_t virt, bool create) {
     for (int i = 0; i < 3; i++) {
         //if (Debug::tracingOn)
             //klog('t', "ngc root %lx index %i", root, indexes[i]);
-        root = node_get_child(root, indexes[i], create);
 
-        if ((uint64_t)root == ADDR_TRAP * KCFG_PAGE_SIZE) {
+        if ((uint64_t)root / KCFG_PAGE_SIZE == ADDR_TRAP) {
             klog('e', "NODE ADDRESS WAS TRAP @ getpage(%lx)", virt);
             klog_flush();
             for(;;);
         }
+
+        root = node_get_child(root, indexes[i], create);
 
         if (root == NULL && !create) {
             d.entry = 0;

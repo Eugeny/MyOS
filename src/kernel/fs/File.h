@@ -19,7 +19,7 @@ public:
 
     int type;
     int refcount;
-private:
+protected:
     char path[1024];
     FS* filesystem;
 };

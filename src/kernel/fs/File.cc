@@ -1,5 +1,6 @@
 #include <fs/File.h>
 #include <string.h>
+#include <kutil.h> 
 
 
 File::File(const char* path, FS* fs) {
@@ -16,10 +17,12 @@ int File::stat(struct stat* stat) {
     stat->st_dev = 0;
     stat->st_ino = 1;
     stat->st_mode = S_IRWXU | S_IRWXG | S_IRWXO;
+    stat->st_nlink = 1;
     stat->st_uid = 0;
     stat->st_gid = 0;
     stat->st_size = 0;
-    stat->st_nlink = 1;
+    stat->st_blksize = 512; // !
+    stat->st_blocks = 0;
     return -1;
 }
 

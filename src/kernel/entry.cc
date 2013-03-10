@@ -26,7 +26,6 @@
 #include <fs/vfs/VFS.h>
 #include <fs/File.h>
 #include <fs/Directory.h>
-#include <fcntl.h>
 
 #include <elf/ELF.h>
 #include <multiboot.h>
@@ -144,15 +143,9 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     vfs->mount("/proc", new ProcFS());
 
 
-    auto elf = new ELF();
 
     Process* p = Scheduler::get()->spawnProcess(Scheduler::get()->kernelProcess, "a.out");
-    
-    //elf->loadFromFile(vfs->open("/a.out", O_RDONLY));
-    elf->loadFromFile(vfs->open("/busybox_unstripped", O_RDONLY));
-    //elf->loadFromFile(vfs->open("/dash", O_RDONLY));
-    elf->loadIntoProcess(p);
-    
+
     PTY* pty = PhysicalTerminalManager::get()->getPTY(0);
 
     p->pty = pty;
@@ -160,42 +153,24 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     p->attachFile(pty->openSlave());
     p->attachFile(pty->openSlave());
 
-    p->argc = 1;
-    p->argv = new char*[2];
-    p->argv[0] = "busybox";
-    p->argv[1] = "hush";
-    //p->argv[2] = "aash";
     
-    p->envc = 2;
-    p->env = new char*[2];
-    p->env[0] = "USER=root";
-    p->env[1] = "PATH=";
-    //p->env[2] = NULL;
+    auto elf = new ELF();
+    elf->loadFromFile("/bin/sh");
+    elf->loadIntoProcess(p);
 
-    p->auxvc = 8;
-    p->auxv = new Elf64_auxv_t[9];
-    p->setAuxVector(0, AT_PAGESZ, KCFG_PAGE_SIZE);
-    p->setAuxVector(1, AT_ENTRY, elf->getEntryPoint());
-    p->setAuxVector(2, AT_UID,  0);
-    p->setAuxVector(3, AT_GID,  0);
-    p->setAuxVector(4, AT_EUID, 0);
-    p->setAuxVector(5, AT_EGID, 0);
-    p->setAuxVector(6, AT_PLATFORM, (uint64_t)"x86_64");
+    char** argv = new char*[3];
+    argv[0] = "busybox";
+    argv[1] = "hush";
+    argv[2] = NULL;
+    
+    char** envp = new char*[1];
+    envp[0] = NULL;
 
-    p->addressSpace->activate();
-    uint64_t randomVec = (uint64_t)p->sbrk(16);
-    for (int i = 0; i < 16; i++)
-        *(uint8_t*)(randomVec+i) = random() % 256;
-    AddressSpace::kernelSpace->activate(); // TODO revert to actual AS
-
-    p->setAuxVector(7, AT_RANDOM, randomVec);
-    p->setAuxVector(8, AT_NULL, 0);
-
-    CPU::CLI();
+    //CPU::CLI();
     klog('w', "Starting Busybox");
     Debug::tracingOn = true;
-    p->spawnMainThread((threadEntryPoint)elf->getEntryPoint());
-    CPU::STI();
+    elf->startMainThread(p, argv, envp);
+    //CPU::STI();
 
     Scheduler::get()->resume();
 

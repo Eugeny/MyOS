@@ -15,11 +15,7 @@ public:
     virtual struct dirent* read() = 0;
     virtual void close() = 0;
     virtual int stat(struct stat* stat);
-
 protected:
-    FS* filesystem;
-    char* path;
-
     struct dirent currentEntry;
 };
 
