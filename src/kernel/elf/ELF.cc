@@ -53,7 +53,6 @@ void ELF::loadIntoProcess(Process* p) {
     }
 
     oldAS->activate();
-    CPU::STI();
 }
 
 uint64_t ELF::getEntryPoint() {

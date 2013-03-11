@@ -49,9 +49,8 @@ Directory* FAT32FS::opendir(char* path) {
 
 
 FAT32File::FAT32File(const char* p, FAT32FS* fs, FIL* f) : StreamFile(p, fs) {
-    filesystem = fs;
     fil = f;
-    path = strdup(p);
+    eof = false;
 }
 
 FAT32File::~FAT32File() {
@@ -65,7 +64,13 @@ void FAT32File::write(const void* buffer, uint64_t count) {
 uint64_t FAT32File::read(void* buffer, uint64_t count) {
     uint32_t num;
     f_read(fil, buffer, count, &num);
+    if (num == 0)
+        eof = true;
     return num;
+}
+
+bool FAT32File::isEOF() {
+    return eof;
 }
 
 void FAT32File::close() {

@@ -264,18 +264,39 @@ void AddressSpace::writePage(void* buf, uint64_t base, uint64_t size) {
 }
 
 void AddressSpace::write(void* buf, uint64_t base, uint64_t size) {
-    if (size <= KCFG_PAGE_SIZE)
-        writePage(buf, base, size);
-    else {
-        writePage(buf, base, KCFG_PAGE_SIZE);
-        uint64_t ptr = base / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
-        uint64_t bufptr = (uint64_t)buf / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE;
-        uint64_t buftop = (uint64_t)buf + size;
-        ptr += KCFG_PAGE_SIZE;
-        bufptr += KCFG_PAGE_SIZE;
-        while (bufptr < buftop) {
-            writePage((void*)bufptr, ptr, (buftop - bufptr > 1024) ? 1024 : (buftop - bufptr));
+    uint64_t srcPage = -1;
+    uint64_t dstPage = -1;
+
+    uint64_t src = (uint64_t)buf, dst = base;
+
+    for (uint64_t v = 0; v < size; v++) {
+        if (PAGEALIGN(src) != srcPage) {
+            srcPage = PAGEALIGN(src);
+            AddressSpace::current->mapPage(
+                AddressSpace::current->getPage(KCFG_TEMP_PAGE_1, true), 
+                AddressSpace::current->getPhysicalAddress(srcPage), 
+                PAGEATTR_SHARED
+            );
+            AddressSpace::current->activate();
         }
+
+        if (PAGEALIGN(dst) != dstPage) {
+            dstPage = PAGEALIGN(dst);
+            AddressSpace::current->mapPage(
+                AddressSpace::current->getPage(KCFG_TEMP_PAGE_2, true), 
+                getPhysicalAddress(dstPage), 
+                PAGEATTR_SHARED
+            );
+            AddressSpace::current->activate();
+        }
+
+        uint64_t srcOffset = src - srcPage;
+        uint64_t dstOffset = dst - dstPage;
+
+        *(uint8_t*)(KCFG_TEMP_PAGE_2 + dstOffset) = *(uint8_t*)(KCFG_TEMP_PAGE_1 + srcOffset);
+
+        src++;
+        dst++;
     }
 }
 

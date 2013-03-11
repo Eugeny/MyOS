@@ -39,7 +39,8 @@ struct page_descriptor_t {
  
 #define PAGE_INDEX(virt) (virt / KCFG_PAGE_SIZE % 512)
 
-
+#define PAGEALIGN(virt) ((uint64_t)virt / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE)
+#define PAGECEIL(virt) (((uint64_t)virt + KCFG_PAGE_SIZE - 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE)
 
 
 

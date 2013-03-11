@@ -12,6 +12,10 @@ File::File(const char* path, FS* fs) {
 void File::close() {
 }
 
+bool File::isEOF() {
+    return false;
+}
+
 
 int File::stat(struct stat* stat) {
     stat->st_dev = 0;

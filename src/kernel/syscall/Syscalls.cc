@@ -25,8 +25,9 @@ static syscall syscalls[1024];
 #ifdef KCFG_STRACE
     #define STRACE(format, args...) { \
         __strace_in_progress = true; \
-        klog('t', format " from pid %i @ 0x%lx", ## args, \
+        klog('t', format " from pid %i tid %i @ 0x%lx", ## args, \
             Scheduler::get()->getActiveThread()->process->pid, \
+            Scheduler::get()->getActiveThread()->id, \
             regs->urip); \
         klog_flush(); \
     }
@@ -77,11 +78,11 @@ SYSCALL(read) {
     if (count == -1)
         return 0;
 
-    File* f = process->files[fd];
+    auto f = (StreamFile*)process->files[fd];
 
     if (f->type == FILE_STREAM) {
         int c;
-        while (!(c = ((StreamFile*)process->files[fd])->read(buffer, count))) {
+        while (!f->isEOF() && !(c = f->read(buffer, count))) {
             CPU::STI();
             Scheduler::get()->resume();
             CPU::halt();
@@ -452,12 +453,11 @@ SYSCALL(execve) {
 
     elf->loadIntoProcess(process);
 
-    klog('w', "Starting execve");
+    //klog('w', "Starting execve");
     elf->startMainThread(process, argv, envp);  
     delete elf;
     
     Scheduler::get()->requestKill(thread);
-    thread->wait(new WaitForever());
     Scheduler::get()->waitForNextTask();
 
     return 0;
@@ -470,7 +470,6 @@ SYSCALL(exit) {
 
     STRACE("exit()");
     Scheduler::get()->requestKill(process);
-    thread->wait(new WaitForever());
     Scheduler::get()->waitForNextTask();
 
     return 0;

@@ -130,7 +130,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     klog('w', "Starting task scheduler");
     Scheduler::get()->init();
     klog_flush();
-    Scheduler::get()->spawnKernelThread(&repainterThread, "Screen repainter thread");
+    Scheduler::get()->spawnKernelThread(&repainterThread, "repainter");
  //   Scheduler::get()->spawnKernelThread(&testThread, "test thread");
 
     Scheduler::get()->resume();
@@ -168,8 +168,8 @@ extern "C" void kmain (multiboot_info_t* mbi) {
 
     //CPU::CLI();
     klog('w', "Starting Busybox");
-    Debug::tracingOn = true;
     elf->startMainThread(p, argv, envp);
+    Debug::tracingOn = true;
     //CPU::STI();
 
     Scheduler::get()->resume();

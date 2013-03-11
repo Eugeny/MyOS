@@ -97,7 +97,7 @@ void* kmalloc(int size) {
 }
 
 void* kvalloc(int size) {
-    //return dlvalloc(size);
+    return dlmemalign(KCFG_PAGE_SIZE, size);
     void* ptr = dlmalloc(size + KCFG_PAGE_SIZE);
     ptr = (void*)(((uint64_t)ptr + KCFG_PAGE_SIZE - 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE);
     return ptr;

@@ -13,7 +13,7 @@ public:
     uint64_t getTotal();
     uint64_t getAllocated();
 private:    
-    uint64_t *framesBitmap;
+    uint64_t framesBitmap[8192];
     uint64_t totalFrames;
     uint64_t usedFrames;
 };

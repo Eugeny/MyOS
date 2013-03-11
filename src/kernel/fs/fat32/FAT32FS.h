@@ -26,10 +26,10 @@ public:
     virtual void close();
     virtual bool canRead();
     virtual int stat(struct stat* stat);
+    virtual bool isEOF();
 private:
-    FAT32FS* filesystem;
+    bool eof;
     FIL* fil;
-    char* path;
 };
 
 class FAT32Directory : public Directory {

@@ -43,6 +43,7 @@ public:
     Thread* kernelThread;
     Process* kernelProcess;
     Pool<Process*, 1024> processes;
+    Pool<Thread*, 1024> threads;
     
     bool active;
 private:
@@ -50,7 +51,6 @@ private:
     Pool<Process*, 32> killQueue;
     Pool<Thread*, 32> killQueueThreads;
     Thread* nextThread;
-    Pool<Thread*, 1024> threads;
     Thread* activeThread;
 };
 

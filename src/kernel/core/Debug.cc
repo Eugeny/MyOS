@@ -3,6 +3,7 @@
 #include <memory/AddressSpace.h>
 #include <core/Process.h>
 #include <core/Thread.h>
+#include <core/Wait.h>
 #include <kutil.h>
 #include <hardware/keyboard/Keyboard.h>
 
@@ -50,13 +51,22 @@ void Debug::onDumpTasks(void*) {
         for (Thread* t : p->threads) {
             uint64_t su = (uint64_t)t->stackBottom - t->state.regs.rsp;
             su = su * 100 / (t->stackSize + 1);
-            klog('i', "      - %3i %30s | %s | %4i ticks | %i%% stack used of %lx kb", 
+            char* st = NULL;
+            if (t->activeWait) {
+                #define CHECK_WAIT(x) if (t->activeWait->type == x) st = #x;
+                CHECK_WAIT(WAIT_FOREVER);
+                CHECK_WAIT(WAIT_FOR_DELAY);
+                CHECK_WAIT(WAIT_FOR_CHILD);
+                CHECK_WAIT(WAIT_FOR_FILE);
+            } else 
+                st = "running";
+            klog('i', "      - %3i %10s | %15s | %4i ticks | %i%% stack", 
                 t->id, 
                 t->name, 
-                t->activeWait ? "waiting" : "running",
+                st,
                 t->cycles,
-                su,
-                t->stackSize / 1024 
+                su
+                //t->stackSize / 1024 
             );
         }
     }

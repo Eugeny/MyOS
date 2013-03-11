@@ -16,6 +16,7 @@ public:
     File(const char* path, FS*);
     virtual void close();
     virtual int stat(struct stat* stat);
+    virtual bool isEOF();
 
     int type;
     int refcount;

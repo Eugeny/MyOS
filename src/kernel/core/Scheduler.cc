@@ -46,7 +46,7 @@ void Scheduler::init() {
     kernelProcess->pgid = 1000;
     processes.add(kernelProcess);
 
-    kernelThread = new Thread(kernelProcess, "idle thread");
+    kernelThread = new Thread(kernelProcess, "idle");
     kernelThread->state.addressSpace = AddressSpace::kernelSpace;
     kernelProcess->threads.add(kernelThread);
     
@@ -75,17 +75,26 @@ void Scheduler::registerThread(Thread* t) {
 }
 
 void Scheduler::requestKill(Process* p) {
+    for (Thread* t : p->threads) {
+        threads.remove(t);
+        if (t == nextThread)
+            scheduleNextThread();
+    }
     killQueue.add(p);
 }
 
 void Scheduler::requestKill(Thread* t) {
+    threads.remove(t);
     killQueueThreads.add(t);
 }
 
 void Scheduler::kill(Process* p) {
+    klog('d', "Killing process %i", p->pid);
     Memory::log();
-    for (Thread* t : p->threads)
+    for (Thread* t : p->threads) {
+        klog('d', "Killing its thread %i", t->id);
         kill(t);
+    }
     killQueue.remove(p);
     processes.remove(p);
     if (p->parent) {
@@ -98,6 +107,7 @@ void Scheduler::kill(Process* p) {
 }
 
 void Scheduler::kill(Thread* t) {
+    klog('d', "Killing thread %i", t->id);
     threads.remove(t);
     delete t;
 }
@@ -127,13 +137,17 @@ Process* Scheduler::fork() {
     klog('t', "Stack bottom is 0x%lx, RSP is 0x%lx", activeThread->stackBottom, activeThread->state.regs.rsp);
     uint64_t stackbuf_used = saveState(activeThread, stackbuf, STACKBUF_SIZE);
 
+    klog('d', "Fork started");
+
     if (activeThread->state.forked) {
+        klog('d', "Forked child");
         activeThread->state.forked = false;
         return NULL;
     }
 
     Process* p1 = activeThread->process;
     Process* p2 = p1->clone();
+    klog('d', "New process PID %i", p2->pid);
     p2->ppid = p1->pid;
     p2->parent = p1;
     processes.add(p2);
@@ -152,18 +166,18 @@ Process* Scheduler::fork() {
     nt->state.addressSpace = p2->addressSpace;
     nt->state.forked = true;
 
-    KTRACE
     p2->addressSpace->write(stackbuf, nt->state.regs.rsp, stackbuf_used);
-    KTRACE
 
     return p2;
 }
 
 void Scheduler::waitForNextTask() {
+    scheduleNextThread();
     resume();
     CPU::STI();
-    for (;;)
+    for (;;) {
         CPU::halt();
+    }
 }
 
 
@@ -213,13 +227,14 @@ void Scheduler::contextSwitch(isrq_registers_t* regs) {
         scheduleNextThread();
 
     nextThread->cycles++;
+    //klog('t', "activating thread %i", nextThread->id);
     nextThread->recoverState(regs);
-
-    if (nextThread == kernelThread)
-        doRoutine();
 
     activeThread = nextThread;
     nextThread = NULL;
+
+    if (activeThread == kernelThread)
+        doRoutine();
 
     activeThread->process->runPendingSignals();
 }
