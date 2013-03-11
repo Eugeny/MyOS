@@ -34,20 +34,14 @@
 
 int main() { return 0; }
 
-
-void pit_handler(isrq_registers_t* regs) {
-    static int counter = 0;
-    counter++;
-    //microtrace();
-}
-
 void isrq80(isrq_registers_t* regs)  {
     klog('w', "SYSCALL #%x", regs->rax);
     klog_flush();
 }
 
 void isrq6(isrq_registers_t* regs)  {
-    klog('w', "Invalid opcode, rip=%lx", regs->rip);
+    klog('e', "Invalid opcode, rip=%lx", regs->rip);
+    Debug::MSG_DUMP_REGISTERS.post(NULL);
     klog_flush();
     for(;;);
 }
@@ -99,7 +93,6 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     klog('i', "Configuring timer");
     PIT::get()->init();
     PIT::get()->setFrequency(25);
-    PIT::MSG_TIMER.registerConsumer((MessageConsumer)&pit_handler);
 
     Keyboard::get()->init();
     Interrupts::get()->setHandler(IRQ(7),  INTERRUPT_MUTE);
@@ -160,7 +153,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
 
     char** argv = new char*[3];
     argv[0] = "busybox";
-    argv[1] = "hush";
+    argv[1] = "sh";
     argv[2] = NULL;
     
     char** envp = new char*[1];

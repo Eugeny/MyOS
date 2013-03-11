@@ -26,7 +26,7 @@ void klog_init_terminal() {
 void __outputhex(uint64_t h, int offset) {
     char chr[] = "0123456789abcdef";
 
-    uint64_t cr0 =(uint64_t) h;
+    uint64_t cr0 = (uint64_t) h;
     for (char c = 0; c < 16; c++) {
         *((char *)0xb8000 + offset * 2 - c * 2) = chr[cr0 % 16];
         *((char *)0xb8000 + offset * 2 - c * 2 + 1) = 0x0f;
@@ -61,6 +61,11 @@ void sout(const char* str) {
 }
 
 void klog(char type, const char* format, ...) {
+    #ifndef KCFG_ENABLE_TRACING
+        if (type == 't' || type == 'd')
+            return;
+    #endif
+
     if (!__logging_allowed)
         return;
     va_list args;
@@ -71,25 +76,26 @@ void klog(char type, const char* format, ...) {
 
     if (type == 't') {
         if (Debug::tracingOn) {
+            #ifdef KCFG_ENABLE_TRACING
             __output_bochs(buffer);
             __output_bochs("\n");
+            #endif
         }
         return;
     }
     
     if (type == 'd') {
+        #ifdef KCFG_ENABLE_TRACING
         __output_bochs(buffer);
         __output_bochs("\n");
+        #endif
         return;
     }
     
     if (__logging_terminal_ready) {
         Terminal* t = PhysicalTerminalManager::get()->getActiveTerminal();    
 
-        if (type == 'd') {
-            t->write(Escape::C_GRAY);
-            t->write("DEBUG");
-        } else if (type == 'w') {
+        if (type == 'w') {
             t->write(Escape::C_B_YELLOW);
             t->write("WARN ");
         } else if (type == 'e') {

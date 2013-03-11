@@ -683,7 +683,7 @@ struct kernel_dirent64
     int64_t         d_off;
     unsigned short  d_reclen;
     unsigned char   d_type;
-    char            d_name[];
+    char            d_name[256];
 };
 
 SYSCALL(getdents64) { 
@@ -696,22 +696,28 @@ SYSCALL(getdents64) {
     STRACE("getdents64(%u, 0x%lx, %u)", fd, buf, sz);
 
     auto dir = (Directory*)process->files[fd];
-    uint64_t count = 0;
+    uint64_t count = 0, num = 0;
 
     dirent* de;
     while (de = dir->read()) {
+        num++;
         buf->d_ino = de->d_ino + 5;
-        buf->d_reclen = 32;//strlen(de->d_name) + 32;
+        buf->d_reclen = 256;// strlen(de->d_name) + 2;
+
+        if (count + buf->d_reclen > sz)
+            return num;
+
         buf->d_off = (count += buf->d_reclen);
         strcpy(buf->d_name, de->d_name);
         ///*(char*)(buf + buf->d_reclen - 1) = de->d_type;
         buf->d_type = de->d_type;
         buf += buf->d_reclen;
+        
         return 1;
         //return count;
     }
 
-    return count;
+    return num;
 }
 
 

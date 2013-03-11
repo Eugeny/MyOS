@@ -2,7 +2,7 @@
 #include <core/Thread.h>
 #include <kutil.h>
 #include <string.h>
-#include <lang/libc-ext.h>
+#include <lang/libc/libc-ext.h>
 
 
 static int makepid() {

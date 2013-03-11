@@ -17,7 +17,7 @@ extern "C" void __wrap_memset(void *s, int c, size_t n) {
             *((uint8_t*)s + i) = c;
 }
 
-extern "C" void* __wrap_memcpy(void *d, const void *s, size_t n) {
+extern "C" void* __wrap_memcpy1(void *d, const void *s, size_t n) {
     for (uint64_t i = 0; i < n; i++)
         *((uint8_t*)d + i) = *((uint8_t*)s + i);
     return d;

@@ -3,6 +3,7 @@
 
 extern "C" {
     DSTATUS disk_initialize (BYTE pdrv) {
+        ata_init();
         return 0;
     }
 
