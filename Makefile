@@ -22,8 +22,8 @@ CFLAGS = -c -g 				\
 
 LDWRAP = \
 	-Xlinker --wrap=malloc \
-	-Xlinker --wrap=memset \
 	-Xlinker --wrap=memcpy \
+	-Xlinker --wrap=memset \
 
 LDFLAGS = \
 	-static \
@@ -93,7 +93,8 @@ SOURCES= \
 	src/kernel/kutil.o 							\
 												\
 	src/kernel/lang/libc-wrap.o 				\
-	src/kernel/lang/libc-ext.o 					\
+	src/kernel/lang/libc/libc-ext.o 			\
+	src/kernel/lang/libc/memcpy.o 				\
 	src/kernel/lang/stubs.o 					\
 
 
