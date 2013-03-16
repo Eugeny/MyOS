@@ -68,6 +68,11 @@ void klog(char type, const char* format, ...) {
 
     if (!__logging_allowed)
         return;
+
+    if (type == 't' && !Debug::tracingOn) {
+        return;
+    }
+    
     va_list args;
     va_start(args, format);
 
@@ -77,20 +82,20 @@ void klog(char type, const char* format, ...) {
     if (type == 't') {
         if (Debug::tracingOn) {
             #ifdef KCFG_ENABLE_TRACING
-            __output_bochs(buffer);
-            __output_bochs("\n");
+                __output_bochs(buffer);
+                __output_bochs("\n");
             #endif
         }
         return;
     }
     
-    if (type == 'd') {
-        #ifdef KCFG_ENABLE_TRACING
+    #ifdef KCFG_ENABLE_TRACING
         __output_bochs(buffer);
         __output_bochs("\n");
-        #endif
+    #endif
+    
+    if (type == 'd')
         return;
-    }
     
     if (__logging_terminal_ready) {
         Terminal* t = PhysicalTerminalManager::get()->getActiveTerminal();    

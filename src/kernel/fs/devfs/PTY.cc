@@ -20,8 +20,8 @@ PTYMaster::PTYMaster(PTY* p) : StreamFile(0, 0) {
     pty = p;
 }
 
-void PTYMaster::write(const void* buffer, uint64_t count) {
-    pty->masterWritePipe.write(buffer, count);
+int PTYMaster::write(const void* buffer, uint64_t count) {
+    return pty->masterWritePipe.write(buffer, count);
 }
 
 uint64_t PTYMaster::read(void* buffer, uint64_t count) {
@@ -38,8 +38,8 @@ PTYSlave::PTYSlave(PTY* p) : StreamFile(0, 0) {
     pty = p;
 }
 
-void PTYSlave::write(const void* buffer, uint64_t count) {
-    pty->masterReadPipe.write(buffer, count);
+int PTYSlave::write(const void* buffer, uint64_t count) {
+    return pty->masterReadPipe.write(buffer, count);
 }
 
 uint64_t PTYSlave::read(void* buffer, uint64_t count) {

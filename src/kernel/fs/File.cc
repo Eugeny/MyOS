@@ -16,6 +16,8 @@ bool File::isEOF() {
     return false;
 }
 
+void File::fdClosed() {
+}
 
 int File::stat(struct stat* stat) {
     stat->st_dev = 0;
@@ -37,7 +39,8 @@ StreamFile::StreamFile(const char* path, FS* fs) : File(path, fs) {
     type = FILE_STREAM;
 }
 
-void StreamFile::write(const void* buffer, uint64_t count) {
+int StreamFile::write(const void* buffer, uint64_t count) {
+    return 0;
 }
 
 uint64_t StreamFile::read(void* buffer, uint64_t count) {
@@ -54,9 +57,6 @@ StaticFile::StaticFile(void* c, uint64_t s) : StreamFile(NULL, NULL) {
     content = c;
     size = s;
     offset = 0;
-}
-
-void StaticFile::write(const void* buffer, uint64_t count) {
 }
 
 uint64_t StaticFile::read(void* buffer, uint64_t count) {

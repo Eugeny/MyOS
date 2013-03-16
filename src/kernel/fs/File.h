@@ -17,6 +17,7 @@ public:
     virtual void close();
     virtual int stat(struct stat* stat);
     virtual bool isEOF();
+    virtual void fdClosed();
 
     int type;
     int refcount;
@@ -29,7 +30,7 @@ protected:
 class StreamFile : public File {
 public:
     StreamFile(const char*, FS*);
-    virtual void write(const void* buffer, uint64_t count);
+    virtual int write(const void* buffer, uint64_t count);
     virtual uint64_t read(void* buffer, uint64_t count);
     virtual bool canRead();
 };
@@ -38,7 +39,6 @@ public:
 class StaticFile : public StreamFile {
 public:
     StaticFile(void*, uint64_t);
-    virtual void write(const void* buffer, uint64_t count);
     virtual uint64_t read(void* buffer, uint64_t count) ;
     virtual void close();
     virtual bool canRead();

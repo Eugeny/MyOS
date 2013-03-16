@@ -110,14 +110,19 @@ Thread* Process::spawnThread(threadEntryPoint entry, const char* name) {
 
 int Process::attachFile(File* f) {
     f->refcount++;
-    return files.add(f);
+    auto fd = files.add(f);
+    klog('t', "Attaching FD %i of type %i to process %i", fd, f->type, pid);
+    return fd;
 }
 
 void Process::closeFile(int fd) {
     File* f = files[fd];
+    klog('t', "Detaching FD %i of type %i from process %i", fd, f->type, pid);
     f->refcount--;
-    files.remove(f);
+    f->fdClosed();
+    files[fd] = NULL;
     if (f->refcount == 0) {
+        klog('t', "Reaping FD %i", fd);
         f->close();
         delete f;
     }

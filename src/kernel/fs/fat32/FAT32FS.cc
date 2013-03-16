@@ -58,7 +58,10 @@ FAT32File::~FAT32File() {
 }
 
 
-void FAT32File::write(const void* buffer, uint64_t count) {
+int FAT32File::write(const void* buffer, uint64_t count) {
+    uint32_t num;
+    f_write(fil, buffer, count, &num);
+    return num;
 }
 
 uint64_t FAT32File::read(void* buffer, uint64_t count) {

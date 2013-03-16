@@ -11,11 +11,14 @@
 class Pipe : public StreamFile {
 public:
     Pipe();
-    virtual void write(const void* buffer, uint64_t count);
+    virtual int write(const void* buffer, uint64_t count);
     virtual uint64_t read(void* buffer, uint64_t count);
     virtual bool canRead();
     virtual int stat(struct stat* stat);
+    virtual bool isEOF();
+    virtual void fdClosed();
 private:
+    bool closed;
     uint8_t pipeBuffer[PIPE_BUFFER_SIZE];
     uint64_t bufferLength;
 };

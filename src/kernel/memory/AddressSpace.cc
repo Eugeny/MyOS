@@ -380,9 +380,9 @@ AddressSpace* AddressSpace::clone() {
                                         *(page.name) = *oldPage.name;
 
                                         if (PAGEATTR_IS_COPY(*oldPage.attrs)) {
-                                            klog('t', "Copying phy page (%lx -> %lx)",
-                                                oldPage.entry->address * KCFG_PAGE_SIZE,
-                                                page.entry->address * KCFG_PAGE_SIZE);
+                                            //klog('t', "Copying phy page (%lx -> %lx)",
+                                            //    oldPage.entry->address * KCFG_PAGE_SIZE,
+                                            //    page.entry->address * KCFG_PAGE_SIZE);
                                             page.entry->present = false;
                                             result->allocatePage(page, *oldPage.attrs);
                                             copy_page_physical(

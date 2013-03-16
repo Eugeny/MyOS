@@ -18,7 +18,7 @@ static uint8_t* ata_cache_content[CACHE_SIZE * CACHE_BLOCK_SIZE];
 
 void ata_init() {
     for (int i = 0; i < CACHE_SIZE; i++) {
-        ata_cache_offsets[i] = 0;
+        ata_cache_offsets[i] = -1;
         ata_cache_timing[i] = 999;
     }
 }
@@ -39,12 +39,19 @@ static void ata_cache_set(uint64_t lba, uint8_t* content) {
 
 static bool ata_cache_get(uint64_t lba, uint8_t* buffer) {
     for (int i = 0; i < CACHE_SIZE; i++)
-        if (ata_cache_offsets[i] == lba && ata_cache_content[i] != NULL) {
+        if (ata_cache_offsets[i] == lba && ata_cache_offsets[i] != -1) {
             memcpy(buffer, CACHEPTR(i), CACHE_BLOCK_SIZE);
             ata_cache_timing[i] = 0;
             return true;
         }
     return false;
+}
+
+static void ata_cache_invalidate(uint64_t lba) {
+    for (int i = 0; i < CACHE_SIZE; i++)
+        if (ata_cache_offsets[i] <= lba && ata_cache_offsets[i] > lba - CACHE_BLOCK_SIZE && ata_cache_offsets[i] != -1) {
+            ata_cache_offsets[i] = 0;
+        }
 }
 
 void lba2chs (uint64_t lba, int *c, int *h, int *s) {
@@ -55,10 +62,10 @@ void lba2chs (uint64_t lba, int *c, int *h, int *s) {
 
 
 void ata_read(uint64_t lba, uint8_t* buf) {
-    if (ata_cache_get(lba, buf)) {
-        klog('t', "ATA cache hit %lx", lba);
-        return;
-    }
+    //if (ata_cache_get(lba, buf)) {
+        //klog('t', "ATA cache hit %lx", lba);
+        //return;
+    //}
     klog('t', "ATA cache miss %lx", lba);
 
     int c, h, s;
@@ -90,6 +97,9 @@ void ata_read(uint64_t lba, uint8_t* buf) {
 void ata_write(uint64_t lba, uint8_t* buf) {
     int c, h, s;
     lba2chs(lba, &c, &h, &s);
+
+    klog('t', "ATA write %lx", lba);
+    ata_cache_invalidate(lba);
 
     outb(0x1f6, 0xa0 + h);
     outb(0x1f2, 1);

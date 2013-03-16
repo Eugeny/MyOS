@@ -3,9 +3,6 @@
 
 RandomSource::RandomSource(const char* path, FS* fs) : StreamFile(path, fs) {}
 
-void RandomSource::write(const void* buffer, uint64_t count) {
-}
-
 uint64_t RandomSource::read(void* buffer, uint64_t count) {
     for (uint64_t i = 0; i < count; i++)
         ((uint8_t*)buffer)[i] = random() % 256;

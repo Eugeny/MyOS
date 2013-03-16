@@ -14,7 +14,7 @@
 / Functions and Buffer Configurations
 /----------------------------------------------------------------------------*/
 
-#define	_FS_TINY		0	/* 0:Normal or 1:Tiny */
+#define	_FS_TINY		1	/* 0:Normal or 1:Tiny */
 /* When _FS_TINY is set to 1, FatFs uses the sector buffer in the file system
 /  object instead of the sector buffer in the individual file object for file
 /  data transfer. This reduces memory consumption 512 bytes each file object. */
@@ -113,7 +113,7 @@
 /  enable LFN feature and set _LFN_UNICODE to 1. */
 
 
-#define _FS_RPATH		0	/* 0 to 2 */
+#define _FS_RPATH		1	/* 0 to 2 */
 /* The _FS_RPATH option configures relative path feature.
 /
 /   0: Disable relative path feature and remove related functions.

@@ -21,7 +21,7 @@ class FAT32File : public StreamFile {
 public:
     FAT32File(const char*, FAT32FS*, FIL* f);
     ~FAT32File();
-    virtual void write(const void* buffer, uint64_t count);
+    virtual int write(const void* buffer, uint64_t count);
     virtual uint64_t read(void* buffer, uint64_t count);
     virtual void close();
     virtual bool canRead();

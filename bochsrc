@@ -1,4 +1,5 @@
 ata0-master: type=disk, path=image.vmdk, mode=vmware4, cylinders=306, heads=4, spt=17, translation=none
+#ata0-master: type=disk, path=/dev/nbd0, mode=flat, translation=none
 boot: disk
 display_library: x
 cpuid: family=6, model=0x03, stepping=3, mmx=1, apic=xapic, sse=sse2, sse4a=0, sep=1, aes=0, xsave=1, xsaveopt=0, movbe=0, adx=0, smep=1, x86_64=1, 1g_pages=0, pcid=0, fsgsbase=1, mwait=1

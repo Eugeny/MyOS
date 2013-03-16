@@ -25,6 +25,8 @@ extern "C" {
     }
 
     DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff) {
+        if (cmd == GET_SECTOR_SIZE)
+            *(WORD*)buff = 512;
         return (DRESULT)0;
     }
 

@@ -46,6 +46,12 @@ void isrq6(isrq_registers_t* regs)  {
     for(;;);
 }
 
+void isrq0(isrq_registers_t* regs)  {
+    klog('e', "Division by zero, rip=%lx", regs->rip);
+    Debug::MSG_DUMP_REGISTERS.post(NULL);
+    klog_flush();
+    for(;;);
+}
 
 void repainterThread(void*) {
     for (;;) {
@@ -92,30 +98,14 @@ extern "C" void kmain (multiboot_info_t* mbi) {
 
     klog('i', "Configuring timer");
     PIT::get()->init();
-    PIT::get()->setFrequency(25);
+    PIT::get()->setFrequency(250);
 
     Keyboard::get()->init();
     Interrupts::get()->setHandler(IRQ(7),  INTERRUPT_MUTE);
     Interrupts::get()->setHandler(IRQ(15), INTERRUPT_MUTE);
-    Interrupts::get()->setHandler(0x80, isrq80);
+    Interrupts::get()->setHandler(0x00, isrq0);
     Interrupts::get()->setHandler(0x06, isrq6);
-
-    kmalloc_trim();
-
-    AddressSpace::kernelSpace->dump();
-
-    //MQ::post(Debug::MSG_DUMP_REGISTERS, NULL);
-
-/*
-
-    Directory* dir = fs->opendir("/");
-    struct dirent* de;
-    while (de = dir->read()) {
-        klog('i', "%s%s", de->d_name, (de->d_type == DT_DIR) ? "/" : "");
-    }
-    dir->close();
-*/
-
+    Interrupts::get()->setHandler(0x80, isrq80);
    
     Syscalls::init();
     
@@ -134,6 +124,24 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     vfs->mount("/", new FAT32FS());
     vfs->mount("/dev", new DevFS());
     vfs->mount("/proc", new ProcFS());
+
+
+
+    FDIR dir;
+    f_opendir(&dir, "/root");
+    struct dirent* de;
+    klog('i', "--");
+    for(;;) {
+        FILINFO fi;
+        char lfnBuffer[255];
+        fi.lfname = lfnBuffer;
+        fi.lfsize = 255;
+        f_readdir(&dir, &fi);
+        klog('i', lfnBuffer);
+        if (lfnBuffer[0] == 0)
+            break;
+    }
+    klog('i', "--");
 
 
 
@@ -159,11 +167,11 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     char** envp = new char*[1];
     envp[0] = NULL;
 
-    //CPU::CLI();
+    strcpy(p->cwd, "/root");
+    
     klog('w', "Starting Busybox");
     elf->startMainThread(p, argv, envp);
     Debug::tracingOn = true;
-    //CPU::STI();
 
     Scheduler::get()->resume();
 

@@ -37,6 +37,7 @@ LDFLAGS = \
 
 ASFLAGS=-felf64
 
+IMAGE=`readlink -f image.vdi`
 
 
 SOURCES= \
@@ -124,16 +125,15 @@ apps:
 	@$(CC) $(CFLAGS) $< -o $@
 
 mount: umount
-	@echo "VMDK mount"
-	@sudo losetup -d /dev/loop? || true > /dev/null
-	@vmware-vdiskmanager -R image.vmdk
-	@vmware-mount image.vmdk fs
+	@echo "VDI mount"
+	@sudo qemu-nbd -c /dev/nbd0 $(IMAGE)
+	@sudo chmod 777 /dev/nbd0
+	@sudo mount /dev/nbd0p1 fs
 
 umount:
-	@echo "VMDK umount"
+	@echo "VDI umount"
 	@sudo umount fs || true
-	@sleep 0.5
-	@vmware-mount -d fs || true
+	@sudo qemu-nbd -d /dev/nbd0 || true
 
 deploy: all
 	@make mount

@@ -24,7 +24,7 @@ public:
 class PTYMaster : public StreamFile {
 public:
     PTYMaster(PTY*);
-    virtual void write(const void* buffer, uint64_t count);
+    virtual int write(const void* buffer, uint64_t count);
     virtual uint64_t read(void* buffer, uint64_t count);
     virtual bool canRead();
 private:
@@ -34,7 +34,7 @@ private:
 class PTYSlave : public StreamFile {
 public:
     PTYSlave(PTY*);
-    virtual void write(const void* buffer, uint64_t count);
+    virtual int write(const void* buffer, uint64_t count);
     virtual uint64_t read(void* buffer, uint64_t count);
     virtual bool canRead();
     virtual int stat(struct stat* stat);

@@ -25,11 +25,10 @@ static syscall syscalls[1024];
 #ifdef KCFG_STRACE
     #define STRACE(format, args...) { \
         __strace_in_progress = true; \
-        klog('t', format " from pid %i tid %i @ 0x%lx", ## args, \
+        klog('t', "--sys-- " format " from pid %i tid %i @ 0x%lx", ## args, \
             Scheduler::get()->getActiveThread()->process->pid, \
             Scheduler::get()->getActiveThread()->id, \
             regs->urip); \
-        klog_flush(); \
     }
 #else
     #define STRACE(format, args...) {}
@@ -91,7 +90,7 @@ SYSCALL(read) {
         }
         return c;
     } else {
-        klog('w', "Bad fd type");
+        klog('w', "Bad fd type %i", f->type);
         return 0;
     }
 }
@@ -112,7 +111,12 @@ SYSCALL(write) {
     File* f = process->files[fd];
 
     if (f->type == FILE_STREAM)
-        ((StreamFile*)f)->write(buffer, count);
+        count = ((StreamFile*)f)->write(buffer, count);
+    else {
+        klog('w', "Bad fd type %i", f->type);
+        seterr(EBADF);
+        return Syscalls::error();
+    }
 
     return count;
 }
@@ -306,7 +310,7 @@ SYSCALL(rt_sigaction) { // STUB
 
 
 SYSCALL(sigprocmask) { // STUB
-    PROCESS
+//    PROCESS
 
     auto how = regs->rdi;
     auto set = (sigset_t*)regs->rsi;
@@ -327,7 +331,7 @@ SYSCALL(ioctl) {
 
     STRACE("ioctl(%u, %i, 0x%x)", fd, request, arg);
 
-    File* file = process->files[fd];
+    //File* file = process->files[fd];
 
     if (request == TIOCGWINSZ) {
         auto wsz = (struct winsize*)arg;
@@ -393,6 +397,45 @@ SYSCALL(writev) {
 }
 
 
+SYSCALL(pipe) { // FIXME pipe needs separate end fds?
+    PROCESS
+ 
+    auto fds = (int*)regs->rdi;    
+
+    STRACE("pipe(0x%lx)", fds);
+
+    auto pipe = new Pipe();
+
+    fds[0] = process->attachFile(pipe);
+    fds[1] = process->attachFile(pipe);
+
+    STRACE("pipe FDs = %i, %i", fds[0], fds[1]);
+    STRACE("FD type %i", process->files[fds[0]]->type);
+
+    return 0;
+}
+
+
+SYSCALL(dup) {
+    PROCESS
+ 
+    auto fd = regs->rdi;    
+
+    STRACE("dup(%i)", fd);
+
+    for (int i = 0; i < process->files.capacity; i++)
+        if (!process->files[i]) {
+            process->files[i] = process->files[fd];
+            STRACE("FD type %i", process->files[i]->type);
+            process->files[i]->refcount++;
+            return i;
+        }
+
+    seterr(EMFILE);
+    return Syscalls::error();
+}
+
+
 SYSCALL(dup2) {
     PROCESS
  
@@ -418,8 +461,6 @@ SYSCALL(getpid) {
 
 
 SYSCALL(fork) { 
-    PROCESS
- 
     STRACE("fork()");
 
     Process* p = Scheduler::get()->fork();
@@ -466,7 +507,6 @@ SYSCALL(execve) {
 
 SYSCALL(exit) { 
     PROCESS
-    THREAD
 
     STRACE("exit()");
     Scheduler::get()->requestKill(process);
@@ -506,8 +546,6 @@ SYSCALL(wait4) {
 
 
 SYSCALL(kill) { // STUB
-    PROCESS
- 
     auto pid = regs->rdi;    
     auto signal = regs->rsi;    
 
@@ -642,7 +680,7 @@ SYSCALL(getpgrp) {
 
 
 SYSCALL(arch_prctl) {
-    PROCESS
+    //PROCESS
     
     auto code = regs->rdi;    
     auto addr = regs->rsi;    
@@ -704,7 +742,7 @@ SYSCALL(getdents64) {
         buf->d_ino = de->d_ino + 5;
         buf->d_reclen = 256;// strlen(de->d_name) + 2;
 
-        if (count + buf->d_reclen > sz)
+        if ((count + buf->d_reclen) > sz)
             return num;
 
         buf->d_off = (count += buf->d_reclen);
@@ -753,6 +791,8 @@ void Syscalls::init() {
     syscalls[0x0e] = sys_sigprocmask;
     syscalls[0x10] = sys_ioctl;
     syscalls[0x14] = sys_writev;
+    syscalls[0x16] = sys_pipe;
+    syscalls[0x20] = sys_dup;
     syscalls[0x21] = sys_dup2;
     syscalls[0x27] = sys_getpid;
     syscalls[0x39] = sys_fork;
@@ -787,12 +827,9 @@ extern "C" uint64_t _syscall_handler(syscall_regs_t* regs) {
     if (syscalls[regs->id]) {
         __strace_in_progress = false;
         result = syscalls[regs->id](regs);
-        #ifdef KCFG_STRACE
-            if (__strace_in_progress) {
-                klog('t', " = %lx", result);
-                klog_flush();
-            }
-        #endif
+        if (__strace_in_progress) {
+            STRACE(" == %lx", result);
+        }
     } else {
         __outputhex(regs->id, 70);
         klog('w', "Unknown syscall");

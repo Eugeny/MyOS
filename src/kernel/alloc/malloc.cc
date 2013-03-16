@@ -39,7 +39,7 @@
     extern "C" void* __dlmalloc_sbrk(int size) {
         void* r = hptr;
         hptr = (void*)((uint64_t)hptr + size);
-        klog('t', "ksbrk(%lx) = %lx", size, r);
+        //klog('t', "ksbrk(%lx) = %lx", size, r);
         if (hptr > theap + KCFG_TEMPHEAP_SIZE && !large_heap_active) {
             klog('e', "Temporary heap overflow");
             klog_flush();

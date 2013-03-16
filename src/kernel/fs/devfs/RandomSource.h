@@ -8,7 +8,6 @@
 class RandomSource : public StreamFile {
 public:
     RandomSource(const char* path, FS*);
-    virtual void write(const void* buffer, uint64_t count);
     virtual uint64_t read(void* buffer, uint64_t count) ;
     virtual void close();
     virtual bool canRead();
