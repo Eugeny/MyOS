@@ -37,7 +37,7 @@ LDFLAGS = \
 
 ASFLAGS=-felf64
 
-IMAGE=`readlink -f image.vdi`
+IMAGE=`readlink -f image.vmdk`
 
 
 SOURCES= \

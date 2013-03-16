@@ -49,3 +49,12 @@ Directory* VFS::opendir(char* path) {
     }
     return lk.fs->opendir(lk.path);
 }
+
+void VFS::unlink(char* path) {
+    auto lk = lookup(path);
+    if (!lk.found) {
+        seterr(ENOENT);
+        return;
+    }
+    lk.fs->unlink(lk.path);
+}

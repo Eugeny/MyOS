@@ -397,6 +397,18 @@ SYSCALL(writev) {
 }
 
 
+SYSCALL(access) { // STUB
+    PROCESS
+    RESOLVE_PATH(path, regs->rdi)
+    auto mode = regs->rsi;
+
+    STRACE("access(%s, %i)", path, mode);
+
+    int access = S_IRWXU | S_IRWXG | S_IRWXO;
+
+    return access;
+}
+
 SYSCALL(pipe) { // FIXME pipe needs separate end fds?
     PROCESS
  
@@ -643,6 +655,19 @@ SYSCALL(chdir) {
 }
 
 
+SYSCALL(unlink) {
+    PROCESS
+    RESOLVE_PATH(path, regs->rdi)
+    
+    STRACE("unlink(%s)", path);
+
+    VFS::get()->unlink(path);
+    if (haserr())
+        return Syscalls::error();
+
+    return 0;
+}
+
 SYSCALL(getuid) {
     STRACE("getuid()");
     return 0;
@@ -791,6 +816,7 @@ void Syscalls::init() {
     syscalls[0x0e] = sys_sigprocmask;
     syscalls[0x10] = sys_ioctl;
     syscalls[0x14] = sys_writev;
+    syscalls[0x15] = sys_access;
     syscalls[0x16] = sys_pipe;
     syscalls[0x20] = sys_dup;
     syscalls[0x21] = sys_dup2;
@@ -805,6 +831,7 @@ void Syscalls::init() {
     syscalls[0x49] = sys_flock;
     syscalls[0x4f] = sys_getcwd;
     syscalls[0x50] = sys_chdir;
+    syscalls[0x57] = sys_unlink;
     syscalls[0x66] = sys_getuid;
     syscalls[0x68] = sys_getuid; // getgid
     syscalls[0x6b] = sys_getuid; // geteuid

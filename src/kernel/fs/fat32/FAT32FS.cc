@@ -46,6 +46,12 @@ Directory* FAT32FS::opendir(char* path) {
     return new FAT32Directory(path, this, dir);
 }
 
+void FAT32FS::unlink(char* path) {
+    int result = f_unlink(path);
+    if (result == FR_NO_FILE || result == FR_NO_PATH) {
+        seterr(ENOENT);
+    }
+}
 
 
 FAT32File::FAT32File(const char* p, FAT32FS* fs, FIL* f) : StreamFile(p, fs) {
@@ -106,10 +112,15 @@ struct dirent* FAT32Directory::read() {
     fi.lfname = lfnBuffer;
     fi.lfsize = 255;
     f_readdir(dir, &fi);
-    memcpy(currentEntry.d_name, lfnBuffer, 255);
+
+    if (*fi.lfname)
+        strcpy(currentEntry.d_name, fi.lfname);
+    else
+        strcpy(currentEntry.d_name, fi.fname);
+
     currentEntry.d_type = (fi.fattrib & AM_FDIR) ? DT_DIR : DT_REG;
 
-    if (currentEntry.d_name[0])
+    if (fi.fname[0])
         return &currentEntry;
     else
         return NULL;
