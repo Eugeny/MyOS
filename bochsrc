@@ -1,4 +1,4 @@
-ata0-master: type=disk, path=image.vmdk, mode=vmware4, cylinders=306, heads=4, spt=17, translation=none
+ata0-master: type=disk, path=image.vmdk, mode=vmware4, cylinders=9000, heads=16, spt=63, translation=none
 #ata0-master: type=disk, path=/dev/nbd0, mode=flat, translation=none
 boot: disk
 display_library: x

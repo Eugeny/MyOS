@@ -51,7 +51,6 @@ void sout(const char* str) {
     static int line = 0;
 
     char *vram = (char *)0xb8000;
-//    for (unsigned int i = 0; i < 20; i++) {
     for (unsigned int i = 0; i < strlen(str); i++) {
         *(vram + i * 2 + 160 * line) = str[i];
     }
@@ -61,23 +60,30 @@ void sout(const char* str) {
 }
 
 void klog(char type, const char* format, ...) {
-    #ifndef KCFG_ENABLE_TRACING
-        if (type == 't' || type == 'd')
-            return;
-    #endif
-
-    if (!__logging_allowed)
-        return;
-
-    if (type == 't' && !Debug::tracingOn) {
-        return;
-    }
-    
     va_list args;
     va_start(args, format);
 
-    static char buffer[1024];
-    vsprintf(buffer, format, args);
+    #ifndef KCFG_ENABLE_TRACING
+        if (type == 't' || type == 'd') {
+            va_end(args);
+            return;
+        }
+    #endif
+
+    if (!__logging_allowed) {
+        va_end(args);
+        return;
+    }
+
+    if (type == 't' && !Debug::tracingOn) {
+        va_end(args);
+        return;
+    }
+    
+    static char buffer[128];
+    vsnprintf(buffer, 128, format, args);
+
+    va_end(args);
 
     if (type == 't') {
         if (Debug::tracingOn) {
@@ -93,7 +99,7 @@ void klog(char type, const char* format, ...) {
         __output_bochs(buffer);
         __output_bochs("\n");
     #endif
-    
+
     if (type == 'd')
         return;
     
@@ -124,8 +130,6 @@ void klog(char type, const char* format, ...) {
     } else {
         sout(buffer);
     }
-
-    va_end(args);
 }
 
 void microtrace() {

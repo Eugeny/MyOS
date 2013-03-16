@@ -91,7 +91,7 @@ _loop_make_pd_entries:
     ; Make page entries
     mov     edi, 4000h             
     mov     eax, 0 + 111b 
-    mov     ecx, 512*25 ; 50 mb just in case
+    mov     ecx, 512*8/2 ; 8 mb just in case
 _loop_make_page_entries: 
     stosd 
     add     edi,4 

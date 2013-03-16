@@ -8,8 +8,8 @@
 #define KCFG_TEMPHEAP_SIZE 819200
 
 #define KCFG_PAGE_SIZE 0x1000
-#define KCFG_PML4_LOCATION 0x10000
-#define KCFG_LOW_IDENTITY_PAGING_LENGTH 0x400000
+#define KCFG_PML4_LOCATION 0x8000
+#define KCFG_LOW_IDENTITY_PAGING_LENGTH 0x800000
 #define KCFG_HIGH_IDENTITY_PAGING_LENGTH 0x10000
 #define KCFG_PAGING_POOL_START (KCFG_LOW_IDENTITY_PAGING_LENGTH + KCFG_HIGH_IDENTITY_PAGING_LENGTH)
 #define KCFG_KERNEL_HEAP_START 0xfffffffff0000000
@@ -23,7 +23,7 @@
 MEMORY MAP
 
 0                   -   0x1000000           Identity map
-0x100000            -   0x3ffffff           Kernel
+0x100000            -   0x7ffffff           Kernel
 
 0xffffffffe0000000                          Temp page 1
 0xffffffffe0001000                          Temp page 2

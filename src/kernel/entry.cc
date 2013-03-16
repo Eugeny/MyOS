@@ -98,7 +98,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
 
     klog('i', "Configuring timer");
     PIT::get()->init();
-    PIT::get()->setFrequency(250);
+    PIT::get()->setFrequency(25);
 
     Keyboard::get()->init();
     Interrupts::get()->setHandler(IRQ(7),  INTERRUPT_MUTE);
