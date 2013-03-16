@@ -46,6 +46,13 @@ Directory* FAT32FS::opendir(char* path) {
     return new FAT32Directory(path, this, dir);
 }
 
+void FAT32FS::rename(char* opath, char* npath) {
+    int result = f_rename(opath, npath);
+    if (result == FR_NO_FILE || result == FR_NO_PATH) {
+        seterr(ENOENT);
+    }
+}
+
 void FAT32FS::unlink(char* path) {
     int result = f_unlink(path);
     if (result == FR_NO_FILE || result == FR_NO_PATH) {

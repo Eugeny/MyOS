@@ -11,6 +11,7 @@ class FS {
 public:
     virtual StreamFile* open(char* path, int flags) = 0;
     virtual Directory* opendir(char* path) = 0;
+    virtual void rename(char* opath, char* npath);
     virtual void unlink(char* path);
 };
 

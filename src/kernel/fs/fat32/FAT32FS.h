@@ -12,6 +12,7 @@ public:
     FAT32FS();
     virtual StreamFile* open(char* path, int flags);
     virtual Directory* opendir(char* path);
+    virtual void rename(char* opath, char* npath);
     virtual void unlink(char* path);
 private:
     FATFS* fs;

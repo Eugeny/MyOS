@@ -655,6 +655,22 @@ SYSCALL(chdir) {
 }
 
 
+SYSCALL(rename) {
+    PROCESS
+    RESOLVE_PATH(oldpath, regs->rdi)
+    RESOLVE_PATH(newpath, regs->rsi)
+    
+    STRACE("rename(%s, %s)", oldpath, newpath);
+
+    VFS::get()->rename(oldpath, newpath);
+    
+    if (haserr())
+        return Syscalls::error();
+
+    return 0;
+}
+
+
 SYSCALL(unlink) {
     PROCESS
     RESOLVE_PATH(path, regs->rdi)
@@ -831,6 +847,7 @@ void Syscalls::init() {
     syscalls[0x49] = sys_flock;
     syscalls[0x4f] = sys_getcwd;
     syscalls[0x50] = sys_chdir;
+    syscalls[0x52] = sys_rename;
     syscalls[0x57] = sys_unlink;
     syscalls[0x66] = sys_getuid;
     syscalls[0x68] = sys_getuid; // getgid

@@ -32,29 +32,44 @@ vfs_lookup_t VFS::lookup(char* path) {
     return result;
 }
 
-StreamFile* VFS::open(char* path, int flags) {
-    auto lk = lookup(path);
-    if (!lk.found) {
-        seterr(ENOENT);
-        return NULL;
+#define VFS_LOOKUP(lk, path, ret) \
+    auto lk = lookup(path); \
+    if (!lk.found) {        \
+        seterr(ENOENT);     \
+        return ret;         \
     }
+
+#define VFS_LOOKUP_R(lk, path)  \
+    VFS_LOOKUP(lk, path, NULL)
+
+#define VFS_LOOKUP_V(lk, path)  \
+    VFS_LOOKUP(lk, path, )
+
+
+StreamFile* VFS::open(char* path, int flags) {
+    VFS_LOOKUP_R(lk, path);
     return lk.fs->open(lk.path, flags);
 }
 
 Directory* VFS::opendir(char* path) {
-    auto lk = lookup(path);
-    if (!lk.found) {
-        seterr(ENOENT);
-        return NULL;
-    }
+    VFS_LOOKUP_R(lk, path);
     return lk.fs->opendir(lk.path);
 }
 
-void VFS::unlink(char* path) {
-    auto lk = lookup(path);
-    if (!lk.found) {
-        seterr(ENOENT);
+
+void VFS::rename(char* opath, char* npath) {
+    VFS_LOOKUP_V(olk, opath);
+    VFS_LOOKUP_V(nlk, npath);
+    
+    if (olk.fs != nlk.fs) {
+        seterr(EXDEV);
         return;
     }
+
+    olk.fs->rename(opath, npath);
+}
+
+void VFS::unlink(char* path) {
+    VFS_LOOKUP_V(lk, path);
     lk.fs->unlink(lk.path);
 }

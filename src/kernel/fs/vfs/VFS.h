@@ -26,6 +26,7 @@ public:
     vfs_lookup_t lookup(char* path);
     virtual StreamFile* open(char* path, int flags);
     virtual Directory* opendir(char* path);
+    virtual void rename(char* opath, char* npath);
     virtual void unlink(char* path);
 private:
     Pool<mount_t*, 1024> mounts;
