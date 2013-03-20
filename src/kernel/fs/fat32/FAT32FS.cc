@@ -85,6 +85,23 @@ uint64_t FAT32File::read(void* buffer, uint64_t count) {
     return num;
 }
 
+uint64_t FAT32File::seek(uint64_t offset, uint64_t whence) {
+    if (whence == SEEK_SET) {
+        f_lseek(fil, offset);
+        return f_tell(fil);
+    }
+    if (whence == SEEK_CUR) {
+        f_lseek(fil, f_tell(fil) + offset);
+        return f_tell(fil);
+    }
+    if (whence == SEEK_END) {
+        f_lseek(fil, f_size(fil) + offset);
+        return f_tell(fil);
+    }
+    return (uint64_t)-1;
+}
+
+
 bool FAT32File::isEOF() {
     return eof;
 }
@@ -95,15 +112,15 @@ void FAT32File::close() {
 }
 
 bool FAT32File::canRead() {
-    return true;
+    return !isEOF();
 }
 
 int FAT32File::stat(struct stat* stat) {
     File::stat(stat);
-    FILINFO fi;
-    fi.lfsize = 0;
-    f_stat(path, &fi);
-    stat->st_size = fi.fsize;
+    //FILINFO fi;
+    //fi.lfsize = 0;
+    //f_stat(path, &fi);
+    stat->st_size = f_size(fil);
     stat->st_mode |= S_IFREG;
     return 0; 
 }

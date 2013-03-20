@@ -28,6 +28,7 @@ public:
     virtual void close();
     virtual bool canRead();
     virtual int stat(struct stat* stat);
+    virtual uint64_t seek(uint64_t offset, uint64_t whence);
     virtual bool isEOF();
 private:
     bool eof;

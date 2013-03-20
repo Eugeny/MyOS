@@ -40,6 +40,13 @@ static syscall syscalls[1024];
     #define STRACE2(format, args...) {}
 #endif
 
+#ifdef KCFG_WARN_SYSCALL_STUBS
+    #define WARN_STUB(msg) klog('w', "Syscall stub: " #msg);
+#else
+    #define WARN_STUB(msg) klog('t', "Syscall stub: " #msg);
+#endif
+
+
 static bool __strace_in_progress = false;
 
 //-----------------------------------
@@ -62,7 +69,7 @@ static bool __strace_in_progress = false;
 #include <sys/resource.h>
 #include <errno.h>
 #include <sys/file.h>
-
+#include <poll.h>
 
 
 SYSCALL(read) {
@@ -214,6 +221,62 @@ SYSCALL(fstat) {
 }
 
 
+SYSCALL(poll) {
+    PROCESS
+  
+    auto fds = (struct pollfd*)regs->rdi;    
+    auto nfds = regs->rsi;
+    auto timeout = regs->rdx;    
+
+    STRACE("poll(0x%lx, %i, %i)", fds, nfds, timeout);
+
+    while (true) {
+        for (int i = 0; i < nfds; i++) {
+            auto f = (StreamFile*)process->files[fds[i].fd];
+
+            if (f->type == FILE_STREAM) {
+                if (f->canRead()) {
+                    fds[i].revents = POLLIN;
+                    return 1;
+                }
+            }
+        }
+
+        CPU::STI();
+        Scheduler::get()->resume();
+        CPU::halt();
+        Scheduler::get()->pause();
+        CPU::CLI();
+    }
+
+    return 0;
+}
+
+
+SYSCALL(lseek) {
+    PROCESS
+  
+    auto fd = regs->rdi;    
+    auto offset = regs->rsi;    
+    auto whence = regs->rdx;    
+
+    STRACE("lseek(%i, %i, %i)", fd, offset, whence);
+
+    File* f = process->files[fd];
+
+    if (f->type == FILE_STREAM)
+        return ((StreamFile*)f)->seek(offset, whence);
+    else {
+        klog('w', "Bad fd type %i", f->type);
+        seterr(EBADF);
+        return Syscalls::error();
+    }
+
+
+    return 0;
+}
+
+
 SYSCALL(mmap) {
     PROCESS
   
@@ -288,7 +351,7 @@ SYSCALL(brk) {
 }
 
 
-SYSCALL(rt_sigaction) { // STUB
+SYSCALL(rt_sigaction) {
     PROCESS
 
     auto signum = regs->rdi;
@@ -297,19 +360,20 @@ SYSCALL(rt_sigaction) { // STUB
 
     STRACE("rt_sigaction(%i, 0x%x, 0x%x)", signum, act, oldact); 
 
-    if (oldact && process->signalHandlers[signum])
-        *oldact = *process->signalHandlers[signum];
+    // bad oldact causes stack corruption
+    //if (oldact && process->signalHandlers[signum])
+    //    *oldact = *process->signalHandlers[signum];
 
     if (act) {
         if (act->sa_flags & SA_SIGINFO)
-            klog('w', "SA_SIGINFO not supported");
+            WARN_STUB("SA_SIGINFO not supported");
         process->setSignalHandler(signum, act);
     }
     return 0;
 }
 
 
-SYSCALL(sigprocmask) { // STUB
+SYSCALL(sigprocmask) { 
 //    PROCESS
 
     auto how = regs->rdi;
@@ -317,6 +381,7 @@ SYSCALL(sigprocmask) { // STUB
     auto oldset = (sigset_t*)regs->rdx;
 
     STRACE("sigprocmask(%i, 0x%x, 0x%x)", how, set, oldset);
+    WARN_STUB("sigprocmask");
 
     return 0;
 }
@@ -329,7 +394,7 @@ SYSCALL(ioctl) {
     auto request = regs->rsi;
     auto arg = regs->rdx;
 
-    STRACE("ioctl(%u, %i, 0x%x)", fd, request, arg);
+    STRACE("ioctl(%u, %x, 0x%x)", fd, request, arg);
 
     //File* file = process->files[fd];
 
@@ -347,7 +412,9 @@ SYSCALL(ioctl) {
         ios->c_iflag = 0;
         ios->c_oflag = 0;
         ios->c_cflag = 0;
-        ios->c_lflag = 0;
+        ios->c_lflag = ECHO;
+        ios->c_cc[VMIN] = 0;
+        ios->c_cc[VTIME] = 0;
         ios->c_cc[VEOF] = 4;
         ios->c_cc[VINTR] = 13;
         ios->c_cc[VSUSP] = 32;
@@ -365,6 +432,12 @@ SYSCALL(ioctl) {
     if (request == TIOCSPGRP) {
         auto res = (uint64_t*)arg;
         process->pgid = *res;
+        return 0;
+    }
+
+    if (request == TCSETS || request == TCSETSW) {
+        WARN_STUB("TCSETSx");
+        auto ios = (struct termios*)arg;
         return 0;
     }
 
@@ -397,15 +470,15 @@ SYSCALL(writev) {
 }
 
 
-SYSCALL(access) { // STUB
+SYSCALL(access) {
     PROCESS
     RESOLVE_PATH(path, regs->rdi)
     auto mode = regs->rsi;
 
     STRACE("access(%s, %i)", path, mode);
+    WARN_STUB("access");
 
     int access = S_IRWXU | S_IRWXG | S_IRWXO;
-
     return access;
 }
 
@@ -505,8 +578,7 @@ SYSCALL(execve) {
     }
 
     elf->loadIntoProcess(process);
-
-    //klog('w', "Starting execve");
+    strcpy(process->name, (char*)regs->rdi);
     elf->startMainThread(process, argv, envp);  
     delete elf;
     
@@ -557,11 +629,12 @@ SYSCALL(wait4) {
 }
 
 
-SYSCALL(kill) { // STUB
+SYSCALL(kill) {
     auto pid = regs->rdi;    
     auto signal = regs->rsi;    
 
     STRACE("kill(%i, %i)", pid, signal);
+    Scheduler::get()->getProcess(pid)->queueSignal(signal);
 
     return 0;
 }
@@ -605,7 +678,7 @@ SYSCALL(fcntl) {
     } 
 
     if (cmd == F_SETFD) {
-        // STUB
+        WARN_STUB("F_SETFD");
         return 0;
     }
 
@@ -615,13 +688,14 @@ SYSCALL(fcntl) {
 }
 
 
-SYSCALL(flock) { // STUB
+SYSCALL(flock) {
     PROCESS
  
     auto fd = regs->rdi;    
     auto cmd = regs->rsi;
 
     STRACE("flock(%u, %i)", fd, cmd);
+    WARN_STUB("flock");
     return 0;
 }
 
@@ -663,7 +737,7 @@ SYSCALL(rename) {
     STRACE("rename(%s, %s)", oldpath, newpath);
 
     VFS::get()->rename(oldpath, newpath);
-    
+
     if (haserr())
         return Syscalls::error();
 
@@ -741,13 +815,14 @@ SYSCALL(arch_prctl) {
 }
 
 
-SYSCALL(time) { // STUB
+SYSCALL(time) {
     PROCESS
     
     auto timeptr = (time_t*)regs->rdi;    
     time_t timev = 0;
     
     STRACE("time(0x%lx)", timeptr);
+    WARN_STUB("time");
 
     if (timeptr)
         *timeptr = timev;
@@ -825,6 +900,8 @@ void Syscalls::init() {
     syscalls[0x04] = sys_stat;
     syscalls[0x05] = sys_fstat;
     syscalls[0x06] = sys_stat; // lstat
+    syscalls[0x07] = sys_poll;
+    syscalls[0x08] = sys_lseek;
     syscalls[0x09] = sys_mmap;
     syscalls[0x0b] = sys_munmap;
     syscalls[0x0c] = sys_brk;

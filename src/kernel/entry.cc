@@ -35,13 +35,15 @@
 int main() { return 0; }
 
 void isrq80(isrq_registers_t* regs)  {
-    klog('w', "SYSCALL #%x", regs->rax);
+    klog('w', "INT SYSCALL #%x", regs->rax);
     klog_flush();
 }
 
 void isrq6(isrq_registers_t* regs)  {
     klog('e', "Invalid opcode, rip=%lx", regs->rip);
     Debug::MSG_DUMP_REGISTERS.post(NULL);
+    Scheduler::get()->logTask();
+    AddressSpace::current->dump();
     klog_flush();
     for(;;);
 }
@@ -49,6 +51,7 @@ void isrq6(isrq_registers_t* regs)  {
 void isrq0(isrq_registers_t* regs)  {
     klog('e', "Division by zero, rip=%lx", regs->rip);
     Debug::MSG_DUMP_REGISTERS.post(NULL);
+    Scheduler::get()->logTask();
     klog_flush();
     for(;;);
 }
@@ -58,13 +61,6 @@ void repainterThread(void*) {
         Scheduler::get()->getActiveThread()->wait(new WaitForDelay(50));
         PhysicalTerminalManager::get()->render();
         microtrace();
-    }
-}
-
-void testThread(void*) {
-    for (;;) {
-        Scheduler::get()->getActiveThread()->wait(new WaitForDelay(3000));
-        KTRACEMEM
     }
 }
 
@@ -126,26 +122,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     vfs->mount("/proc", new ProcFS());
 
 
-
-    FDIR dir;
-    f_opendir(&dir, "/root");
-    struct dirent* de;
-    klog('i', "--");
-    for(;;) {
-        FILINFO fi;
-        char lfnBuffer[255];
-        fi.lfname = lfnBuffer;
-        fi.lfsize = 255;
-        f_readdir(&dir, &fi);
-        klog('i', lfnBuffer);
-        if (lfnBuffer[0] == 0)
-            break;
-    }
-    klog('i', "--");
-
-
-
-    Process* p = Scheduler::get()->spawnProcess(Scheduler::get()->kernelProcess, "a.out");
+    Process* p = Scheduler::get()->spawnProcess(Scheduler::get()->kernelProcess, "sh");
 
     PTY* pty = PhysicalTerminalManager::get()->getPTY(0);
 
@@ -164,8 +141,10 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     argv[1] = "sh";
     argv[2] = NULL;
     
-    char** envp = new char*[1];
-    envp[0] = NULL;
+    char** envp = new char*[3];
+    envp[0] = "TERM=vt102";
+    envp[1] = "PATH=/bin";
+    envp[2] = NULL;
 
     strcpy(p->cwd, "/root");
     

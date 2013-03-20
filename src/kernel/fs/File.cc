@@ -47,6 +47,10 @@ uint64_t StreamFile::read(void* buffer, uint64_t count) {
     return 0;
 }
 
+uint64_t StreamFile::seek(uint64_t offset, uint64_t whence) {
+    return (uint64_t)-1;
+}
+
 bool StreamFile::canRead() {
     return false;
 }

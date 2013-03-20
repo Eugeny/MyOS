@@ -33,6 +33,7 @@ void Thread::createStack(uint64_t size) {
 void Thread::createStack(uint64_t bottom, uint64_t size) {
     stackSize = size;
     stackBottom = (void*)bottom;
+    process->addressSpace->releaseSpace(bottom-size, size);
     process->allocateStack(bottom-size, size);
     klog('t', "Created stack at %lx", stackBottom);
     state.regs.rsp = (uint64_t)stackBottom - 0x1000;

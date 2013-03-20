@@ -151,3 +151,8 @@ run: deploy
 
 bochs: deploy
 	bochs -f bochsrc -q
+
+
+
+# nano :
+# make CFLAGS="-I ../../uclibc-include" LDFLAGS="-nostdlib -static -L ../../libs" LIBS="../../crt0.o ../../src/kernel/lang/stubs.o -Wl,-static -Wl,-Ttext-segment=0x1000000 -lncurses -luclibc"

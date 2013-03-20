@@ -78,6 +78,7 @@ typedef void (*sa_handler_t)(int);
 void Process::runPendingSignals() {
     for (int i = 0; i < 63; i++) {
         if (pendingSignals & (1 << i)) {
+            klog('t', "Executing signal %i on pid %i", i, pid);
             if (signalHandlers[i]) {
                 sa_handler_t handler = signalHandlers[i]->sa_handler;
                 if (handler == SIG_DFL) ;

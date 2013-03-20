@@ -32,6 +32,7 @@ public:
     StreamFile(const char*, FS*);
     virtual int write(const void* buffer, uint64_t count);
     virtual uint64_t read(void* buffer, uint64_t count);
+    virtual uint64_t seek(uint64_t offset, uint64_t whence);
     virtual bool canRead();
 };
 

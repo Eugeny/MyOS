@@ -26,7 +26,7 @@ uint64_t Pipe::read(void* buffer, uint64_t count) {
 }
 
 bool Pipe::canRead() {
-    return true;//bufferLength > 0;
+    return bufferLength > 0;
 }
 
 bool Pipe::isEOF() {

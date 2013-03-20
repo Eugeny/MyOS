@@ -117,7 +117,7 @@ void Terminal::processKey(uint64_t mods, uint64_t scancode) {
     if (scancode == 0xc8) special = KEY_UP;
     if (scancode == 0xd0) special = KEY_DOWN;
     
-    if (scancode == 0x8e) special = KEY_BACKSPACE;
+    //if (scancode == 0x8e) special = KEY_BACKSPACE;
     if (scancode == 0xc7) special = KEY_HOME;
     if (scancode == 0xcf) special = KEY_END;
     if (scancode == 0xc9) special = KEY_PPAGE;
@@ -145,7 +145,7 @@ void Terminal::processKey(uint64_t mods, uint64_t scancode) {
         if (mods == 1 && mapped >= 'a' && mapped <= 'z') // ctrl keys
             rote_vt_keypress(terminal, mapped - 'a');
         else {
-            write(&map[scancode], 0, 1);
+            //write(&map[scancode], 0, 1);
             if (pty)
                 pty->write(&map[scancode], 1);
         }
