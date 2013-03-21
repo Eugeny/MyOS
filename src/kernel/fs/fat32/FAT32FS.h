@@ -10,6 +10,7 @@
 class FAT32FS : public FS {
 public:
     FAT32FS();
+    virtual char* getName();
     virtual StreamFile* open(char* path, int flags);
     virtual Directory* opendir(char* path);
     virtual void rename(char* opath, char* npath);

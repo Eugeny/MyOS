@@ -12,6 +12,9 @@ static char* CONTENT_OSRELEASE = "1.0\n";
 ProcFS::ProcFS() {
 }
 
+char* ProcFS::getName() {
+    return "Linux ProcFS";
+}
 
 StreamFile* ProcFS::open(char* path, int flags) {
     if (strcmp(path, "/sys/kernel/osrelease") == 0) {

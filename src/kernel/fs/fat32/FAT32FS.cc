@@ -10,6 +10,9 @@ FAT32FS::FAT32FS() {
     f_mount(0, fs);
 }
 
+char* FAT32FS::getName() {
+    return "FAT32";
+}
 
 StreamFile* FAT32FS::open(char* path, int flags) {
     FIL* fil = new FIL();

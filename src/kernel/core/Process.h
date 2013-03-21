@@ -34,6 +34,7 @@ public:
     void  requestKill();
     void  setSignalHandler(int signal, struct sigaction* a);
     void  queueSignal(int signal);
+    void  executeDefaultSignal(int signal);
     void  runPendingSignals();
 
     uint64_t brk, stackbrk;
@@ -43,7 +44,7 @@ public:
     char cwd[1024];
 
     AddressSpace* addressSpace;
-    bool isKernel;
+    bool isKernel, isPaused;
     
     char exeName[256];
     Pool<Thread*, 1024> threads;
@@ -52,8 +53,9 @@ public:
     PTY* pty;
     uint64_t pendingSignals;
 
-    void notifyChildDied(Process* p);
+    void notifyChildDied(Process* p, uint64_t status);
     uint64_t deadChildPID;
+    uint64_t deadChildStatus;
 private:
 };
 #endif

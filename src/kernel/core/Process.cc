@@ -2,6 +2,7 @@
 #include <core/Thread.h>
 #include <kutil.h>
 #include <string.h>
+#include <signal.h>
 #include <lang/libc/libc-ext.h>
 
 
@@ -19,6 +20,7 @@ Process::Process(Process* parent, const char* name) {
     brk = 0x400000;
     stackbrk = 0x800000000000 - 0x2000;
     isKernel = false;
+    isPaused = false;
     pty = NULL;
     strcpy(exeName, "");
     strcpy(this->name, name);
@@ -70,27 +72,50 @@ void Process::setSignalHandler(int signal, struct sigaction* a) {
 }
 
 void Process::queueSignal(int signal) {
+    klog('t', "Queueing signal %i on pid %i", signal, pid);
     pendingSignals |= (1 << signal);
 }
 
 typedef void (*sa_handler_t)(int);
 
 void Process::runPendingSignals() {
-    for (int i = 0; i < 63; i++) {
+    for (int i = 0; i < 31; i++) {
         if (pendingSignals & (1 << i)) {
             klog('t', "Executing signal %i on pid %i", i, pid);
             if (signalHandlers[i]) {
                 sa_handler_t handler = signalHandlers[i]->sa_handler;
-                if (handler == SIG_DFL) ;
-                else if (handler == SIG_IGN) ;
-                else 
-                    handler(i);
+                if (handler == SIG_DFL) {
+                    executeDefaultSignal(i);
+                } else if (handler == SIG_IGN) ;
+                //else 
+                    //handler(i);
+            } else {
+                executeDefaultSignal(i);
             }
         }
     }
     pendingSignals = 0;
 }
 
+void Process::executeDefaultSignal(int signal) {
+    klog('t', "Executing default signal handler %i on pid %i", signal, pid);
+    if (signal == SIGSTOP) {
+        isPaused = true;
+        if (parent) {
+            parent->queueSignal(SIGCHLD);
+            parent->notifyChildDied(this, 0x007f);
+        }
+    }
+    if (signal == SIGKILL) {
+        isPaused = true;
+        requestKill();
+    }   
+    if (signal == SIGCONT)
+        isPaused = false;
+    if (signal == SIGTERM || signal == SIGINT) {
+        requestKill();
+    }
+}
 
 Thread* Process::spawnThread(threadEntryPoint entry, const char* name) {
     Thread* t = new Thread(this, name);
@@ -152,8 +177,9 @@ void Process::realpath(char* p, char* buf) {
         strcpy(buf, "/");
 }
 
-void Process::notifyChildDied(Process* p) {
+void Process::notifyChildDied(Process* p, uint64_t status) {
     deadChildPID = p->pid;
+    deadChildStatus = status;
     for (Thread* t : threads)
         if (t->activeWait && t->activeWait->type == WAIT_FOR_CHILD) {
             klog('d', "Notifying thread %i of dead child %i", t->id, p->pid);

@@ -10,6 +10,7 @@
 class DevFS : public FS {
 public:
     DevFS();
+    virtual char* getName();
     virtual StreamFile* open(char* path, int flags);
     virtual Directory* opendir(char* path);
 };  

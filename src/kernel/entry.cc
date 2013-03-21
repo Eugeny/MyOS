@@ -34,10 +34,6 @@
 
 int main() { return 0; }
 
-void isrq80(isrq_registers_t* regs)  {
-    klog('w', "INT SYSCALL #%x", regs->rax);
-    klog_flush();
-}
 
 void isrq6(isrq_registers_t* regs)  {
     klog('e', "Invalid opcode, rip=%lx", regs->rip);
@@ -60,7 +56,7 @@ void repainterThread(void*) {
     for (;;) {
         Scheduler::get()->getActiveThread()->wait(new WaitForDelay(50));
         PhysicalTerminalManager::get()->render();
-        microtrace();
+        //microtrace();
     }
 }
 
@@ -68,21 +64,25 @@ void repainterThread(void*) {
 
 
 extern "C" void kmain (multiboot_info_t* mbi) {
+    __output("Starting up...", 0);
+
     CPU::enableSSE();
     CPU::CLI();
     CPU::CLTS();
     
+    __output("Initializing paging...", 80);
     Memory::init();
+    
+    __output("Initializing heap...", 160);
     kalloc_switch_to_main_heap();
     klog_init();
 
-
+    __output("Initializing VGA...", 240);
     VGA::enableHighResolution();
 
     PhysicalTerminalManager::get()->init(5);
     klog_init_terminal();
-    klog('w', "");
-    klog('w', "Kernel log started");
+    klog('s', "Kernel log started");
 
     PhysicalTerminalManager::get()->render();
 
@@ -96,32 +96,37 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     PIT::get()->init();
     PIT::get()->setFrequency(25);
 
+    klog('i', "Configuring interrupts");
     Keyboard::get()->init();
     Interrupts::get()->setHandler(IRQ(7),  INTERRUPT_MUTE);
     Interrupts::get()->setHandler(IRQ(15), INTERRUPT_MUTE);
     Interrupts::get()->setHandler(0x00, isrq0);
     Interrupts::get()->setHandler(0x06, isrq6);
-    Interrupts::get()->setHandler(0x80, isrq80);
    
-    Syscalls::init();
     
 
-    klog('w', "Starting task scheduler");
+    klog('i', "Starting scheduler");
     Scheduler::get()->init();
     klog_flush();
     Scheduler::get()->spawnKernelThread(&repainterThread, "repainter");
- //   Scheduler::get()->spawnKernelThread(&testThread, "test thread");
 
-    Scheduler::get()->resume();
 
     // -------------------------------------------------
 
+    klog('i', "");
+    klog('i', "Setting up filesystem:");
     auto vfs = VFS::get();
     vfs->mount("/", new FAT32FS());
     vfs->mount("/dev", new DevFS());
     vfs->mount("/proc", new ProcFS());
+    klog('s', "Filesystem ready");
+
+    Syscalls::init();
+    klog('s', "Userspace ready");
 
 
+    klog('i', "");
+    klog('i', "Loading init");
     Process* p = Scheduler::get()->spawnProcess(Scheduler::get()->kernelProcess, "sh");
 
     PTY* pty = PhysicalTerminalManager::get()->getPTY(0);
@@ -141,19 +146,21 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     argv[1] = "sh";
     argv[2] = NULL;
     
-    char** envp = new char*[3];
+    char** envp = new char*[4];
     envp[0] = "TERM=vt102";
     envp[1] = "PATH=/bin";
-    envp[2] = NULL;
+    envp[2] = "HOME=/root";
+    envp[3] = NULL;
 
     strcpy(p->cwd, "/root");
     
-    klog('w', "Starting Busybox");
+    klog('i', "Starting init");
+    Scheduler::get()->resume();
     elf->startMainThread(p, argv, envp);
     Debug::tracingOn = true;
 
-    Scheduler::get()->resume();
 
+    klog('s', "Init is running");
     for (;;)
         CPU::halt();
 }

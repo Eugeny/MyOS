@@ -21,13 +21,20 @@ static syscall syscalls[1024];
         KTRACE                   \
         CPU::halt();             \
     }  
+#define WAITONE \
+    CPU::STI();                     \
+    Scheduler::get()->resume();     \
+    CPU::halt();                    \
+    Scheduler::get()->pause();      \
+    CPU::CLI();
 
 #ifdef KCFG_STRACE
     #define STRACE(format, args...) { \
         __strace_in_progress = true; \
-        klog('t', "--sys-- " format " from pid %i tid %i @ 0x%lx", ## args, \
+        klog('t', "--sys-- " format " from:   process %i   thread %i   pgid %i @ 0x%lx", ## args, \
             Scheduler::get()->getActiveThread()->process->pid, \
             Scheduler::get()->getActiveThread()->id, \
+            Scheduler::get()->getActiveThread()->process->pgid, \
             regs->urip); \
     }
 #else
@@ -242,11 +249,7 @@ SYSCALL(poll) {
             }
         }
 
-        CPU::STI();
-        Scheduler::get()->resume();
-        CPU::halt();
-        Scheduler::get()->pause();
-        CPU::CLI();
+        WAITONE
     }
 
     return 0;
@@ -399,6 +402,7 @@ SYSCALL(ioctl) {
     //File* file = process->files[fd];
 
     if (request == TIOCGWINSZ) {
+        STRACE("TIOCGWINSZ");
         auto wsz = (struct winsize*)arg;
         wsz->ws_row = VGA::width;
         wsz->ws_col = VGA::height;
@@ -408,28 +412,31 @@ SYSCALL(ioctl) {
     } 
 
     if (request == TCGETS) {
+        STRACE("TCGETS");
         auto ios = (struct termios*)arg;
         ios->c_iflag = 0;
         ios->c_oflag = 0;
         ios->c_cflag = 0;
-        ios->c_lflag = ECHO;
+        ios->c_lflag = ECHO | ISIG;
         ios->c_cc[VMIN] = 0;
         ios->c_cc[VTIME] = 0;
-        ios->c_cc[VEOF] = 4;
-        ios->c_cc[VINTR] = 13;
-        ios->c_cc[VSUSP] = 32;
+        ios->c_cc[VEOF] =  'd' - 64; // Ctrl-D
+        ios->c_cc[VINTR] = 'c' - 64; // Ctrl-C
+        ios->c_cc[VSUSP] = 'z' - 64; // Ctrl-Z
         cfsetospeed(ios, 8000);
         cfsetispeed(ios, 8000);
         return 0;
     }
 
     if (request == TIOCGPGRP) {
+        STRACE("TIOCGPGRP");
         auto res = (uint64_t*)arg;
         *res = process->pgid;
         return 0;
     }
 
     if (request == TIOCSPGRP) {
+        STRACE("TIOCSPGRP");
         auto res = (uint64_t*)arg;
         process->pgid = *res;
         return 0;
@@ -618,7 +625,8 @@ SYSCALL(wait4) {
             thread->wait(new WaitForChild(-1));
             WAIT 
             if (status)
-                *status = 0x007f;
+                *status = 0x0;
+                //*status = 0x007f;
             return process->deadChildPID;
         }
     }
@@ -630,11 +638,35 @@ SYSCALL(wait4) {
 
 
 SYSCALL(kill) {
+    PROCESS
+
     auto pid = regs->rdi;    
     auto signal = regs->rsi;    
 
     STRACE("kill(%i, %i)", pid, signal);
+
+    if (pid == 0) {
+        STRACE("killing pgid %i", process->pgid);
+        for (auto p : Scheduler::get()->processes)
+            if (p->pgid == process->pgid) {
+                p->queueSignal(signal);
+                WAITONE
+            }
+        return 0;
+    }
+
+    if (pid == -1) {
+        WARN_STUB("kill(-1, ...)");
+        return 0;
+    }
+
+    if (pid < -1) {
+        WARN_STUB("kill(<-1, ...)");
+        return 0;
+    }
+
     Scheduler::get()->getProcess(pid)->queueSignal(signal);
+    WAITONE 
 
     return 0;
 }
@@ -667,6 +699,7 @@ SYSCALL(fcntl) {
     File* file = process->files[fd];
 
     if (cmd == F_DUPFD) {
+        STRACE("F_DUPFD");
         for (int i = arg; i < process->files.capacity; i++)
             if (!process->files[i]) {
                 process->files[i] = process->files[fd];
@@ -784,7 +817,9 @@ SYSCALL(getpgrp) {
     //auto pid = regs->rdi;    
 
     STRACE("getpgrp()");
-
+    STRACE("pgid = %i", process->pgid);
+    STRACE("ppid = %i", process->ppid);
+    STRACE("pid = %i", process->pid);
     return process->pgid;
 
     //Process* p = Scheduler::get()->getProcess(pid);

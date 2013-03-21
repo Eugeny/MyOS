@@ -1,6 +1,13 @@
 global loader, end
 extern _start, _end, kmain
 
+%macro status 2
+    mov ax, %1
+    mov [0xb8000 + 2 * %2], ax
+    mov ax, 0x0f
+    mov [0xb8000 + 2 * %2 + 1], ax
+%endmacro
+
 
 section .data
     stack times 409600 db 0
@@ -42,6 +49,9 @@ align 4
 
 loader:
     cli
+
+    status '.', 0
+
     mov     eax, stacktop
     mov     esp, eax
 
@@ -65,12 +75,16 @@ gdt_flushed:
 
     ;mov     [es:multiboot_info], ebx
 
+    status '.', 1
+    
     ; Zero out temporary pages
     mov     edi, 1000h 
     mov     ecx, 80000h 
     xor     eax, eax 
     rep     stosd                   
 
+    status '.', 2
+    
     ; Identity map first megabytes
     mov     dword [1000h], 2000h + 111b ; first PDP table 
     mov     dword [2000h], 3000h + 111b ; first page directory 
@@ -88,6 +102,9 @@ _loop_make_pd_entries:
     cmp     ecx, 0
     jnz     _loop_make_pd_entries
 
+
+    status '.', 3
+    
     ; Make page entries
     mov     edi, 4000h             
     mov     eax, 0 + 111b 
@@ -97,6 +114,8 @@ _loop_make_page_entries:
     add     edi,4 
     add     eax,1000h 
     loop    _loop_make_page_entries 
+
+    status '.', 4
 
 
     ; Load PML4
@@ -128,8 +147,10 @@ _loop_make_page_entries:
 bits 64
 
 loader64:
-    mov     rax, '.p.p.p.p' 
-    mov     [0B8000h], rax 
+    status '.', 5
+
+    ;mov     rax, '.p.p.p.p' 
+    ;mov     [0B8000h], rax 
 
     mov     rax, KDATA_SELECTOR
     mov     ds, ax

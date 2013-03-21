@@ -25,10 +25,10 @@ static void handleSaveState(isrq_registers_t* regs) {
 
 
 static void handleTimer(isrq_registers_t* regs) {
-    __output("TASK OUT", 70);
+    //__output("TASK OUT", 70);
     Scheduler::get()->contextSwitch(regs);
-    __output("TASK IN", 70);
-    __outputhex(regs->rip, 60);
+    //__output("TASK IN", 70);
+    //__outputhex(regs->rip, 60);
 }
 
 static void handleForcedTaskSwitch(isrq_registers_t* regs) {
@@ -43,7 +43,7 @@ void Scheduler::init() {
     kernelProcess = new Process(NULL, "Kernel");
     kernelProcess->addressSpace = AddressSpace::kernelSpace;
     kernelProcess->isKernel = true;
-    kernelProcess->pgid = 1000;
+    //kernelProcess->pgid = 1000;
     processes.add(kernelProcess);
 
     kernelThread = new Thread(kernelProcess, "idle");
@@ -99,7 +99,7 @@ void Scheduler::kill(Process* p) {
     processes.remove(p);
     if (p->parent) {
         p->parent->queueSignal(SIGCHLD);
-        p->parent->notifyChildDied(p);
+        p->parent->notifyChildDied(p, 0x7f);
     }
     klog('d', "Process %i is dead", p->pid);
     delete p;

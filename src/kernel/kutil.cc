@@ -115,6 +115,9 @@ void klog(char type, const char* format, ...) {
         } else if (type == 'i') {
             t->write(Escape::C_B_WHITE);
             t->write("INFO ");
+        } else if (type == 's') {
+            t->write(Escape::C_B_CYAN);
+            t->write("SUCC ");
         } else {
             t->write(Escape::C_CYAN);
             t->write("???  ");

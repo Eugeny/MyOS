@@ -3,6 +3,10 @@
 #include <errno.h>
 
 
+char* FS::getName() {
+    return "Unknown FS";
+}
+
 void FS::rename(char* opath, char* npath) {
     seterr(EROFS);
 }

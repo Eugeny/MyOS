@@ -10,6 +10,9 @@
 DevFS::DevFS() {
 }
 
+char* DevFS::getName() {
+    return "DevFS";
+}
 
 StreamFile* DevFS::open(char* path, int flags) {
     if (strcmp(path, "/tty") == 0)

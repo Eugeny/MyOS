@@ -1,7 +1,10 @@
 #include <lang/lang.h>
+#include <core/Scheduler.h>
+#include <core/Process.h>
 #include <tty/Terminal.h>
 #include <string.h>
 #include <kutil.h>
+#include <signal.h>
 
 #include <hardware/vga/VGA.h>
 #include <ncurses.h>
@@ -109,8 +112,7 @@ void Terminal::render() {
 
 void Terminal::processKey(uint64_t mods, uint64_t scancode) {
     char* map = (mods == 2) ? keymap_shifted : keymap;
-    //rote_vt_keypress(terminal, scancode);
-
+    
     int special = 0;
     if (scancode == 0xcb) special = KEY_LEFT;
     if (scancode == 0xcd) special = KEY_RIGHT;
@@ -122,7 +124,7 @@ void Terminal::processKey(uint64_t mods, uint64_t scancode) {
     if (scancode == 0xcf) special = KEY_END;
     if (scancode == 0xc9) special = KEY_PPAGE;
     if (scancode == 0xd1) special = KEY_NPAGE;
-    if (scancode == 0xac && mods == 1) special = KEY_SUSPEND; // ctrl-z
+    //if (scancode == 0xac && mods == 1) special = KEY_SUSPEND; // ctrl-z
 
     if (scancode == 0xbb) special = KEY_F(1);
     if (scancode == 0xbc) special = KEY_F(2);
@@ -142,9 +144,20 @@ void Terminal::processKey(uint64_t mods, uint64_t scancode) {
     if (special) 
         rote_vt_keypress(terminal, special);
     else if (mapped) {
-        if (mods == 1 && mapped >= 'a' && mapped <= 'z') // ctrl keys
-            rote_vt_keypress(terminal, mapped - 'a');
-        else {
+        if (mods == 1 && mapped >= 'a' && mapped <= 'z') { // ctrl keys
+            char buf = mapped - 64;
+            pty->write(&buf, 1);
+            klog('d', "Control key %c", mapped);
+
+            for (auto p : Scheduler::get()->processes) {
+                if (mapped == 'c') {
+                    p->queueSignal(SIGINT);
+                }
+                if (mapped == 'z') {
+                    p->queueSignal(SIGSTOP);
+                }
+            }
+        } else {
             //write(&map[scancode], 0, 1);
             if (pty)
                 pty->write(&map[scancode], 1);
