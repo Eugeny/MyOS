@@ -444,6 +444,11 @@ SYSCALL(ioctl) {
         return 0;
     }
 
+    if (request == TCFLSH) {
+        STRACE("TCFLSH");
+        return 0;
+    }
+
     if (request == TCSETS || request == TCSETSW) {
         WARN_STUB("TCSETSx");
         //auto ios = (struct termios*)arg;
@@ -597,6 +602,7 @@ SYSCALL(execve) {
     if (envp) {
         for (int i = 0; i < BUFSIZE; i++) {
             if (envp[i] != NULL) {
+                klog('t', "Setting nenvp %i", i);
                 n_envp[i] = new char[STRSIZE];
                 strcpy(n_envp[i], envp[i]);
             } else {
@@ -609,14 +615,12 @@ SYSCALL(execve) {
     auto elf = new ELF();
     elf->loadFromFile(path);
 
-    if (haserr()) {
-        delete elf;
-        return Syscalls::error();
-    }
-
-    elf->loadIntoProcess(process);
-    strcpy(process->name, (char*)regs->rdi);
-    elf->startMainThread(process, n_argv, n_envp);  
+    if (!haserr()) {
+        elf->loadIntoProcess(process);
+        strcpy(process->name, (char*)regs->rdi);
+        elf->startMainThread(process, n_argv, n_envp);  
+    }    
+    
     delete elf;
     
     for (int i = 0; i < BUFSIZE; i++)
@@ -627,13 +631,19 @@ SYSCALL(execve) {
     
     if (envp)
         for (int i = 0; i < BUFSIZE; i++)
-            if (n_envp[i] != NULL)
+            if (n_envp[i] != NULL) {
+                klog('t', "unSetting nenvp %i", i);
+
                 delete n_envp[i];
-            else
+            } else
                 break;
      
     delete n_argv;
     delete n_envp;
+
+    if (haserr()) {
+        return Syscalls::error();
+    }
 
     Scheduler::get()->requestKill(thread);
     Scheduler::get()->waitForNextTask();
@@ -836,15 +846,25 @@ SYSCALL(unlink) {
 }
 
 
+SYSCALL(readlink) {
+    PROCESS
+    RESOLVE_PATH(path, regs->rdi)
+    
+    STRACE("readlink(%s)", path);
+
+    seterr(EINVAL);
+    return Syscalls::error();
+}
+
+
 SYSCALL(sysinfo) {
     auto info = (struct sysinfo*)regs->rdi;
 
     STRACE("sysinfo(0x%lx)", info);
 
-    info->totalram = FrameAlloc::get()->getTotal() * KCFG_PAGE_SIZE;
-    info->freeram = info->totalram - FrameAlloc::get()->getAllocated() * KCFG_PAGE_SIZE;
+    info->totalram = FrameAlloc::get()->getTotal();
+    info->freeram = info->totalram - FrameAlloc::get()->getAllocated();
     info->sharedram = KCFG_LOW_IDENTITY_PAGING_LENGTH + KCFG_HIGH_IDENTITY_PAGING_LENGTH + KCFG_KERNEL_HEAP_SIZE;
-    info->sharedram *= KCFG_PAGE_SIZE;
     info->totalswap = 0;
     info->freeswap = 0;
     info->bufferram = 0;
@@ -1029,6 +1049,7 @@ void Syscalls::init() {
     syscalls[0x50] = sys_chdir;
     syscalls[0x52] = sys_rename;
     syscalls[0x57] = sys_unlink;
+    syscalls[0x59] = sys_readlink;
     syscalls[0x63] = sys_sysinfo;
     syscalls[0x66] = sys_getuid;
     syscalls[0x68] = sys_getuid; // getgid

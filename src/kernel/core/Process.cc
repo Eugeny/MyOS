@@ -183,9 +183,11 @@ void Process::notifyChildDied(Process* p, uint64_t status) {
     deadChildPID = p->pid;
     deadChildStatus = status;
     for (Thread* t : threads)
-        if (t->activeWait && t->activeWait->type == WAIT_FOR_CHILD) {
-            klog('d', "Notifying thread %i of dead child %i", t->id, p->pid);
-            t->stopWaiting();
+        if (t->activeWait) {
+            if (t->activeWait->type == WAIT_FOR_CHILD) {
+                klog('d', "Notifying thread %i of dead child %i", t->id, p->pid);
+                t->stopWaiting();
+            }
         }
 }
 

@@ -16,4 +16,13 @@ public:
 };  
 
 
+class NullSource : public StreamFile {
+public:
+    NullSource(const char* path, FS*);
+    virtual uint64_t read(void* buffer, uint64_t count);
+    virtual void close();
+    virtual bool canRead();
+};
+
+
 #endif

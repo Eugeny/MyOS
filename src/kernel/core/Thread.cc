@@ -92,6 +92,7 @@ void Thread::wait(Wait* w) {
 }
 
 void Thread::stopWaiting() {
-    delete activeWait;
+    auto w = activeWait;
     activeWait = NULL;
+    delete w;
 }

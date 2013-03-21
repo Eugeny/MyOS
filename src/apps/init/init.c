@@ -4,13 +4,23 @@
 
 int main(int argc, char** argv) {
     printf("-----------------------------------------------------------------------------------------\n");
-    printf("MyOS %s.\n", argv[0]);
-    printf("Starting shells...\n");
+    printf("MyOS %s\n", argv[0]);
+    printf("-----------------------------------------------------------------------------------------\n");
 
-    const char* shell_args[] = { "busybox", "sh", NULL };
+    const char* shell_args[] = { "sh", NULL };
 
+    const char* env[] = { 
+        "HOME=/root",
+        "PATH=/bin",
+        "USER=root",
+        "TERM=vt102",
+        NULL 
+    };
+
+    chdir("/root");
+    
     if (fork() == 0) {
-        execv("/bin/sh", shell_args);
+        execve("/bin/sh", shell_args, env);
     }
 
     for(;;);

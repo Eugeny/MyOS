@@ -110,6 +110,7 @@ void Scheduler::kill(Process* p) {
 
 void Scheduler::kill(Thread* t) {
     klog('d', "Killing thread %i", t->id);
+    t->process->threads.remove(t);
     threads.remove(t);
     delete t;
 }
@@ -209,6 +210,8 @@ void Scheduler::scheduleNextThread() {
             else
                 thread_ok = false;
         }
+        if (nextThread->process->isPaused)
+            thread_ok = false;
     } while (!thread_ok);
 }
 

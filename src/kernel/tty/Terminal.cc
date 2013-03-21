@@ -125,6 +125,10 @@ void Terminal::processKey(uint64_t mods, uint64_t scancode) {
     if (scancode == 0xc9) WRITE_ESCAPED("5~");
     if (scancode == 0xd1) WRITE_ESCAPED("6~");
 
+    if (scancode == 0x81) {
+        pty->write("\033", 1);
+    }
+
     uint8_t mapped = map[scancode];
 
     if (mapped) {
