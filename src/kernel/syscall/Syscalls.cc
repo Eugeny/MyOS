@@ -578,6 +578,34 @@ SYSCALL(execve) {
 
     STRACE("execve(%s, 0x%lx, 0x%lx)", path, argv, envp);
 
+    // Stack will be destroyed; backup argv & envp
+    #define BUFSIZE 256
+    #define STRSIZE 256
+    auto n_argv = new char*[BUFSIZE];
+    auto n_envp = new char*[BUFSIZE];
+
+    for (int i = 0; i < BUFSIZE; i++) {
+        if (argv[i] != NULL) {
+            n_argv[i] = new char[STRSIZE];
+            strcpy(n_argv[i], argv[i]);
+        } else {
+            n_argv[i] = NULL;
+            break;
+        }
+    }
+
+    if (envp) {
+        for (int i = 0; i < BUFSIZE; i++) {
+            if (envp[i] != NULL) {
+                n_envp[i] = new char[STRSIZE];
+                strcpy(n_envp[i], envp[i]);
+            } else {
+                n_envp[i] = NULL;
+                break;
+            }
+        }
+    }
+
     auto elf = new ELF();
     elf->loadFromFile(path);
 
@@ -588,9 +616,25 @@ SYSCALL(execve) {
 
     elf->loadIntoProcess(process);
     strcpy(process->name, (char*)regs->rdi);
-    elf->startMainThread(process, argv, envp);  
+    elf->startMainThread(process, n_argv, n_envp);  
     delete elf;
     
+    for (int i = 0; i < BUFSIZE; i++)
+        if (n_argv[i] != NULL)
+            delete n_argv[i];
+        else
+            break;
+    
+    if (envp)
+        for (int i = 0; i < BUFSIZE; i++)
+            if (n_envp[i] != NULL)
+                delete n_envp[i];
+            else
+                break;
+     
+    delete n_argv;
+    delete n_envp;
+
     Scheduler::get()->requestKill(thread);
     Scheduler::get()->waitForNextTask();
 

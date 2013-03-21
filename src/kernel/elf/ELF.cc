@@ -69,6 +69,7 @@ Thread* ELF::startMainThread(Process* p, char** argv, char** envp) {
     Thread* t = p->spawnThread((threadEntryPoint)getEntryPoint(), "main");
     
     #define addAuxVector(a, v) { t->pushOnStack((uint64_t)v); t->pushOnStack(a); }
+    #define stackify(s) { s = (char*)t->pushOnStack(s, strlen(s) + 1); } 
 
     t->pushOnStack(0);
     addAuxVector(AT_NULL, 0);
@@ -86,6 +87,7 @@ Thread* ELF::startMainThread(Process* p, char** argv, char** envp) {
         klog('d', "ELF Environment:");
         while (envp[envpc] != NULL) {
             klog('d', envp[envpc]);
+            stackify(envp[envpc]);
             envpc++;
         }
     }
@@ -93,24 +95,30 @@ Thread* ELF::startMainThread(Process* p, char** argv, char** envp) {
     t->pushOnStack(0);
     for (int i = envpc - 1; i >= 0; i--)
         t->pushOnStack((uint64_t)envp[i]);
+    
+    uint64_t p_env = t->state.regs.rsp;
 
     int argc = 0;
     klog('d', "ELF Arguments:");
     while (argv[argc] != NULL) {
         klog('d', "%s = 0x%lx", argv[argc], argv[argc]);
+        stackify(argv[argc]);
         argc++;
     }
     klog('d', "(%i total)", argc);
     
     t->pushOnStack(0);
     for (int i = argc - 1; i >= 0; i--)
-        if (strlen(argv[i]) > 0) {
+        ///if (strlen(argv[i]) > 0) 
+        {
             t->pushOnStack((uint64_t)argv[i]);
             klog('t', "Pushing argument 0x%lx", argv[i]);
         }
     
+    uint64_t p_argv = t->state.regs.rsp;
+    
     t->pushOnStack(argc);
 
-    t->setEntryArguments((uint64_t)argc, (uint64_t)argv, (uint64_t)envp, 0, 0, 0);
+    t->setEntryArguments((uint64_t)argc, (uint64_t)p_argv, (uint64_t)p_env, 0, 0, 0);
     return t;
 }

@@ -94,11 +94,12 @@ extern "C" void kmain (multiboot_info_t* mbi) {
 
     klog('i', "Configuring timer");
     PIT::get()->init();
-    PIT::get()->setFrequency(25);
+    PIT::get()->setFrequency(250);
 
     klog('i', "Configuring interrupts");
     Keyboard::get()->init();
     Interrupts::get()->setHandler(IRQ(7),  INTERRUPT_MUTE);
+    Interrupts::get()->setHandler(IRQ(14), INTERRUPT_MUTE);
     Interrupts::get()->setHandler(IRQ(15), INTERRUPT_MUTE);
     Interrupts::get()->setHandler(0x00, isrq0);
     Interrupts::get()->setHandler(0x06, isrq6);
@@ -135,28 +136,18 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     p->attachFile(pty->openSlave());
     p->attachFile(pty->openSlave());
 
-    
     auto elf = new ELF();
     elf->loadFromFile("/bin/init");
     elf->loadIntoProcess(p);
 
-    char** argv = new char*[3];
-    argv[0] = "busybox";
-    argv[1] = "sh";
-    argv[2] = NULL;
-    
-    char** envp = new char*[3];
-    envp[0] = "TERM=vt102";
-    envp[1] = "PATH=/bin";
-    envp[2] = NULL;
+    char** argv = new char*[2];
+    argv[0] = "/bin/init";
+    argv[1] = NULL;
 
-    strcpy(p->cwd, "/root");
-    
     klog('i', "Starting init");
-    elf->startMainThread(p, argv, envp);
+    elf->startMainThread(p, argv, NULL);
     Debug::tracingOn = true;
     Scheduler::get()->resume();
-
 
     klog('s', "Init is running");
     for (;;)

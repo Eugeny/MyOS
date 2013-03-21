@@ -113,9 +113,8 @@ crt0:
 	@gcc -c src/crt0.c -o src/crt0.o
 
 apps: crt0
-	@#make -C src/apps/shell
 	@make -C src/apps/init
-	@#make -C src/apps/guess
+	@make -C src/apps/test
 
 .s.o:
 	@echo " ASM " $<
@@ -140,11 +139,9 @@ deploy: all
 	@make mount
 	@echo " CP  kernel"
 	@sudo cp bin/kernel fs/kernel
-	@echo " CP  grub.cfg"
 	@sudo cp grub.cfg fs/boot/grub/
-	@echo " CP  init"
 	@sudo cp src/apps/init/init fs/bin/
-	@#sudo cp src/apps/shell/sh fs/bin/
+	@sudo cp src/apps/test/testapp fs/bin/
 	@#sudo cp src/apps/guess/guess fs/bin/
 	@#sudo cp src/apps/dash/src/dash fs/bin/
 	@make umount

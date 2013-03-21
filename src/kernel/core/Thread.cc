@@ -27,7 +27,7 @@ void Thread::createStack(uint64_t size) {
     stackSize = size;
     stackBottom = process->sbrkStack(size);
     klog('t', "Created stack at %lx", stackBottom);
-    state.regs.rsp = (uint64_t)stackBottom - 0x1000;
+    state.regs.rsp = (uint64_t)stackBottom - 0x4000;
 }
 
 void Thread::createStack(uint64_t bottom, uint64_t size) {
@@ -36,7 +36,7 @@ void Thread::createStack(uint64_t bottom, uint64_t size) {
     process->addressSpace->releaseSpace(bottom-size, size);
     process->allocateStack(bottom-size, size);
     klog('t', "Created stack at %lx", stackBottom);
-    state.regs.rsp = (uint64_t)stackBottom - 0x1000;
+    state.regs.rsp = (uint64_t)stackBottom - 0x4000;
 }
 
 void Thread::storeState(isrq_registers_t* regs) {
@@ -51,12 +51,17 @@ void Thread::recoverState(isrq_registers_t* regs) {
     state.addressSpace->activate();
 }
 
-void Thread::pushOnStack(uint64_t v) {
-    AddressSpace* oldAS = AddressSpace::current;
-    process->addressSpace->activate();
+uint64_t Thread::pushOnStack(uint64_t v) {
     state.regs.rsp -= sizeof(uint64_t);
-    *((uint64_t*)state.regs.rsp) = v;
-    oldAS->activate();
+    process->addressSpace->write(&v, state.regs.rsp, 8);
+    return state.regs.rsp;
+}
+
+uint64_t Thread::pushOnStack(void* buffer, uint64_t size) {
+    size = (size + 7) / 8 * 8;
+    state.regs.rsp -= size;
+    process->addressSpace->write(buffer, state.regs.rsp, size);
+    return state.regs.rsp;
 }
 
 void Thread::setEntryArguments(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f) {

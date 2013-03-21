@@ -258,9 +258,6 @@ void AddressSpace::writePage(void* buf, uint64_t base, uint64_t size) {
         (void*)(KCFG_TEMP_PAGE_1 + bufoffset), 
         size
     );
-
-    //dump_stack((uint64_t)KCFG_TEMP_PAGE_1 + bufoffset, 0);
-    //AddressSpace::current->dump();
 }
 
 void AddressSpace::write(void* buf, uint64_t base, uint64_t size) {
@@ -268,6 +265,8 @@ void AddressSpace::write(void* buf, uint64_t base, uint64_t size) {
     uint64_t dstPage = -1;
 
     uint64_t src = (uint64_t)buf, dst = base;
+
+    klog('t', "Copying %lx bytes %lx -> %lx", size, buf, base);
 
     for (uint64_t v = 0; v < size; v++) {
         if (PAGEALIGN(src) != srcPage) {

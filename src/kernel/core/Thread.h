@@ -26,7 +26,8 @@ public:
     void createStack(uint64_t bottom, uint64_t size);
     void storeState(isrq_registers_t* isrq);
     void recoverState(isrq_registers_t* isrq);
-    void pushOnStack(uint64_t v);
+    uint64_t pushOnStack(uint64_t v);
+    uint64_t pushOnStack(void* buffer, uint64_t size);
     void setEntryArguments(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f);
     void wait(Wait* w);
     void stopWaiting();
