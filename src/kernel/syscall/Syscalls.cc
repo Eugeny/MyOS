@@ -625,8 +625,8 @@ SYSCALL(wait4) {
             thread->wait(new WaitForChild(-1));
             WAIT 
             if (status)
-                *status = 0x0;
-                //*status = 0x007f;
+                //*status = process->deadChildStatus;
+                *status = 0x007f;
             return process->deadChildPID;
         }
     }

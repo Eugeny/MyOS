@@ -103,12 +103,14 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     Interrupts::get()->setHandler(0x00, isrq0);
     Interrupts::get()->setHandler(0x06, isrq6);
    
+    Syscalls::init();
     
 
     klog('i', "Starting scheduler");
     Scheduler::get()->init();
     klog_flush();
     Scheduler::get()->spawnKernelThread(&repainterThread, "repainter");
+    Scheduler::get()->resume();
 
 
     // -------------------------------------------------
@@ -120,9 +122,6 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     vfs->mount("/dev", new DevFS());
     vfs->mount("/proc", new ProcFS());
     klog('s', "Filesystem ready");
-
-    Syscalls::init();
-    klog('s', "Userspace ready");
 
 
     klog('i', "");
@@ -146,18 +145,17 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     argv[1] = "sh";
     argv[2] = NULL;
     
-    char** envp = new char*[4];
+    char** envp = new char*[3];
     envp[0] = "TERM=vt102";
     envp[1] = "PATH=/bin";
-    envp[2] = "HOME=/root";
-    envp[3] = NULL;
+    envp[2] = NULL;
 
     strcpy(p->cwd, "/root");
     
     klog('i', "Starting init");
-    Scheduler::get()->resume();
     elf->startMainThread(p, argv, envp);
     Debug::tracingOn = true;
+    Scheduler::get()->resume();
 
 
     klog('s', "Init is running");

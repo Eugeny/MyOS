@@ -28,6 +28,11 @@ void Interrupts::removeHandler(int n) {
 static uint64_t interrupt_counter = 0;
 
 static void default_interrupt_handler(isrq_registers_t* regs) {
+    if (regs->int_no == 7) {
+        // Mute INT7
+        return;
+    }
+
     klog('w', "Uncaught interrupt #%i, ec %x, counter %u", regs->int_no, regs->err_code, interrupt_counter);
 }
 

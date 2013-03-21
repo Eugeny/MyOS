@@ -25,6 +25,8 @@ void ELF::loadFromFile(char* path) {
     if (f) {
         f->read(data, 4*1024*1024);
         f->close();
+    } else {
+        klog('e', "ELF file %s not found!", path);
     }
 }
 

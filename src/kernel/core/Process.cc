@@ -22,6 +22,7 @@ Process::Process(Process* parent, const char* name) {
     isKernel = false;
     isPaused = false;
     pty = NULL;
+
     strcpy(exeName, "");
     strcpy(this->name, name);
     strcpy(cwd, "/");
@@ -33,6 +34,7 @@ Process* Process::clone() {
         f->refcount++;
     p->threads.clear();
     p->pid = makepid();
+    p->signalHandlers.clear();
     return p;
 }
 
@@ -88,7 +90,7 @@ void Process::runPendingSignals() {
                     executeDefaultSignal(i);
                 } else if (handler == SIG_IGN) ;
                 //else 
-                    //handler(i);
+                   // handler(i);
             } else {
                 executeDefaultSignal(i);
             }
