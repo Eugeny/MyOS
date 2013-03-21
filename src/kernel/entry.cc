@@ -137,7 +137,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
 
     
     auto elf = new ELF();
-    elf->loadFromFile("/bin/sh");
+    elf->loadFromFile("/bin/init");
     elf->loadIntoProcess(p);
 
     char** argv = new char*[3];

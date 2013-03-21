@@ -35,7 +35,6 @@ void ELF::loadIntoProcess(Process* p) {
 
     auto oldAS = AddressSpace::current;
     auto as = p->addressSpace;
-    //CPU::CLI();
     as->activate();
 
     auto hdr = (Elf64_Ehdr*)data;
@@ -83,12 +82,14 @@ Thread* ELF::startMainThread(Process* p, char** argv, char** envp) {
     addAuxVector(AT_EGID, 0);
 
     int envpc = 0;
-    klog('d', "ELF Environment:");
-    while (envp[envpc] != NULL) {
-        klog('d', envp[envpc]);
-        envpc++;
+    if (envp) {
+        klog('d', "ELF Environment:");
+        while (envp[envpc] != NULL) {
+            klog('d', envp[envpc]);
+            envpc++;
+        }
     }
-
+    
     t->pushOnStack(0);
     for (int i = envpc - 1; i >= 0; i--)
         t->pushOnStack((uint64_t)envp[i]);
@@ -96,13 +97,17 @@ Thread* ELF::startMainThread(Process* p, char** argv, char** envp) {
     int argc = 0;
     klog('d', "ELF Arguments:");
     while (argv[argc] != NULL) {
-        klog('d', argv[argc]);
+        klog('d', "%s = 0x%lx", argv[argc], argv[argc]);
         argc++;
     }
+    klog('d', "(%i total)", argc);
     
     t->pushOnStack(0);
     for (int i = argc - 1; i >= 0; i--)
-        t->pushOnStack((uint64_t)argv[i]);
+        if (strlen(argv[i]) > 0) {
+            t->pushOnStack((uint64_t)argv[i]);
+            klog('t', "Pushing argument 0x%lx", argv[i]);
+        }
     
     t->pushOnStack(argc);
 

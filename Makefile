@@ -99,7 +99,7 @@ SOURCES= \
 	src/kernel/lang/stubs.o 					\
 
 
-all: $(SOURCES) kernel  apps
+all: $(SOURCES) kernel apps
 
 clean: umount
 	@find src -name '*.o' -delete 
@@ -109,11 +109,12 @@ kernel: $(SOURCES)
 	@echo " LD  " kernel
 	@g++ -o bin/kernel $(LDFLAGS) $(SOURCES) $(LIBS)
 
+crt0:
+	@gcc -c src/crt0.c -o src/crt0.o
 
-apps:
-	@#gcc -c src/apps/crt0.c -o src/apps/crt0.o
+apps: crt0
 	@#make -C src/apps/shell
-	@#make -C src/apps/init
+	@make -C src/apps/init
 	@#make -C src/apps/guess
 
 .s.o:
@@ -139,8 +140,10 @@ deploy: all
 	@make mount
 	@echo " CP  kernel"
 	@sudo cp bin/kernel fs/kernel
+	@echo " CP  grub.cfg"
 	@sudo cp grub.cfg fs/boot/grub/
-	@#sudo cp src/apps/init/init fs/sbin/
+	@echo " CP  init"
+	@sudo cp src/apps/init/init fs/bin/
 	@#sudo cp src/apps/shell/sh fs/bin/
 	@#sudo cp src/apps/guess/guess fs/bin/
 	@#sudo cp src/apps/dash/src/dash fs/bin/

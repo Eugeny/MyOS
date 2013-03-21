@@ -1,14 +1,17 @@
 #include <stdio.h>
 #include <unistd.h>
 
-int main() {
-    printf("-------------------------------------------------------------------------------\n");
-    printf("> MyOS init\n");
-    printf("> Starting shells\n");
-    //exec("/bin/sh", "/dev/tty0", 0, NULL);
-    //#exec("/bin/sh", "/dev/tty1", 0, NULL);
-    //exec("/bin/sh", "/dev/tty2", 0, NULL);
-    //exec("/bin/sh", "/dev/tty3", 0, NULL);
-    //exec("/bin/sh", "/dev/tty4", 0, NULL);
-    printf("-------------------------------------------------------------------------------\n");
+
+int main(int argc, char** argv) {
+    printf("-----------------------------------------------------------------------------------------\n");
+    printf("MyOS %s.\n", argv[0]);
+    printf("Starting shells...\n");
+
+    const char* shell_args[] = { "busybox", "sh", NULL };
+
+    if (fork() == 0) {
+        execv("/bin/sh", shell_args);
+    }
+
+    for(;;);
 }
