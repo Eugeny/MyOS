@@ -27,7 +27,7 @@ void __outputhex(uint64_t h, int offset) {
     char chr[] = "0123456789abcdef";
 
     uint64_t cr0 = (uint64_t) h;
-    for (char c = 0; c < 16; c++) {
+    for (uint c = 0; c < 16; c++) {
         *((char *)0xb8000 + offset * 2 - c * 2) = chr[cr0 % 16];
         *((char *)0xb8000 + offset * 2 - c * 2 + 1) = 0x0f;
         cr0 /=16;
@@ -35,28 +35,15 @@ void __outputhex(uint64_t h, int offset) {
 }
 
 void __output(const char* s, int offset) {
-    for (char c = 0; c < strlen(s); c++) {
+    for (uint c = 0; c < strlen(s); c++) {
         *((char *)0xb8000 + offset * 2 + c * 2) = s[c];
         *((char *)0xb8000 + offset * 2 + c * 2 + 1) = 0x0f;
     }
 }
 
 static void __output_bochs(const char* s) {
-    for (char c = 0; c < strlen(s); c++)
+    for (uint c = 0; c < strlen(s); c++)
         outb(0xe9, s[c]);
-}
-
-
-void sout(const char* str) {
-    static int line = 0;
-
-    char *vram = (char *)0xb8000;
-    for (unsigned int i = 0; i < strlen(str); i++) {
-        *(vram + i * 2 + 160 * line) = str[i];
-    }
-    
-    line++;
-    line %=25;
 }
 
 void klog(char type, const char* format, ...) {
@@ -130,8 +117,6 @@ void klog(char type, const char* format, ...) {
         #ifdef KCFG_LOG_FORCE_RENDER
             t->render(); // force render ASAP
         #endif
-    } else {
-        sout(buffer);
     }
 }
 

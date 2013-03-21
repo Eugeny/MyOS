@@ -46,6 +46,8 @@ public:
     Pool<Thread*, 1024> threads;
     
     bool active;
+    uint64_t startTime;
+    uint64_t getUptime();
 private:
     void doRoutine();
     Pool<Process*, 32> killQueue;

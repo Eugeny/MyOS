@@ -17,7 +17,7 @@ Process::Process(Process* parent, const char* name) {
     ppid = parent ? parent->pid : 0;
     pgid = parent ? parent->pgid : pid;
 
-    brk = 0x400000;
+    brk = 0x400000;  
     stackbrk = 0x800000000000 - 0x2000;
     isKernel = false;
     isPaused = false;

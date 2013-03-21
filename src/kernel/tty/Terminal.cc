@@ -113,37 +113,21 @@ void Terminal::render() {
 void Terminal::processKey(uint64_t mods, uint64_t scancode) {
     char* map = (mods == 2) ? keymap_shifted : keymap;
     
-    int special = 0;
-    if (scancode == 0xcb) special = KEY_LEFT;
-    if (scancode == 0xcd) special = KEY_RIGHT;
-    if (scancode == 0xc8) special = KEY_UP;
-    if (scancode == 0xd0) special = KEY_DOWN;
-    
-    //if (scancode == 0x8e) special = KEY_BACKSPACE;
-    if (scancode == 0xc7) special = KEY_HOME;
-    if (scancode == 0xcf) special = KEY_END;
-    if (scancode == 0xc9) special = KEY_PPAGE;
-    if (scancode == 0xd1) special = KEY_NPAGE;
-    //if (scancode == 0xac && mods == 1) special = KEY_SUSPEND; // ctrl-z
+    #define WRITE_ESCAPED(x) { pty->write("\033[", 2); pty->write(x, strlen(x)); return; }
 
-    if (scancode == 0xbb) special = KEY_F(1);
-    if (scancode == 0xbc) special = KEY_F(2);
-    if (scancode == 0xbd) special = KEY_F(3);
-    if (scancode == 0xbe) special = KEY_F(4);
-    if (scancode == 0xbf) special = KEY_F(5);
-    if (scancode == 0xc0) special = KEY_F(6);
-    if (scancode == 0xc1) special = KEY_F(7);
-    if (scancode == 0xc2) special = KEY_F(8);
-    if (scancode == 0xc3) special = KEY_F(9);
-    if (scancode == 0xc4) special = KEY_F(10);
-    if (scancode == 0xd7) special = KEY_F(11);
-    if (scancode == 0xd8) special = KEY_F(12);
+    if (scancode == 0xcb) WRITE_ESCAPED("D");
+    if (scancode == 0xcd) WRITE_ESCAPED("C");
+    if (scancode == 0xc8) WRITE_ESCAPED("A");
+    if (scancode == 0xd0) WRITE_ESCAPED("B");
+
+    if (scancode == 0xc7) WRITE_ESCAPED("1~");
+    if (scancode == 0xcf) WRITE_ESCAPED("4~");
+    if (scancode == 0xc9) WRITE_ESCAPED("5~");
+    if (scancode == 0xd1) WRITE_ESCAPED("6~");
 
     uint8_t mapped = map[scancode];
 
-    if (special) 
-        rote_vt_keypress(terminal, special);
-    else if (mapped) {
+    if (mapped) {
         if (mods == 1 && mapped >= 'a' && mapped <= 'z') { // ctrl keys
             char buf = mapped - 64;
             pty->write(&buf, 1);

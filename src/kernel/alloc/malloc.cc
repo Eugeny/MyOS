@@ -70,6 +70,7 @@
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wunused-value"
     #pragma GCC diagnostic ignored "-Waddress"
+    #pragma GCC diagnostic ignored "-Wsign-compare"
     #include "_dlmalloc.c"
     #pragma GCC diagnostic pop
 

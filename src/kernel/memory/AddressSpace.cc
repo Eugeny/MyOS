@@ -254,8 +254,8 @@ void AddressSpace::writePage(void* buf, uint64_t base, uint64_t size) {
     AddressSpace::current->activate();
 
     memcpy(
-        (void*)KCFG_TEMP_PAGE_2 + offset, 
-        (void*)KCFG_TEMP_PAGE_1 + bufoffset, 
+        (void*)(KCFG_TEMP_PAGE_2 + offset), 
+        (void*)(KCFG_TEMP_PAGE_1 + bufoffset), 
         size
     );
 
@@ -418,7 +418,7 @@ void AddressSpace::recursiveDump(page_tree_node_t* node, int level) {
         512
     };
 
-    static uint64_t addr, startPhy, startVirt, lastVirt, lastPhy, len, index[4];
+    static uint64_t addr, startPhy, startVirt, lastVirt, lastPhy, len;
     static bool started = false;
 
     if (level == 0) {
@@ -433,8 +433,6 @@ void AddressSpace::recursiveDump(page_tree_node_t* node, int level) {
     for (int i = 0; i < 512; i++) {
         if (addr >= 0x0000800000000000 && addr < 0xffff800000000000)
             addr += 0xffff000000000000;
-
-        index[level] = i;
 
         if (level == 3) {
             if (node->entries[i].present) {

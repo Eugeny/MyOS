@@ -2,6 +2,11 @@
 #include <kutil.h>
 #include <elf/ELF.h>
 #include <fs/vfs/VFS.h>
+#include <core/CPU.h>
+#include <core/Scheduler.h>
+#include <memory/FrameAlloc.h>
+#include <core/Process.h>
+#include <hardware/vga/VGA.h>
 
 
 extern "C" void _syscall_init();
@@ -59,11 +64,6 @@ static bool __strace_in_progress = false;
 //-----------------------------------
 //-----------------------------------
 
-#include <fs/vfs/VFS.h>
-#include <core/CPU.h>
-#include <core/Scheduler.h>
-#include <core/Process.h>
-#include <hardware/vga/VGA.h>
 #include <sys/utsname.h>
 #include <sys/uio.h>
 #include <sys/mman.h>
@@ -77,6 +77,8 @@ static bool __strace_in_progress = false;
 #include <errno.h>
 #include <sys/file.h>
 #include <poll.h>
+#include <sys/sysinfo.h>
+
 
 
 SYSCALL(read) {
@@ -238,7 +240,7 @@ SYSCALL(poll) {
     STRACE("poll(0x%lx, %i, %i)", fds, nfds, timeout);
 
     while (true) {
-        for (int i = 0; i < nfds; i++) {
+        for (uint i = 0; i < nfds; i++) {
             auto f = (StreamFile*)process->files[fds[i].fd];
 
             if (f->type == FILE_STREAM) {
@@ -444,7 +446,7 @@ SYSCALL(ioctl) {
 
     if (request == TCSETS || request == TCSETSW) {
         WARN_STUB("TCSETSx");
-        auto ios = (struct termios*)arg;
+        //auto ios = (struct termios*)arg;
         return 0;
     }
 
@@ -640,7 +642,7 @@ SYSCALL(wait4) {
 SYSCALL(kill) {
     PROCESS
 
-    auto pid = regs->rdi;    
+    auto pid = (int)regs->rdi;    
     auto signal = regs->rsi;    
 
     STRACE("kill(%i, %i)", pid, signal);
@@ -702,7 +704,7 @@ SYSCALL(fcntl) {
         STRACE("F_DUPFD");
         for (int i = arg; i < process->files.capacity; i++)
             if (!process->files[i]) {
-                process->files[i] = process->files[fd];
+                process->files[i] = file;
                 process->files[i]->refcount++;
                 return i;
             }
@@ -722,8 +724,6 @@ SYSCALL(fcntl) {
 
 
 SYSCALL(flock) {
-    PROCESS
- 
     auto fd = regs->rdi;    
     auto cmd = regs->rsi;
 
@@ -791,6 +791,32 @@ SYSCALL(unlink) {
     return 0;
 }
 
+
+SYSCALL(sysinfo) {
+    auto info = (struct sysinfo*)regs->rdi;
+
+    STRACE("sysinfo(0x%lx)", info);
+
+    info->totalram = FrameAlloc::get()->getTotal() * KCFG_PAGE_SIZE;
+    info->freeram = info->totalram - FrameAlloc::get()->getAllocated() * KCFG_PAGE_SIZE;
+    info->sharedram = KCFG_LOW_IDENTITY_PAGING_LENGTH + KCFG_HIGH_IDENTITY_PAGING_LENGTH + KCFG_KERNEL_HEAP_SIZE;
+    info->sharedram *= KCFG_PAGE_SIZE;
+    info->totalswap = 0;
+    info->freeswap = 0;
+    info->bufferram = 0;
+    info->loads[0] = 0;
+    info->loads[1] = 0;
+    info->loads[2] = 0;
+    info->totalhigh = 0;
+    info->freehigh = 0;
+    info->mem_unit = KCFG_PAGE_SIZE;
+    info->uptime = Scheduler::get()->getUptime();
+    info->procs = Scheduler::get()->processes.count();
+
+    return 0;
+}
+
+
 SYSCALL(getuid) {
     STRACE("getuid()");
     return 0;
@@ -851,8 +877,6 @@ SYSCALL(arch_prctl) {
 
 
 SYSCALL(time) {
-    PROCESS
-    
     auto timeptr = (time_t*)regs->rdi;    
     time_t timev = 0;
     
@@ -888,7 +912,7 @@ SYSCALL(getdents64) {
     uint64_t count = 0, num = 0;
 
     dirent* de;
-    while (de = dir->read()) {
+    while ((de = dir->read())) {
         num++;
         buf->d_ino = de->d_ino + 5;
         buf->d_reclen = 256;// strlen(de->d_name) + 2;
@@ -961,6 +985,7 @@ void Syscalls::init() {
     syscalls[0x50] = sys_chdir;
     syscalls[0x52] = sys_rename;
     syscalls[0x57] = sys_unlink;
+    syscalls[0x63] = sys_sysinfo;
     syscalls[0x66] = sys_getuid;
     syscalls[0x68] = sys_getuid; // getgid
     syscalls[0x6b] = sys_getuid; // geteuid

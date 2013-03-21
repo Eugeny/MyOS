@@ -3,6 +3,7 @@
 #include <core/Process.h>
 #include <core/MQ.h>
 #include <hardware/pit/PIT.h>
+#include <hardware/cmos/CMOS.h>
 #include <kutil.h>
 #include <errno.h>
 
@@ -60,6 +61,7 @@ void Scheduler::init() {
     PIT::MSG_TIMER.registerConsumer((MessageConsumer)&handleTimer);
 
     active = false;
+    startTime = CMOS::get()->readTime();
 }
 
 void Scheduler::pause() {
@@ -153,10 +155,7 @@ Process* Scheduler::fork() {
     processes.add(p2);
 
     pause();
-    //p1->addressSpace->dump();
     p2->addressSpace = p1->addressSpace->clone();
-
-    AddressSpace* oldAS = AddressSpace::current;
 
     Thread* nt = new Thread(p2, activeThread->name);
     p2->threads.add(nt);
@@ -283,4 +282,8 @@ void Scheduler::logTask() {
         activeThread->process->pid,
         activeThread->name,
         activeThread->id);
+}
+
+uint64_t Scheduler::getUptime() {
+    return CMOS::get()->readTime() - startTime;
 }

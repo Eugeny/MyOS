@@ -41,6 +41,14 @@ public:
         for (int i = 0; i < size; i++)
             items[i] = NULL;
     }
+
+    int count() {
+        int c = 0;
+        for (int i = 0; i < size; i++)
+            if (items[i] != NULL)
+                c++;
+        return c;
+    }
     
     T& operator[] (int index) {
         return items[index];
