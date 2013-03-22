@@ -122,7 +122,7 @@ void klog(char type, const char* format, ...) {
 
 void microtrace() {
     static char icons[] = "/-\\|";
-    static int index = 0;
+    static int index = 0; 
     index = (index + 1) % 4;
     char *vram = (char *)0xb809e;
     *vram = icons[index];

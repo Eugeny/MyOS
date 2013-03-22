@@ -103,6 +103,8 @@ all: $(SOURCES) kernel apps
 
 clean: umount
 	@find src -name '*.o' -delete 
+	@rm src/apps/init/init || true
+	@rm src/apps/test/testapp || true
 	@rm bin/kernel || true
 
 kernel: $(SOURCES)

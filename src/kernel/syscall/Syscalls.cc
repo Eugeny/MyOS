@@ -865,6 +865,7 @@ SYSCALL(sysinfo) {
     info->totalram = FrameAlloc::get()->getTotal();
     info->freeram = info->totalram - FrameAlloc::get()->getAllocated();
     info->sharedram = KCFG_LOW_IDENTITY_PAGING_LENGTH + KCFG_HIGH_IDENTITY_PAGING_LENGTH + KCFG_KERNEL_HEAP_SIZE;
+    info->sharedram /= KCFG_PAGE_SIZE;
     info->totalswap = 0;
     info->freeswap = 0;
     info->bufferram = 0;
@@ -935,6 +936,25 @@ SYSCALL(arch_prctl) {
         klog_flush();
         for(;;);
     }
+
+    return 0;
+}
+
+
+SYSCALL(utimes) {
+    PROCESS
+    RESOLVE_PATH(path, regs->rdi)
+    auto times = (struct utimbuf*)regs->rsi;
+
+    STRACE("utimes(%s, 0x%lx)", path, times);
+    WARN_STUB("utimes");
+
+    auto f = VFS::get()->open(path, O_RDONLY);
+    if (haserr())
+        return Syscalls::error();
+    
+    f->close();
+    delete f;
 
     return 0;
 }
@@ -1058,6 +1078,7 @@ void Syscalls::init() {
     syscalls[0x6d] = sys_setpgid; 
     syscalls[0x6f] = sys_getpgrp;
     syscalls[0x9e] = sys_arch_prctl;
+    syscalls[0xeb] = sys_utimes;
     syscalls[0xc9] = sys_time;
     syscalls[0xd9] = sys_getdents64;
     syscalls[0x6e] = sys_getppid;
