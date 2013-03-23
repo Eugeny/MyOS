@@ -33,7 +33,8 @@ static void default_interrupt_handler(isrq_registers_t* regs) {
         return;
     }
 
-    klog('w', "Uncaught interrupt #%i, ec %x, counter %u", regs->int_no, regs->err_code, interrupt_counter);
+    klog('w', "Uncaught interrupt #%i, ec %x, RIP 0x%lx, counter %u", 
+        regs->int_no, regs->err_code, regs->rip, interrupt_counter);
 }
 
 static void default_irq_handler(isrq_registers_t* regs) {

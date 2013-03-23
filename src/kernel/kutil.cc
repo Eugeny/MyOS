@@ -62,32 +62,17 @@ void klog(char type, const char* format, ...) {
         return;
     }
 
-    if (type == 't' && !Debug::tracingOn) {
-        va_end(args);
-        return;
-    }
-    
     static char buffer[128];
     vsnprintf(buffer, 128, format, args);
 
     va_end(args);
 
-    if (type == 't') {
-        if (Debug::tracingOn) {
-            #ifdef KCFG_ENABLE_TRACING
-                __output_bochs(buffer);
-                __output_bochs("\n");
-            #endif
-        }
-        return;
-    }
-    
     #ifdef KCFG_ENABLE_TRACING
         __output_bochs(buffer);
         __output_bochs("\n");
     #endif
 
-    if (type == 'd')
+    if (type == 'd' || type == 't')
         return;
     
     if (__logging_terminal_ready) {

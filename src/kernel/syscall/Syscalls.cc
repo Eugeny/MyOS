@@ -7,6 +7,7 @@
 #include <memory/FrameAlloc.h>
 #include <core/Process.h>
 #include <hardware/vga/VGA.h>
+#include <hardware/cmos/CMOS.h>
 
 
 extern "C" void _syscall_init();
@@ -69,6 +70,7 @@ static bool __strace_in_progress = false;
 #include <sys/mman.h>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
 #include <termios.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -573,6 +575,23 @@ SYSCALL(fork) {
 }
 
 
+SYSCALL(vfork) { 
+    THREAD
+    STRACE("vfork()");
+
+    Process* p = Scheduler::get()->fork();
+    if (p) {
+        klog('t', "VForked parent ok");
+        thread->wait(new WaitForChild(-1));
+        WAIT 
+        return p->pid;
+    } else {
+        klog('t', "VForked child ok");
+        return 0;
+    }
+}
+
+
 SYSCALL(execve) { 
     PROCESS
     THREAD
@@ -857,6 +876,20 @@ SYSCALL(readlink) {
 }
 
 
+SYSCALL(gettimeofday) {
+    auto tv = (struct timeval*)regs->rdi;
+    auto tz = (struct timezone*)regs->rsi;
+    STRACE("gettimeofday(0x%lx, 0x%lx)", tv, tz);
+
+    tv->tv_sec = CMOS::get()->readTime();
+    tv->tv_usec = 0;
+    tz->tz_minuteswest = 0;
+    tz->tz_dsttime = 0;
+
+    return 0;
+}
+
+
 SYSCALL(sysinfo) {
     auto info = (struct sysinfo*)regs->rdi;
 
@@ -941,24 +974,6 @@ SYSCALL(arch_prctl) {
 }
 
 
-SYSCALL(utimes) {
-    PROCESS
-    RESOLVE_PATH(path, regs->rdi)
-    auto times = (struct utimbuf*)regs->rsi;
-
-    STRACE("utimes(%s, 0x%lx)", path, times);
-    WARN_STUB("utimes");
-
-    auto f = VFS::get()->open(path, O_RDONLY);
-    if (haserr())
-        return Syscalls::error();
-    
-    f->close();
-    delete f;
-
-    return 0;
-}
-
 
 SYSCALL(time) {
     auto timeptr = (time_t*)regs->rdi;    
@@ -1018,6 +1033,24 @@ SYSCALL(getdents64) {
 }
 
 
+SYSCALL(utimes) {
+    PROCESS
+    RESOLVE_PATH(path, regs->rdi)
+    auto times = (struct utimbuf*)regs->rsi;
+
+    STRACE("utimes(%s, 0x%lx)", path, times);
+    WARN_STUB("utimes");
+
+    auto f = VFS::get()->open(path, O_RDONLY);
+    if (haserr())
+        return Syscalls::error();
+    
+    f->close();
+    delete f;
+
+    return 0;
+}
+
 SYSCALL(getppid) {
     PROCESS
     STRACE("getppid()");
@@ -1058,6 +1091,7 @@ void Syscalls::init() {
     syscalls[0x21] = sys_dup2;
     syscalls[0x27] = sys_getpid;
     syscalls[0x39] = sys_fork;
+    syscalls[0x3a] = sys_vfork;
     syscalls[0x3b] = sys_execve;
     syscalls[0x3c] = sys_exit;
     syscalls[0x3d] = sys_wait4;
@@ -1070,6 +1104,7 @@ void Syscalls::init() {
     syscalls[0x52] = sys_rename;
     syscalls[0x57] = sys_unlink;
     syscalls[0x59] = sys_readlink;
+    syscalls[0x60] = sys_gettimeofday;
     syscalls[0x63] = sys_sysinfo;
     syscalls[0x66] = sys_getuid;
     syscalls[0x68] = sys_getuid; // getgid
@@ -1078,9 +1113,9 @@ void Syscalls::init() {
     syscalls[0x6d] = sys_setpgid; 
     syscalls[0x6f] = sys_getpgrp;
     syscalls[0x9e] = sys_arch_prctl;
-    syscalls[0xeb] = sys_utimes;
     syscalls[0xc9] = sys_time;
     syscalls[0xd9] = sys_getdents64;
+    syscalls[0xeb] = sys_utimes;
     syscalls[0x6e] = sys_getppid;
 }
 

@@ -90,8 +90,6 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     klog('i', "Setting IDT");
     IDT::get()->init();
 
-    klog('i', "Time is %u", CMOS::get()->readTime());
-
     klog('i', "Configuring timer");
     PIT::get()->init();
     PIT::get()->setFrequency(250);
@@ -104,6 +102,11 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     Interrupts::get()->setHandler(0x00, isrq0);
     Interrupts::get()->setHandler(0x06, isrq6);
    
+    klog('d', "readtime");
+    time_t time = CMOS::get()->readTime();
+    klog('i', "Time is %s", ctime(&time));
+
+
     Syscalls::init();
     
 
@@ -150,6 +153,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     Scheduler::get()->resume();
 
     klog('s', "Init is running");
+    CPU::STI();
     for (;;)
         CPU::halt();
 }
