@@ -43,6 +43,7 @@ IMAGE=`readlink -f image.vmdk`
 SOURCES= \
 	src/kernel/bootstrap.o 						\
 	src/kernel/entry.o 							\
+	src/kernel/hardware/pmutil.o 				\
 												\
 	src/kernel/alloc/malloc.o 					\
 												\
@@ -69,6 +70,7 @@ SOURCES= \
 	src/kernel/fs/Pipe.o 						\
 												\
 	src/kernel/hardware/io.o 					\
+	src/kernel/hardware/pm.o 					\
 	src/kernel/hardware/ata/ATA.o 				\
 	src/kernel/hardware/cmos/CMOS.o 			\
 	src/kernel/hardware/keyboard/Keyboard.o 	\

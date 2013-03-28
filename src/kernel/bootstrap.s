@@ -20,7 +20,7 @@ section .data
 
 section .text
 
-[BITS 32]
+bits 32
 
 MODULEALIGN equ  1<<0                   ; align loaded modules on page boundaries
 MEMINFO     equ  1<<1                   ; provide memory map
@@ -44,12 +44,26 @@ align 4
     dd 0
 
 
+global realmode_idtr
+global realmode_idt_backup
+realmode_idtr: dw 0
+realmode_idt_backup:
+    times 0x400 db 0
+
 
 ; CODE --------------------------------
 ; 32 bit bootstrap
 
 loader:
     cli
+
+    ; Store IDT
+    sidt    [realmode_idtr]
+    mov     eax, [realmode_idtr]
+    mov     esi, eax
+    mov     edi, realmode_idt_backup
+    mov     ecx, 0x400
+    rep     movsb
 
     status '.', 0
 
@@ -177,7 +191,7 @@ UDATA_SELECTOR equ 6 << 3
 
 
 GDTR:                                   ; Global Descriptors Table Register 
-    dw 7*8-1                              ; limit of GDT (size minus one) 
+    dw 9 * 8 - 1                              ; limit of GDT (size minus one) 
     dq GDT                                ; linear address of GDT 
 
 GDT:
@@ -188,6 +202,8 @@ GDT:
     db 0xff, 0xff, 0, 0, 0, 0x92, 0xaf, 0  ; flat k data 64
     db 0xff, 0xff, 0, 0, 0, 0xfa, 0xaf, 0  ; flat u code 64
     db 0xff, 0xff, 0, 0, 0, 0xf2, 0xaf, 0  ; flat u data 64
+    db 0xff, 0xff, 0, 0, 0, 0x9a, 0x0f, 0  ; RM CODE
+    db 0xff, 0xff, 0, 0, 0, 0x92, 0x0f, 0  ; RM DATA
 
 
 section .bss

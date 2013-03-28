@@ -1,8 +1,10 @@
 #include <hardware/pm.h>
 #include <hardware/io.h>
+#include <memory/AddressSpace.h>
 #include <core/CPU.h>
 #include <kutil.h>
 
+extern "C" void ApmPoweroff();
 
 void PM::reboot() {
     klog('w', "Rebooting");
@@ -11,5 +13,6 @@ void PM::reboot() {
 }
 
 void PM::shutdown() {
-
+    klog('w', "System halted");
+    ApmPoweroff();
 }

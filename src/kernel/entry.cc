@@ -30,6 +30,7 @@
 #include <elf/ELF.h>
 #include <multiboot.h>
 
+#include <hardware/pm.h>
 
 
 int main() { return 0; }

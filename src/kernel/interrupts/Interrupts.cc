@@ -46,10 +46,10 @@ static void default_irq_handler(isrq_registers_t* regs) {
 void INTERRUPT_MUTE(isrq_registers_t* regs) {}
 
 extern "C" void isr_handler(isrq_registers_t* regs) {
-    __output("INT", 10);
-    __outputhex(regs->int_no, 20);
-    __outputhex(regs->rip, 40);
-    __outputhex(regs->rsp, 60);
+    //__output("INT", 10);
+    //__outputhex(regs->int_no, 20);
+    //__outputhex(regs->rip, 40);
+    //__outputhex(regs->rsp, 60);
     interrupt_counter++;
 
     regs->int_no %= 256;

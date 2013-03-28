@@ -2,6 +2,13 @@ ENTRY (loader)
 
 SECTIONS
 {
+	. = 0x9000;
+
+	.btext : {
+		src/kernel/bootstrap.o(.text*)
+		src/kernel/hardware/pmutil.o(.text*)
+	}
+
 	. = 0x100000;
 
 	.text ALIGN(4096) :
