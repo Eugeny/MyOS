@@ -813,14 +813,23 @@ SYSCALL(fcntl) {
         return Syscalls::error();
     } 
 
-    if (cmd == F_SETFD) {
-        WARN_STUB("F_SETFD");
+    if (cmd == F_SETFD || cmd == F_SETFL) {
+        file->flags = arg;
+        return 0;
+    }
+
+    if (cmd == F_GETFD || cmd == F_GETFL) {
+        return file->flags;
+    }
+
+    if (cmd == F_SETLK || cmd == F_GETLK) {
+        WARN_STUB("F_xxxLK");
         return 0;
     }
 
     klog('w', "Unknown fcntl %i", cmd);
-
-    return 0;
+    seterr(EINVAL);
+    return Syscalls::error();
 }
 
 
@@ -830,6 +839,15 @@ SYSCALL(flock) {
 
     STRACE("flock(%u, %i)", fd, cmd);
     WARN_STUB("flock");
+    return 0;
+}
+
+
+SYSCALL(fsync) {
+    auto fd = regs->rdi;    
+
+    STRACE("fsync(%u)", fd);
+    WARN_STUB("fsync");
     return 0;
 }
 
@@ -949,6 +967,13 @@ SYSCALL(getuid) {
 }
 
 
+SYSCALL(setuid) {
+    STRACE("setuid()");
+    WARN_STUB("setuid()");
+    return 0;
+}
+
+
 SYSCALL(setpgid) {
     auto pid = regs->rdi;    
     auto pgid = regs->rsi;    
@@ -1018,7 +1043,9 @@ SYSCALL(reboot) {
         PM::reboot();
     else if (cmd == RB_POWER_OFF)
         PM::shutdown();
-    else 
+    else if (cmd == RB_HALT_SYSTEM)
+        PM::halt();
+    else
         seterr(EINVAL);
 
     return Syscalls::error();
@@ -1027,10 +1054,9 @@ SYSCALL(reboot) {
 
 SYSCALL(time) {
     auto timeptr = (time_t*)regs->rdi;    
-    time_t timev = 0;
+    time_t timev = CMOS::get()->readTime();
     
     STRACE("time(0x%lx)", timeptr);
-    WARN_STUB("time");
 
     if (timeptr)
         *timeptr = timev;
@@ -1150,6 +1176,7 @@ void Syscalls::init() {
     syscalls[0x3f] = sys_uname;
     syscalls[0x48] = sys_fcntl;
     syscalls[0x49] = sys_flock;
+    syscalls[0x4a] = sys_fsync;
     syscalls[0x4f] = sys_getcwd;
     syscalls[0x50] = sys_chdir;
     syscalls[0x52] = sys_rename;
@@ -1159,6 +1186,7 @@ void Syscalls::init() {
     syscalls[0x63] = sys_sysinfo;
     syscalls[0x66] = sys_getuid;
     syscalls[0x68] = sys_getuid; // getgid
+    syscalls[0x69] = sys_setuid;
     syscalls[0x6b] = sys_getuid; // geteuid
     syscalls[0x6c] = sys_getuid; // getegid
     syscalls[0x6d] = sys_setpgid; 
@@ -1187,24 +1215,16 @@ extern "C" uint64_t _syscall_handler(syscall_regs_t* regs) {
         }
     } else {
         __outputhex(regs->id, 70);
-        klog('w', "Unknown syscall");
-        klog_flush();
-        klog('w', "0x%lx", regs->id);
-        klog_flush();
-        //for(;;);
+        klog('w', "Unimplemented syscall 0x%lx", regs->id);
+        result = -ENOSYS;
     }
 
     Scheduler::get()->resume();
 
-    //for(int i =0;i<500000;i++);
     return result;
 }
 
 uint64_t Syscalls::error() {
     int r = -geterr();
-    #ifdef KCFG_STRACE
-        //klog('t', " = (err) %i", r);
-        //klog_flush();
-    #endif   
     return (uint64_t)r;
 }

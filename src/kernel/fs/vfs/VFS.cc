@@ -8,7 +8,7 @@ void VFS::mount(char* point, FS* fs) {
     auto m = new mount_t();
     strcpy(m->path, point);
     m->fs = fs;
-    klog('i', " -- mounting '%10s' -> %s", fs->getName(), point);
+    klog('i', " -- mounting %s at %s", fs->getName(), point);
     mounts.add(m);
 }
 

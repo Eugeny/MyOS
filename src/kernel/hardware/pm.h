@@ -5,6 +5,7 @@ class PM {
 public:
     static void reboot();
     static void shutdown();
+    static void halt();
 };
 
 #endif

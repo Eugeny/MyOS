@@ -21,6 +21,7 @@ public:
 
     int type;
     int refcount;
+    int flags;
 protected:
     char path[1024];
     FS* filesystem;

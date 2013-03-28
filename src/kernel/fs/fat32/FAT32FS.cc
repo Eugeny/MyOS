@@ -33,7 +33,9 @@ StreamFile* FAT32FS::open(char* path, int flags) {
         return NULL;
     }
 
-    return new FAT32File(path, this, fil);
+    StreamFile* f = new FAT32File(path, this, fil);
+    f->flags = flags;
+    return f;
 }
 
 Directory* FAT32FS::opendir(char* path) {

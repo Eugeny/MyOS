@@ -88,14 +88,11 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     PhysicalTerminalManager::get()->render();
 
     Debug::init();
-    klog('i', "Setting IDT");
     IDT::get()->init();
 
-    klog('i', "Configuring timer");
     PIT::get()->init();
     PIT::get()->setFrequency(25);
 
-    klog('i', "Configuring interrupts");
     Keyboard::get()->init();
     Interrupts::get()->setHandler(IRQ(7),  INTERRUPT_MUTE);
     Interrupts::get()->setHandler(IRQ(14), INTERRUPT_MUTE);
@@ -103,9 +100,6 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     Interrupts::get()->setHandler(0x00, isrq0);
     Interrupts::get()->setHandler(0x06, isrq6);
    
-    time_t time = CMOS::get()->readTime();
-    klog('i', "Time is %s", ctime(&time));
-
 
     Syscalls::init();
     

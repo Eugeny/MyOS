@@ -13,6 +13,12 @@ void PM::reboot() {
 }
 
 void PM::shutdown() {
-    klog('w', "System halted");
+    klog('w', "Power off");
     ApmPoweroff();
+}
+
+void PM::halt() {
+    klog('w', "System halted");
+    CPU::CLI();
+    CPU::halt();
 }

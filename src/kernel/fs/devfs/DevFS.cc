@@ -16,7 +16,7 @@ char* DevFS::getName() {
 }
 
 StreamFile* DevFS::open(char* path, int flags) {
-    if (strcmp(path, "/tty") == 0)
+    if (strcmp(path, "/tty") == 0 || strcmp(path, "/console") == 0)
         return Scheduler::get()->getActiveThread()->process->pty->openSlave();
     if (strcmp(path, "/null") == 0)
         return new NullSource("/null", this);
@@ -30,6 +30,7 @@ StreamFile* DevFS::open(char* path, int flags) {
 }
 
 Directory* DevFS::opendir(char* path) {
+    seterr(ENOENT);
     return NULL;
 }
 
