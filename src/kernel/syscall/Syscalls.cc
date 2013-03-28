@@ -1,13 +1,14 @@
-#include <syscall/Syscalls.h>
-#include <kutil.h>
+#include <core/CPU.h>
+#include <core/Process.h>
+#include <core/Scheduler.h>
 #include <elf/ELF.h>
 #include <fs/vfs/VFS.h>
-#include <core/CPU.h>
-#include <core/Scheduler.h>
-#include <memory/FrameAlloc.h>
-#include <core/Process.h>
-#include <hardware/vga/VGA.h>
 #include <hardware/cmos/CMOS.h>
+#include <hardware/pm.h>
+#include <hardware/vga/VGA.h>
+#include <kutil.h>
+#include <memory/FrameAlloc.h>
+#include <syscall/Syscalls.h>
 
 
 extern "C" void _syscall_init();
@@ -65,21 +66,22 @@ static bool __strace_in_progress = false;
 //-----------------------------------
 //-----------------------------------
 
-#include <sys/utsname.h>
-#include <sys/uio.h>
-#include <sys/mman.h>
-#include <string.h>
-#include <time.h>
-#include <sys/time.h>
-#include <termios.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <signal.h>
-#include <sys/resource.h>
 #include <errno.h>
-#include <sys/file.h>
+#include <fcntl.h>
 #include <poll.h>
+#include <signal.h>
+#include <string.h>
+#include <sys/file.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/reboot.h>
+#include <sys/resource.h>
 #include <sys/sysinfo.h>
+#include <sys/time.h>
+#include <sys/uio.h>
+#include <sys/utsname.h>
+#include <termios.h>
+#include <time.h>
 
 
 
@@ -554,6 +556,28 @@ SYSCALL(dup2) {
 }
 
 
+SYSCALL(nanosleep) {
+    PROCESS
+    THREAD
+
+    auto req = (struct timespec*)regs->rdi;
+    auto rem = (struct timespec*)regs->rdi;
+
+    STRACE("nanosleep(0x%lx, 0x%lx)", req, rem);
+
+    uint64_t msdelay = req->tv_sec * 1000 + req->tv_nsec / 1000;
+    if (rem) {
+        rem->tv_sec = 0;
+        rem->tv_nsec = 0;
+    }
+
+    thread->wait(new WaitForDelay(msdelay));
+    WAIT;
+
+    return process->pid;
+}
+
+
 SYSCALL(getpid) {
     PROCESS
     STRACE("getpid()");
@@ -635,8 +659,8 @@ SYSCALL(execve) {
     elf->loadFromFile(path);
 
     if (!haserr()) {
-        elf->loadIntoProcess(process);
         strcpy(process->name, (char*)regs->rdi);
+        elf->loadIntoProcess(process);
         elf->startMainThread(process, n_argv, n_envp);  
     }    
     
@@ -731,7 +755,11 @@ SYSCALL(kill) {
     }
 
     if (pid == -1) {
-        WARN_STUB("kill(-1, ...)");
+        for (auto p : Scheduler::get()->processes)
+            if (p->pid > 1) {
+                p->queueSignal(signal);
+                WAITONE
+            }
         return 0;
     }
 
@@ -974,6 +1002,28 @@ SYSCALL(arch_prctl) {
 }
 
 
+SYSCALL(sync) {
+    STRACE("sync()");
+    WARN_STUB("sync()")
+    return 0;
+}
+
+
+SYSCALL(reboot) {
+    auto cmd = regs->rdx;    
+    
+    STRACE("reboot(0x%lx)", cmd);
+
+    if (cmd == RB_AUTOBOOT)
+        PM::reboot();
+    else if (cmd == RB_POWER_OFF)
+        PM::shutdown();
+    else 
+        seterr(EINVAL);
+
+    return Syscalls::error();
+}
+
 
 SYSCALL(time) {
     auto timeptr = (time_t*)regs->rdi;    
@@ -1089,6 +1139,7 @@ void Syscalls::init() {
     syscalls[0x16] = sys_pipe;
     syscalls[0x20] = sys_dup;
     syscalls[0x21] = sys_dup2;
+    syscalls[0x23] = sys_nanosleep;
     syscalls[0x27] = sys_getpid;
     syscalls[0x39] = sys_fork;
     syscalls[0x3a] = sys_vfork;
@@ -1113,6 +1164,8 @@ void Syscalls::init() {
     syscalls[0x6d] = sys_setpgid; 
     syscalls[0x6f] = sys_getpgrp;
     syscalls[0x9e] = sys_arch_prctl;
+    syscalls[0xa2] = sys_sync;
+    syscalls[0xa9] = sys_reboot;
     syscalls[0xc9] = sys_time;
     syscalls[0xd9] = sys_getdents64;
     syscalls[0xeb] = sys_utimes;

@@ -89,8 +89,8 @@ void Process::runPendingSignals() {
                 if (handler == SIG_DFL) {
                     executeDefaultSignal(i);
                 } else if (handler == SIG_IGN) ;
-                //else 
-                   // handler(i);
+                else 
+                    handler(i);
             } else {
                 executeDefaultSignal(i);
             }

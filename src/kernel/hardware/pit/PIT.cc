@@ -9,8 +9,17 @@ Message PIT::MSG_TIMER("timer");
 static uint64_t ticks = 0;
 
 static void handler(isrq_registers_t* regs) {
+    static bool busy = false;
+
+    if (busy)
+        return;
+
+    busy = true;
+
     ticks++;
     PIT::MSG_TIMER.post((void*)regs);
+
+    busy = false;
 }
 
 void PIT::init() {

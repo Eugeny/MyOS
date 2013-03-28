@@ -79,6 +79,7 @@ isr_common_stub:
     mov rsi, rsp
     mov rdi, rax
     mov rcx, COPY_STACK_SIZE
+
     rep movsb
 
     mov rdi, isrq_stack_top

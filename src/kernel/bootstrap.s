@@ -10,8 +10,9 @@ extern _start, _end, kmain
 
 
 section .data
-    stack times 409600 db 0
-    stacktop dd 0
+    stack       times 409600 db 0
+    stacktop    dd 0
+    stackbumper times 4096 db 0
 
     global multiboot_info
     multiboot_info dd 0
@@ -149,14 +150,12 @@ bits 64
 loader64:
     status '.', 5
 
-    ;mov     rax, '.p.p.p.p' 
-    ;mov     [0B8000h], rax 
-
     mov     rax, KDATA_SELECTOR
     mov     ds, ax
     mov     es, ax
     mov     fs, ax
     mov     gs, ax
+    mov     ss, ax
 
     mov     rax, cr4 
     ;bts     rax, 20

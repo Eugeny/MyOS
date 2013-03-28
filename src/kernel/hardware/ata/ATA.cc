@@ -74,6 +74,7 @@ void ata_read(uint64_t lba, uint8_t* buf) {
     //    return;
     //}
     klog('t', "ATA cache miss %lx", lba);
+    //klog_flush();
 
     int c, h, s;
     lba2chs(lba, &c, &h, &s);

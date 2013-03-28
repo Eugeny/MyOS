@@ -92,7 +92,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
 
     klog('i', "Configuring timer");
     PIT::get()->init();
-    PIT::get()->setFrequency(250);
+    PIT::get()->setFrequency(25);
 
     klog('i', "Configuring interrupts");
     Keyboard::get()->init();
@@ -102,7 +102,6 @@ extern "C" void kmain (multiboot_info_t* mbi) {
     Interrupts::get()->setHandler(0x00, isrq0);
     Interrupts::get()->setHandler(0x06, isrq6);
    
-    klog('d', "readtime");
     time_t time = CMOS::get()->readTime();
     klog('i', "Time is %s", ctime(&time));
 
@@ -130,7 +129,7 @@ extern "C" void kmain (multiboot_info_t* mbi) {
 
     klog('i', "");
     klog('i', "Loading init");
-    Process* p = Scheduler::get()->spawnProcess(Scheduler::get()->kernelProcess, "sh");
+    Process* p = Scheduler::get()->spawnProcess(Scheduler::get()->kernelProcess, "init");
 
     PTY* pty = PhysicalTerminalManager::get()->getPTY(0);
 
