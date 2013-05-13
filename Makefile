@@ -119,6 +119,7 @@ crt0:
 apps: crt0
 	@make -C src/apps/init
 	@make -C src/apps/test
+	@make -C src/apps/clock
 
 .s.o:
 	@echo " ASM " $<
@@ -146,8 +147,7 @@ deploy: all
 	@sudo cp grub.cfg fs/boot/grub/
 	@sudo cp src/apps/init/init fs/bin/
 	@sudo cp src/apps/test/testapp fs/bin/
-	@#sudo cp src/apps/guess/guess fs/bin/
-	@#sudo cp src/apps/dash/src/dash fs/bin/
+	@sudo cp src/apps/clock/clock fs/bin/
 	@make umount
 
 run: deploy

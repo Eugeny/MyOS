@@ -44,13 +44,13 @@ void Debug::onDumpRegisters(isrq_registers_t* regs) {
 }
 
 void Debug::onDumpTasks(void*) {
+    klog('i', "");
     klog('i', "Tasks: -------------------------------------------------");
     klog('i', "Scheduler %s", Scheduler::get()->active ? "active" : "OFF");
     for (Process* p : Scheduler::get()->processes) {
-        klog('i', " - %3i %s", p->pid, p->name);
+        klog('s', "");
+        klog('s', "[PID %3i] %s", p->pid, p->name);
         for (Thread* t : p->threads) {
-            uint64_t su = (uint64_t)t->stackBottom - t->state.regs.rsp;
-            su = su * 100 / (t->stackSize + 1);
             char* st = NULL;
             if (t->activeWait) {
                 #define CHECK_WAIT(x) if (t->activeWait->type == x) st = #x;
@@ -60,16 +60,15 @@ void Debug::onDumpTasks(void*) {
                 CHECK_WAIT(WAIT_FOR_FILE);
             } else 
                 st = "running";
-            klog('i', "      - %3i %10s | %15s | %4i ticks | %i%% stack", 
+            klog('i', " - TID %3i %10s | %15s | %4i cycles", 
                 t->id, 
                 t->name, 
                 st,
-                t->cycles,
-                su
-                //t->stackSize / 1024 
+                t->cycles
             );
         }
     }
+    klog('i', "");
     klog_flush();
 }
 
