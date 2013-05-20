@@ -19,6 +19,7 @@ void PM::shutdown() {
 
 void PM::halt() {
     klog('w', "System halted");
+    klog_flush();
     CPU::CLI();
     CPU::halt();
 }

@@ -12,6 +12,7 @@
 
 #define TASK_SHUTDOWN 1
 #define TASK_REBOOT 2
+#define TASK_HALT 3
 
 
 static int task = 0;
@@ -23,7 +24,7 @@ void initiate_shutdown() {
     sleep(2);
     kill(-1, SIGKILL);
 
-    printf(" * Waiting for all processes to terminate");
+    printf("\n * Waiting for all processes to terminate");
     while (1) {
         struct sysinfo sinfo;
         sysinfo(&sinfo);
@@ -31,7 +32,7 @@ void initiate_shutdown() {
         printf(".");
         fflush(NULL);
 
-        printf("%i ", sinfo.procs);
+        //printf("%i ", sinfo.procs);
         if (sinfo.procs == 2)
             break;
 
@@ -44,6 +45,8 @@ void initiate_shutdown() {
 
     if (task == TASK_REBOOT)
         reboot(RB_AUTOBOOT);
+    if (task == TASK_HALT)
+        reboot(RB_HALT_SYSTEM);
     if (task == TASK_SHUTDOWN)
         reboot(RB_POWER_OFF);
 }
@@ -53,6 +56,8 @@ void initiate_shutdown() {
 void sig_handler(int sig) {
     if (sig == SIGTERM)
         task = TASK_REBOOT;
+    if (sig == SIGUSR1)
+        task = TASK_HALT;
     if (sig == SIGUSR2)
         task = TASK_SHUTDOWN;
 }
@@ -87,12 +92,12 @@ int main(int argc, char** argv) {
     printf("-----------------------------------------------------------------------------------------\n");
 
     signal(SIGTERM, &sig_handler);
+    signal(SIGUSR1, &sig_handler);
     signal(SIGUSR2, &sig_handler);
 
     while (task == 0) {
         sleep(1);
     }
 
-    if (task == TASK_SHUTDOWN || task == TASK_REBOOT)
-        initiate_shutdown();
+    initiate_shutdown();
 }

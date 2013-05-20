@@ -3,7 +3,7 @@
 #include <string.h>
 
 int main(int argc, char** argv) {
-    printf("Testing app running\n");
+    printf("Test app running\n");
 
     if (strcmp(argv[1], "segfault") == 0)
         *(int*)(0x500000000000) = 1;
@@ -11,5 +11,5 @@ int main(int argc, char** argv) {
     if (strcmp(argv[1], "gpf") == 0)
         *(int*)(0x900000000000) = 1;
 
-    printf("Valid commands are: gpf, segfault");
+    printf("Valid commands are: gpf, segfault\n");
 }

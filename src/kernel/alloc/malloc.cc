@@ -99,9 +99,6 @@ void* kmalloc(int size) {
 
 void* kvalloc(int size) {
     return dlmemalign(KCFG_PAGE_SIZE, size);
-    void* ptr = dlmalloc(size + KCFG_PAGE_SIZE);
-    ptr = (void*)(((uint64_t)ptr + KCFG_PAGE_SIZE - 1) / KCFG_PAGE_SIZE * KCFG_PAGE_SIZE);
-    return ptr;
 }
 
 void kmalloc_trim() {
@@ -117,9 +114,6 @@ void  kfree(void* ptr) {
 
 kheap_info_t kmallinfo() {
     kheap_info_t info;
-    //mallinfo mi = dlmallinfo();
-    //info.total_bytes = mi.arena;
-    //info.used_bytes =  mi.uordblks;
     info.total_bytes = KCFG_KERNEL_HEAP_SIZE;
     info.used_bytes =  (uint64_t)hptr - KCFG_KERNEL_HEAP_START;
     return info;

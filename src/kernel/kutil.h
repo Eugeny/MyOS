@@ -40,6 +40,4 @@ void seterr(int err);
 bool haserr();
 int geterr();
 
-//void sout(const char* str);
-
 #endif
