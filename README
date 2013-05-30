@@ -1,0 +1,6 @@
+Building:
+1. Create a VMDK disk image image.vmdk with single MBR FAT32 partition
+2. Install GRUB2 onto it
+3. Install QEMU tools
+4. make deploy
+5. Run your VM
