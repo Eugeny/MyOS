@@ -1,9 +1,10 @@
-Extra files:
-1. Merge with http://www.busybox.net/downloads/busybox-1.21.0.tar.bz2
-
 Building:
 1. Create a VMDK disk image image.vmdk with single MBR FAT32 partition
 2. Install GRUB2 onto it
 3. Install QEMU tools
-4. make deploy
-5. Run your VM
+4. ./build-busybox.sh
+5. make deploy
+6. Run your VM
+7. In GRUB:
+      multiboot /kernel
+      boot
