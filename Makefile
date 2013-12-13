@@ -2,7 +2,7 @@ CC = gcc
 
 LIBS = -L libs libs/librote.a libs/libfat.a libs/uclibc.a
 
-INCLUDES = -I include -I src/kernel
+INCLUDES = -I include -I src/kernel -I rote-0.2.8 -I .
 CFLAGS = -c -g 				\
 	-std=c++0x 				\
 	-DKERNEL 				\
@@ -12,6 +12,7 @@ CFLAGS = -c -g 				\
 	-fno-omit-frame-pointer	\
 	-fno-rtti 				\
 	-ffreestanding 			\
+	-fpermissive \
 	-mno-red-zone 			\
 	-mcmodel=large 			\
 	-mno-3dnow				\
@@ -37,7 +38,7 @@ LDFLAGS = \
 
 ASFLAGS=-felf64
 
-IMAGE=`readlink -f image.vmdk`
+IMAGE=`realpath image.vmdk`
 
 
 SOURCES= \
@@ -99,6 +100,7 @@ SOURCES= \
 	src/kernel/lang/libc/libc-ext.o 			\
 	src/kernel/lang/libc/memcpy.o 				\
 	src/kernel/lang/stubs.o 					\
+	src/kernel/lang/polyfill.o 					\
 
 
 all: $(SOURCES) kernel apps
@@ -110,6 +112,7 @@ clean: umount
 	@rm bin/kernel || true
 
 kernel: $(SOURCES)
+	@mkdir bin || true
 	@echo " LD  " kernel
 	@g++ -o bin/kernel $(LDFLAGS) $(SOURCES) $(LIBS)
 
@@ -131,8 +134,9 @@ apps: crt0
 
 mount: umount
 	@echo "VDI mount"
-	@sudo qemu-nbd -c /dev/nbd0 $(IMAGE)
+	sudo qemu-nbd -c /dev/nbd0 $(IMAGE)
 	@sudo chmod 777 /dev/nbd0
+	@mkdir fs || true 2> /dev/null
 	@sudo mount /dev/nbd0p1 fs
 
 umount:
@@ -144,6 +148,8 @@ deploy: all
 	@make mount
 	@echo " CP  kernel"
 	@sudo cp bin/kernel fs/kernel
+	@sudo mkdir fs/bin || true
+	@sudo mkdir fs/etc || true
 	@sudo cp grub.cfg fs/boot/grub/
 	@sudo cp src/apps/init/init fs/bin/
 	@sudo cp src/apps/test/testapp fs/bin/
@@ -156,7 +162,10 @@ run: deploy
 bochs: deploy
 	bochs -f bochsrc -q
 
-
+install-grub: mount
+	sleep 1
+	sudo umount fs
+	sudo grub-install --root-directory fs --no-floppy --modules="normal part_msdos multiboot fat boot" /dev/nbd0 --recheck
 
 # nano :
 # make CFLAGS="-I ../../uclibc-include" LDFLAGS="-nostdlib -static -L ../../libs" LIBS="../../crt0.o ../../src/kernel/lang/stubs.o -Wl,-static -Wl,-Ttext-segment=0x1000000 -lncurses -luclibc"

@@ -1,0 +1,4 @@
+inject.o: inject.c rote.h roteprivate.h inject_csi.h
+inject_csi.o: inject_csi.c inject_csi.h rote.h roteprivate.h
+rote.o: rote.c rote.h roteprivate.h
+rote_keymap.o: rote_keymap.c rote.h

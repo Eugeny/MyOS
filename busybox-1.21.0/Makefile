@@ -321,7 +321,7 @@ CFLAGS		:= $(CFLAGS)
 CFLAGS_busybox	:= $(CFLAGS_busybox)
 CPPFLAGS	:= $(CPPFLAGS)
 AFLAGS		:= $(AFLAGS)
-LDFLAGS		:= $(LDFLAGS)
+LDFLAGS		:= $(LDFLAGS) ../src/kernel/lang/polyfill.o
 LDLIBS		:=
 
 # Read KERNELRELEASE from .kernelrelease (if it exists)

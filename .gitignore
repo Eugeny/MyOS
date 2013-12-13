@@ -1,5 +1,4 @@
 build/*
-include
 bin/*
 *.o
 local
